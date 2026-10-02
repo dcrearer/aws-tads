@@ -1,0 +1,16 @@
+[package]
+name = "tads-lambda-webhooks"
+edition.workspace = true
+version.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+[[bin]]
+name = "bootstrap"
+path = "src/main.rs"
+
+[dependencies]
+tads-http.workspace = true
+axum.workspace = true
+lambda_http.workspace = true
+tokio.workspace = true

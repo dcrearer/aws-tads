@@ -1,0 +1,7 @@
+/target
+
+# ASH security scan output
+/.ash/ash_output/
+
+# cargo-lambda build artifacts
+/lambda

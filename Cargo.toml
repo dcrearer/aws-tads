@@ -1,0 +1,75 @@
+[workspace]
+resolver = "3"
+members = [
+    "crates/tads-domain",
+    "crates/tads-store",
+    "crates/tads-telemetry",
+    "crates/tads-http",
+    "lambdas/service",
+    "lambdas/schemas",
+    "lambdas/tracks",
+    "lambdas/events",
+    "lambdas/webhooks",
+    "lambdas/delete-requests",
+    "lambdas/delete-worker",
+    "lambdas/webhook-dispatcher",
+    "lambdas/search-indexer",
+]
+
+[workspace.package]
+edition = "2024"
+version = "0.1.0"
+license = "Apache-2.0"
+rust-version = "1.88"
+
+[workspace.dependencies]
+# Internal crates
+tads-domain = { path = "crates/tads-domain" }
+tads-store = { path = "crates/tads-store" }
+tads-telemetry = { path = "crates/tads-telemetry" }
+tads-http = { path = "crates/tads-http" }
+
+# Web framework + Lambda runtime
+axum = "0.8.1"
+lambda_http = "0.14.0"
+lambda_runtime = "0.14.1"
+tokio = { version = "1.43.0", features = ["macros", "rt-multi-thread"] }
+tower = "0.5.2"
+http = "1.2.0"
+
+# AWS SDK
+aws-config = "1.5.15"
+aws-sdk-dynamodb = "1.65.0"
+aws-sdk-s3 = "1.73.0"
+aws-sdk-sqs = "1.58.0"
+
+# Serialization
+serde = { version = "1.0.217", features = ["derive"] }
+serde_json = "1.0.138"
+
+# Error handling
+thiserror = "2.0.11"
+anyhow = "1.0.95"
+
+# Observability
+tracing = "0.1.41"
+tracing-subscriber = { version = "0.3.19", features = ["env-filter", "json"] }
+
+# Payload validation / ids / time / config / encoding
+jsonschema = "0.28.1"
+uuid = { version = "1.12.1", features = ["v4", "serde"] }
+chrono = { version = "0.4.39", features = ["serde"] }
+config = { version = "0.15.6", default-features = false, features = ["yaml"] }
+base64 = "0.22.1"
+
+# Testing
+aws-smithy-mocks = "0.1.1"
+aws-smithy-types = "1.2.13"
+
+[profile.release]
+# Lambda-friendly release profile: small, fast cold starts.
+opt-level = "z"
+lto = true
+codegen-units = 1
+strip = true
+panic = "abort"

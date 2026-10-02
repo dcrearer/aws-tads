@@ -1,0 +1,27 @@
+# cargo-audit configuration.
+#
+# The ignored advisories below are all in TRANSITIVE dependencies pulled in by the current
+# (latest) AWS SDK for Rust release — not by anything this workspace depends on directly, and
+# none has a semver-compatible fix available yet:
+#
+#   RUSTSEC-2026-0258  h2 0.3.27        — via aws-smithy-http-client (hyper 0.14 compat path).
+#                                         Server-side DATA-frame DoS; we are an HTTP client.
+#   RUSTSEC-2026-0104  rustls-webpki    — via hyper-rustls 0.24 (AWS SDK TLS). CRL parsing panic.
+#   RUSTSEC-2026-0098  rustls-webpki    — via hyper-rustls 0.24. Name-constraint handling.
+#   RUSTSEC-2026-0099  rustls-webpki    — via hyper-rustls 0.24. Name-constraint handling.
+#   RUSTSEC-2025-0134  rustls-pemfile   — via hyper-rustls 0.24. Unmaintained (no vuln).
+#   RUSTSEC-2026-0253  lru 0.12.5       — via aws-sdk-s3 (internal cache). use-after-free in pop.
+#   RUSTSEC-2026-0002  lru 0.12.5       — via aws-sdk-s3. Stacked-borrows unsoundness in IterMut.
+#
+# Re-review and remove entries as the AWS SDK bumps these transitives. Direct-dependency
+# advisories must NOT be added here — fix them instead.
+[advisories]
+ignore = [
+    "RUSTSEC-2026-0258",
+    "RUSTSEC-2026-0104",
+    "RUSTSEC-2026-0098",
+    "RUSTSEC-2026-0099",
+    "RUSTSEC-2025-0134",
+    "RUSTSEC-2026-0253",
+    "RUSTSEC-2026-0002",
+]

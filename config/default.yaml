@@ -1,0 +1,26 @@
+# TADS application configuration.
+# Every value is overridable at runtime by env var `TADS__<SECTION>__<KEY>`
+# (double-underscore nesting), which is how each Lambda receives its resource names.
+
+tables:
+  schemas: tads-schemas
+  tracks: tads-tracks
+  events: tads-events
+  webhooks: tads-webhooks
+  delete_requests: tads-delete-requests
+
+# S3 bucket for Event-payload overflow (payloads approaching the DynamoDB item limit).
+overflow_bucket: tads-payload-overflow
+
+# SQS queue the tracks/events handlers enqueue delete-request work onto.
+# Set per-environment via TADS__DELETE_QUEUE_URL.
+delete_queue_url: ""
+
+# Serialized-payload size (bytes) above which an Event payload is offloaded to S3 (360 KiB).
+overflow_threshold_bytes: 368640
+
+service:
+  name: "TADS Reference (Rust)"
+  type: "urn:x-tads:service:reference.rust"
+  api_version: "0.1"
+  service_version: "0.1.0"
