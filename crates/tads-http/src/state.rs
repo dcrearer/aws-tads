@@ -29,10 +29,9 @@ impl AppState {
 
         let aws = aws_config::load_defaults(BehaviorVersion::latest()).await;
         let dynamo = aws_sdk_dynamodb::Client::new(&aws);
-        let s3 = aws_sdk_s3::Client::new(&aws);
         let sqs = aws_sdk_sqs::Client::new(&aws);
 
-        Ok(Self::from_parts(config, store, dynamo, s3, sqs))
+        Ok(Self::from_parts(config, store, dynamo, sqs))
     }
 
     /// Assemble state from explicit clients — the seam tests use with `aws-smithy-mocks`.
@@ -40,7 +39,6 @@ impl AppState {
         config: AppConfig,
         store: StoreConfig,
         dynamo: aws_sdk_dynamodb::Client,
-        s3: aws_sdk_s3::Client,
         sqs: aws_sdk_sqs::Client,
     ) -> Self {
         let service = Service {
@@ -56,10 +54,8 @@ impl AppState {
             tracks: TrackRepo::new(dynamo.clone(), store.tracks_table.clone()),
             events: EventRepo::new(
                 dynamo.clone(),
-                s3,
                 store.events_table.clone(),
-                store.overflow_bucket.clone(),
-                store.overflow_threshold_bytes,
+                store.max_payload_bytes,
             ),
             delete_requests: DeleteRequestRepo::new(
                 dynamo,

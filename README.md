@@ -14,14 +14,15 @@ timeline, validated against the Track's managed Payload Schema.
 Each top-level resource is its own Lambda (independent scaling + isolation), all sharing a set
 of library crates. Event payloads are stored **inline** in DynamoDB and returned directly in
 listings; OpenSearch (fed asynchronously from DynamoDB Streams) provides "search by the data
-itself"; S3 is a transparent overflow for the rare payload approaching DynamoDB's 400 KB limit.
+itself". TADS holds small metadata, so an Event larger than the configured limit is rejected
+with `413` rather than offloaded — large data belongs in TAMS, not TADS.
 
 ```
                        API Gateway HTTP API
    service   schemas   tracks   events   webhooks   delete-requests     (request Lambdas)
       └─────────┴─────────┴── tads-store (DynamoDB repos) ──┴─────────┘
-                         │          │          │
-                     DynamoDB   S3 (overflow)  SQS ─▶ delete-worker
+                         │                     │
+                     DynamoDB                  SQS ─▶ delete-worker
                          │
                     DynamoDB Streams ─┬─▶ webhook-dispatcher ─▶ subscriber URLs
                                       └─▶ search-indexer ─▶ OpenSearch Serverless
@@ -32,7 +33,7 @@ itself"; S3 is a transparent overflow for the rare payload approaching DynamoDB'
 | Crate | Role |
 |-------|------|
 | `tads-domain` | Pure models, the TAI `TimeRange` grammar, JSON-Schema payload validation. No I/O. |
-| `tads-store` | DynamoDB repositories, opaque cursor pagination, S3 payload overflow, SQS enqueue. |
+| `tads-store` | DynamoDB repositories, opaque cursor pagination, Event size-limit enforcement, SQS enqueue. |
 | `tads-telemetry` | `tracing` JSON logs + X-Ray trace-id capture + EMF metrics. |
 | `tads-http` | Central `AppError` → `IntoResponse`, auth extractor, paging headers, config/state, observability middleware, Lambda bootstrap. |
 
@@ -60,7 +61,7 @@ One table per aggregate; all with Streams enabled (`NEW_AND_OLD_IMAGES`).
 |-------|----|----|-------|
 | `tads-schemas` | `schema_id` | — | GSI `external_id-index`. |
 | `tads-tracks` | `track_id` | — | GSI `schema_id-index`, `entity_id-index`. |
-| `tads-events` | `track_id` | `<sortable(start_ns)>#<event_id>` | `start_ns`/`end_ns` numbers for timerange+overlap queries. |
+| `tads-events` | `track_id` | `<sortable(start_ns)>#<event_id>` | `start_ns`/`end_ns` numbers for timerange+overlap queries; Events over `max_payload_bytes` are rejected (413). |
 | `tads-webhooks` | `webhook_id` | — | |
 | `tads-delete-requests` | `request_id` | — | TTL on `expiry`. |
 
@@ -103,4 +104,4 @@ cargo lambda build --release --arm64
 ```
 
 then wire API Gateway routes to each function, create the DynamoDB tables (Streams on), the SQS
-queue, the overflow bucket, and the ADOT layer, and enable Lambda active tracing.
+queue, and the ADOT layer, and enable Lambda active tracing.

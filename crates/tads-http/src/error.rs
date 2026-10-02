@@ -26,6 +26,8 @@ pub enum AppError {
     #[error("{0}")]
     Validation(String),
     #[error("{0}")]
+    PayloadTooLarge(String),
+    #[error("{0}")]
     Internal(String),
 }
 
@@ -37,6 +39,7 @@ impl AppError {
             AppError::Forbidden(_) => StatusCode::FORBIDDEN,
             AppError::Conflict(_) => StatusCode::CONFLICT,
             AppError::Validation(_) => StatusCode::BAD_REQUEST,
+            AppError::PayloadTooLarge(_) => StatusCode::PAYLOAD_TOO_LARGE,
             AppError::Internal(_) => StatusCode::INTERNAL_SERVER_ERROR,
         }
     }
@@ -49,6 +52,7 @@ impl AppError {
             AppError::Forbidden(_) => "forbidden",
             AppError::Conflict(_) => "conflict",
             AppError::Validation(_) => "validation_error",
+            AppError::PayloadTooLarge(_) => "payload_too_large",
             AppError::Internal(_) => "internal_error",
         }
     }
@@ -92,6 +96,7 @@ impl From<StoreError> for AppError {
     fn from(e: StoreError) -> Self {
         match e {
             StoreError::Cursor(_) => AppError::BadRequest(e.to_string()),
+            StoreError::PayloadTooLarge { .. } => AppError::PayloadTooLarge(e.to_string()),
             other => AppError::Internal(other.to_string()),
         }
     }

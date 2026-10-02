@@ -9,15 +9,14 @@ tables:
   webhooks: tads-webhooks
   delete_requests: tads-delete-requests
 
-# S3 bucket for Event-payload overflow (payloads approaching the DynamoDB item limit).
-overflow_bucket: tads-payload-overflow
-
 # SQS queue the tracks/events handlers enqueue delete-request work onto.
 # Set per-environment via TADS__DELETE_QUEUE_URL.
 delete_queue_url: ""
 
-# Serialized-payload size (bytes) above which an Event payload is offloaded to S3 (360 KiB).
-overflow_threshold_bytes: 368640
+# Maximum serialized Event size (bytes, 360 KiB). Larger Events are rejected with 413 —
+# TADS holds small inline metadata; large data belongs in TAMS. Kept under DynamoDB's 400 KB
+# item limit with headroom for the surrounding attributes.
+max_payload_bytes: 368640
 
 service:
   name: "TADS Reference (Rust)"

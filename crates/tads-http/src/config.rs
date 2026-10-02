@@ -9,8 +9,8 @@ use tads_store::StoreConfig;
 
 use crate::error::AppError;
 
-fn default_overflow_threshold() -> usize {
-    StoreConfig::DEFAULT_OVERFLOW_THRESHOLD
+fn default_max_payload_bytes() -> usize {
+    StoreConfig::DEFAULT_MAX_PAYLOAD_BYTES
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -34,10 +34,9 @@ pub struct ServiceInfo {
 #[derive(Debug, Clone, Deserialize)]
 pub struct AppConfig {
     pub tables: Tables,
-    pub overflow_bucket: String,
     pub delete_queue_url: String,
-    #[serde(default = "default_overflow_threshold")]
-    pub overflow_threshold_bytes: usize,
+    #[serde(default = "default_max_payload_bytes")]
+    pub max_payload_bytes: usize,
     pub service: ServiceInfo,
 }
 
@@ -65,9 +64,8 @@ impl AppConfig {
             events_table: self.tables.events.clone(),
             webhooks_table: self.tables.webhooks.clone(),
             delete_requests_table: self.tables.delete_requests.clone(),
-            overflow_bucket: self.overflow_bucket.clone(),
             delete_queue_url: self.delete_queue_url.clone(),
-            overflow_threshold_bytes: self.overflow_threshold_bytes,
+            max_payload_bytes: self.max_payload_bytes,
         }
     }
 }

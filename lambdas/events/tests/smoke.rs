@@ -8,7 +8,6 @@
 use aws_sdk_dynamodb::operation::get_item::GetItemOutput;
 use aws_sdk_dynamodb::operation::put_item::PutItemOutput;
 use aws_sdk_dynamodb::types::AttributeValue;
-use aws_sdk_s3::operation::put_object::PutObjectOutput;
 use aws_sdk_sqs::operation::send_message::SendMessageOutput;
 use aws_smithy_mocks::{RuleMode, mock, mock_client};
 use axum::body::Body;
@@ -29,9 +28,8 @@ fn test_config() -> AppConfig {
             webhooks: "tads-webhooks".into(),
             delete_requests: "tads-delete-requests".into(),
         },
-        overflow_bucket: "tads-overflow".into(),
         delete_queue_url: "https://sqs.local/queue".into(),
-        overflow_threshold_bytes: 360 * 1024,
+        max_payload_bytes: 360 * 1024,
         service: ServiceInfo {
             name: Some("test".into()),
             service_type: "urn:x-tads:service:test".into(),
@@ -84,17 +82,13 @@ fn mock_state() -> AppState {
         [&track_rule, &schema_rule, &put_rule]
     );
 
-    let s3_rule =
-        mock!(aws_sdk_s3::Client::put_object).then_output(|| PutObjectOutput::builder().build());
-    let s3 = mock_client!(aws_sdk_s3, RuleMode::MatchAny, [&s3_rule]);
-
     let sqs_rule = mock!(aws_sdk_sqs::Client::send_message)
         .then_output(|| SendMessageOutput::builder().build());
     let sqs = mock_client!(aws_sdk_sqs, RuleMode::MatchAny, [&sqs_rule]);
 
     let config = test_config();
     let store = config.store_config();
-    AppState::from_parts(config, store, dynamo, s3, sqs)
+    AppState::from_parts(config, store, dynamo, sqs)
 }
 
 #[tokio::test]
@@ -137,6 +131,40 @@ async fn post_events_validates_each_payload() {
 }
 
 #[tokio::test]
+async fn post_oversized_payload_rejected_with_413() {
+    let app = tads_lambda_events::router(mock_state());
+
+    // A payload larger than the 360 KiB max_payload_bytes (schema-valid, just too big).
+    let big_text = "x".repeat(400 * 1024);
+    let body = serde_json::json!([
+        { "timerange": "[0:0_10:0)", "payload": { "text": big_text } }
+    ])
+    .to_string();
+
+    let request = Request::builder()
+        .method("POST")
+        .uri(format!("/tracks/{TRACK_ID}/events"))
+        .header("content-type", "application/json")
+        .body(Body::from(body))
+        .unwrap();
+
+    let response = app.oneshot(request).await.unwrap();
+    assert_eq!(response.status(), 200, "batch POST still returns 200");
+
+    let bytes = axum::body::to_bytes(response.into_body(), usize::MAX)
+        .await
+        .unwrap();
+    let parsed: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
+
+    assert_eq!(parsed["all_successful"], false);
+    let responses = parsed["responses"].as_array().unwrap();
+    assert_eq!(
+        responses[0]["http_status_code"], 413,
+        "oversized payload rejected (belongs in TAMS, not TADS)"
+    );
+}
+
+#[tokio::test]
 async fn get_events_returns_paging_headers() {
     // A track with no events still returns 200 with the X-Paging-* headers.
     let empty_track = serde_json::json!({
@@ -161,16 +189,13 @@ async fn get_events_returns_paging_headers() {
         RuleMode::MatchAny,
         [&track_rule, &query_rule]
     );
-    let s3_rule =
-        mock!(aws_sdk_s3::Client::put_object).then_output(|| PutObjectOutput::builder().build());
-    let s3 = mock_client!(aws_sdk_s3, RuleMode::MatchAny, [&s3_rule]);
     let sqs_rule = mock!(aws_sdk_sqs::Client::send_message)
         .then_output(|| SendMessageOutput::builder().build());
     let sqs = mock_client!(aws_sdk_sqs, RuleMode::MatchAny, [&sqs_rule]);
 
     let config = test_config();
     let store = config.store_config();
-    let state = AppState::from_parts(config, store, dynamo, s3, sqs);
+    let state = AppState::from_parts(config, store, dynamo, sqs);
 
     let request = Request::builder()
         .method("GET")

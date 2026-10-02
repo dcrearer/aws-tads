@@ -7,9 +7,6 @@ pub enum StoreError {
     #[error("dynamodb error: {0}")]
     Dynamo(String),
 
-    #[error("s3 error: {0}")]
-    S3(String),
-
     #[error("serialization error: {0}")]
     Serialization(String),
 
@@ -18,13 +15,13 @@ pub enum StoreError {
 
     #[error("malformed stored item: {0}")]
     Malformed(String),
+
+    #[error("event payload too large: {size} bytes exceeds the {limit}-byte limit")]
+    PayloadTooLarge { size: usize, limit: usize },
 }
 
 impl StoreError {
     pub fn dynamo(e: impl std::fmt::Display) -> Self {
         StoreError::Dynamo(e.to_string())
-    }
-    pub fn s3(e: impl std::fmt::Display) -> Self {
-        StoreError::S3(e.to_string())
     }
 }

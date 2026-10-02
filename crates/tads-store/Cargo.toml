@@ -8,7 +8,6 @@ rust-version.workspace = true
 [dependencies]
 tads-domain.workspace = true
 aws-sdk-dynamodb.workspace = true
-aws-sdk-s3.workspace = true
 aws-sdk-sqs.workspace = true
 serde.workspace = true
 serde_json.workspace = true

@@ -23,7 +23,7 @@ use tads_domain::{
 };
 use tads_http::error::ApiResult;
 use tads_http::{AppError, AppState, PagingHeaders, Principal};
-use tads_store::{EventQuery, PageParams};
+use tads_store::{EventQuery, PageParams, StoreError};
 
 const DELETE_REQUEST_TTL_DAYS: i64 = 7;
 
@@ -152,6 +152,9 @@ async fn process_one(
             id: Some(id),
             error: None,
         },
+        Err(e @ StoreError::PayloadTooLarge { .. }) => {
+            failure(id, 413, "payload_too_large", &e.to_string())
+        }
         Err(e) => failure(id, 500, "internal_error", &e.to_string()),
     }
 }
