@@ -5,3 +5,10 @@
 
 # cargo-lambda build artifacts
 /lambda
+
+# CDK (Python / uv)
+cdk/.venv/
+cdk/cdk.out/
+cdk/__pycache__/
+cdk/**/__pycache__/
+cdk/.pytest_cache/

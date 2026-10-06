@@ -34,6 +34,29 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
+  cdk:
+    name: cdk synth / test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4.2.2
+      - uses: astral-sh/setup-uv@v5.4.2
+      - uses: actions/setup-node@v4.1.0
+        with:
+          node-version: "22"
+      - name: Install CDK CLI
+        run: npm install -g aws-cdk@2
+      - name: Sync deps
+        working-directory: cdk
+        run: uv sync
+      - name: Pytest
+        working-directory: cdk
+        run: uv run pytest -q
+      - name: Synth (placeholder binaries)
+        working-directory: cdk
+        env:
+          CDK_PLACEHOLDER: "1"
+        run: uv run cdk synth --quiet
+
   security-scan:
     name: ASH security scan
     runs-on: ubuntu-latest

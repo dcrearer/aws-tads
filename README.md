@@ -101,11 +101,36 @@ route, and the X-Ray trace id (`_X_AMZN_TRACE_ID`) for cross-Lambda correlation;
 CloudWatch Metrics. The OTLP → ADOT-layer → X-Ray *span export* is enabled when the ADOT Lambda
 layer is provisioned (infra task); the trace-id correlation already works without it.
 
-## Build, test, lint
+## Deployment
+
+Infrastructure is defined as **AWS CDK (Python, uv-managed)** in [`cdk/`](cdk/). It provisions
+the 5 DynamoDB tables (Streams on), the SQS queue + DLQ, the 9 Lambdas (arm64 `provided.al2023`,
+X-Ray active tracing), an HTTP API Gateway behind a **Cognito JWT authorizer**, an **OpenSearch
+Serverless** collection for the search-indexer, least-privilege IAM, and the Streams/SQS
+event-source mappings.
+
+```sh
+# 1. Build the Lambda binaries (one `bootstrap` per function under target/lambda/<name>/)
+cargo lambda build --release --arm64
+
+# 2. Synthesize / test / deploy the stack
+cd cdk
+uv sync
+uv run pytest                       # stack assertions
+uv run cdk synth                    # requires the binaries from step 1
+uv run cdk deploy                   # creates real AWS resources
+```
+
+Each Lambda receives its table/queue/endpoint names as `TADS__*` env vars (the `config` crate's
+env overrides), so no YAML is bundled into the images. To synth without building the binaries
+(CI/validation), set `CDK_PLACEHOLDER=1`. An ADOT layer for OTLP→X-Ray span export is wired when
+`-c adot_layer_arn=<arn>` is supplied.
+
+Build/test/lint for the Rust workspace:
 
 ```sh
 cargo build --release          # release profile is Lambda-tuned (size + cold start)
-cargo test                     # unit tests + the events end-to-end smoke test
+cargo test                     # unit tests + the events/webhooks end-to-end smoke tests
 cargo clippy --all-targets -- -D warnings
 cargo fmt --all --check
 cargo audit                    # advisory check against Cargo.lock
@@ -113,16 +138,3 @@ cargo audit                    # advisory check against Cargo.lock
 
 AWS service mocking in tests uses `aws-smithy-mocks` at the SDK-client level (see
 `lambdas/events/tests/smoke.rs`).
-
-## Deployment
-
-Infrastructure-as-Code is a separate task (not in this repo yet). The Lambdas read all resource
-names from config/env, so no code change is needed when infra lands. Build each function with
-[`cargo lambda`](https://cargo-lambda.info):
-
-```sh
-cargo lambda build --release --arm64
-```
-
-then wire API Gateway routes to each function, create the DynamoDB tables (Streams on), the SQS
-queue, and the ADOT layer, and enable Lambda active tracing.

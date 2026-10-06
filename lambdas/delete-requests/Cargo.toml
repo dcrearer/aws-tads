@@ -6,7 +6,7 @@ license.workspace = true
 rust-version.workspace = true
 
 [[bin]]
-name = "bootstrap"
+name = "delete-requests"
 path = "src/main.rs"
 
 [dependencies]

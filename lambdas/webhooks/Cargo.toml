@@ -9,7 +9,7 @@ rust-version.workspace = true
 path = "src/lib.rs"
 
 [[bin]]
-name = "bootstrap"
+name = "webhooks"
 path = "src/main.rs"
 
 [dependencies]
