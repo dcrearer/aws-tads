@@ -16,13 +16,14 @@ fn router(state: AppState) -> Router {
         .with_state(state)
 }
 
-/// `GET /` — the list of available top-level sub-paths.
+/// `GET /` — the list of available top-level sub-paths (alphabetical, matching the reference
+/// deployments' bare-name form).
 async fn root() -> Json<serde_json::Value> {
     Json(serde_json::json!([
-        "service/",
-        "schemas/",
-        "tracks/",
-        "track-delete-requests/",
+        "schemas",
+        "service",
+        "track-delete-requests",
+        "tracks",
     ]))
 }
 

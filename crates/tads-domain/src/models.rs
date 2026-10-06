@@ -229,12 +229,6 @@ pub enum WebhookStatus {
     Error,
 }
 
-/// Timeline-reference filter on a webhook subscription.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct WebhookTimelineFilter {
-    pub entity_id: Vec<String>,
-}
-
 /// Common webhook subscription fields (`webhook.json`).
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Webhook {
@@ -246,8 +240,14 @@ pub struct Webhook {
     pub schema_ids: Option<Vec<TadsId>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub track_ids: Option<Vec<TadsId>>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub timeline_reference: Option<WebhookTimelineFilter>,
+    /// Timeline-reference filter. The spec (and real deployments) use the flat dotted JSON key
+    /// `timeline_reference.entity_id`, whose value is an array of entity-id URIs.
+    #[serde(
+        rename = "timeline_reference.entity_id",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub timeline_reference_entity_id: Option<Vec<String>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub editable_events: Option<bool>,
     #[serde(default, skip_serializing_if = "Tags::is_empty")]

@@ -219,8 +219,10 @@ pub fn webhook_matches(webhook: &WebhookGet, change: &Change) -> bool {
     {
         return false;
     }
-    if let (Some(filter), Some(eid)) = (&webhook.webhook.timeline_reference, &change.entity_id)
-        && !filter.entity_id.contains(eid)
+    if let (Some(filter), Some(eid)) = (
+        &webhook.webhook.timeline_reference_entity_id,
+        &change.entity_id,
+    ) && !filter.contains(eid)
     {
         return false;
     }
@@ -402,7 +404,7 @@ mod tests {
             events: vec![WebhookEvent::TracksCreated],
             schema_ids: None,
             track_ids: None,
-            timeline_reference: None,
+            timeline_reference_entity_id: None,
             editable_events: None,
             tags: Tags::default(),
         };

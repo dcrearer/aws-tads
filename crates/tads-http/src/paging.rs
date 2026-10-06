@@ -21,7 +21,10 @@ impl PagingHeaders {
 
         if let Some(next) = &page.next_key {
             insert(&mut headers, "X-Paging-NextKey", next);
-            let link = format!("<{base_path}?page={next}>; rel=\"next\"");
+            let link = format!(
+                "<{base_path}?page={next}&limit={}>; rel=\"next\"",
+                page.limit
+            );
             if let Ok(value) = link.parse() {
                 headers.insert(LINK, value);
             }
