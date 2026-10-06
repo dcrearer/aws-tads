@@ -1,28 +1,44 @@
-//! Search-indexer Lambda (DynamoDB-Streams-triggered) — projects TADS metadata into OpenSearch.
-//!
-//! This is what delivers TADS's "search by the data itself" pillar. Phase 2: idempotently
-//! upsert events/tracks/schemas into OpenSearch Serverless (indexing payload content, tags,
-//! timerange/`start_ns`/`end_ns`, `schema_id`, `timeline_reference.entity_id`) and tombstone
-//! deletes. It is strictly downstream of the system-of-record and can be rebuilt from a replay.
-//! Phase 1 is a stub.
+//! Search-indexer binary — wires config/OpenSearch to the [`Indexer`] and consumes the stream.
+
+use std::sync::Arc;
 
 use lambda_runtime::{Error, LambdaEvent, service_fn};
 use serde_json::Value;
-
-#[tracing::instrument(skip_all, fields(handler = "search_indexer"))]
-async fn handler(event: LambdaEvent<Value>) -> Result<(), Error> {
-    let records = event
-        .payload
-        .get("Records")
-        .and_then(Value::as_array)
-        .map(|r| r.len())
-        .unwrap_or(0);
-    tracing::info!(records, "search-indexer invoked (Phase 2 stub)");
-    Ok(())
-}
+use tads_http::AppConfig;
+use tads_lambda_search_indexer::{Indexer, Indices, OpenSearchSink};
 
 #[tokio::main]
 async fn main() -> Result<(), Error> {
     tads_telemetry::init();
-    lambda_runtime::run(service_fn(handler)).await
+
+    let config = AppConfig::load().map_err(|e| Error::from(e.to_string()))?;
+    let endpoint = std::env::var("TADS_OPENSEARCH_ENDPOINT")
+        .map_err(|_| Error::from("TADS_OPENSEARCH_ENDPOINT is not set"))?;
+
+    let sdk = aws_config::load_defaults(aws_config::BehaviorVersion::latest()).await;
+    let sink = OpenSearchSink::new(&endpoint, &sdk).map_err(|e| Error::from(e.to_string()))?;
+    let indices = Indices {
+        schemas: config.tables.schemas.clone(),
+        tracks: config.tables.tracks.clone(),
+        events: config.tables.events.clone(),
+    };
+    let indexer = Arc::new(Indexer::new(sink, indices));
+
+    lambda_runtime::run(service_fn(move |event: LambdaEvent<Value>| {
+        let indexer = indexer.clone();
+        async move {
+            let records = event
+                .payload
+                .get("Records")
+                .and_then(Value::as_array)
+                .cloned()
+                .unwrap_or_default();
+            tracing::info!(records = records.len(), "search-indexer batch received");
+            if let Err(e) = indexer.index_batch(&records).await {
+                tracing::error!(error = %e, "indexing failed");
+            }
+            Ok::<(), Error>(())
+        }
+    }))
+    .await
 }

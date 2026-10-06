@@ -62,8 +62,12 @@ cursor pagination with `X-Paging-*`/`Link` headers, central error handling, obse
   `editable_events`, `timeline_reference.entity_id`, `tags`), POSTs the callback to the
   subscriber `url` with the `api_key_name` header (reqwest), retries, and drives the webhook to
   `error` on persistent failure.
-- **Remaining stubs (no-op):** search-indexer, and the granular property sub-resources
-  (`/tracks/{id}/label`, `/schemas/{id}/tags/{name}`, …).
+- **`search-indexer` — implemented.** DynamoDB-Streams-triggered; maps INSERT/MODIFY→upsert and
+  REMOVE→delete into per-resource OpenSearch indices (events enriched with
+  `track_id`/`start_ns`/`end_ns` for range search), writing via a SigV4-signed OpenSearch
+  (Serverless, `aoss`) client. Reads `TADS_OPENSEARCH_ENDPOINT`.
+- **Remaining (Phase 2 tail):** the granular property sub-resources (`/tracks/{id}/label`,
+  `/schemas/{id}/tags/{name}`, …), then the CDK infra stack.
 
 ## Persistent store (DynamoDB)
 
