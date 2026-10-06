@@ -12,3 +12,6 @@ cdk/cdk.out/
 cdk/__pycache__/
 cdk/**/__pycache__/
 cdk/.pytest_cache/
+
+# macOS
+.DS_Store
