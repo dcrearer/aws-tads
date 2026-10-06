@@ -21,6 +21,14 @@ pub struct WebhookQuery {
     pub tag_exists: Vec<String>,
 }
 
+/// A stored webhook plus its write-only API key value — returned only to the dispatcher, which
+/// needs the secret to set the subscriber's auth header. Never serialized to API clients.
+#[derive(Debug, Clone)]
+pub struct StoredWebhook {
+    pub webhook: WebhookGet,
+    pub api_key_value: Option<String>,
+}
+
 #[derive(Debug, Clone)]
 pub struct WebhookRepo {
     client: Client,
@@ -41,19 +49,26 @@ impl WebhookRepo {
         webhook: &WebhookGet,
         api_key_value: Option<&str>,
     ) -> Result<(), StoreError> {
-        let doc =
-            serde_json::to_string(webhook).map_err(|e| StoreError::Serialization(e.to_string()))?;
+        self.put_stored(&StoredWebhook {
+            webhook: webhook.clone(),
+            api_key_value: api_key_value.map(str::to_string),
+        })
+        .await
+    }
+
+    /// Upsert a webhook together with its API key (used by the dispatcher when it updates status
+    /// without losing the stored secret).
+    pub async fn put_stored(&self, stored: &StoredWebhook) -> Result<(), StoreError> {
+        let doc = serde_json::to_string(&stored.webhook)
+            .map_err(|e| StoreError::Serialization(e.to_string()))?;
         let mut item = HashMap::new();
         item.insert(
             "webhook_id".to_string(),
-            AttributeValue::S(webhook.id.to_string()),
+            AttributeValue::S(stored.webhook.id.to_string()),
         );
         item.insert("doc".to_string(), AttributeValue::S(doc));
-        if let Some(key) = api_key_value {
-            item.insert(
-                "api_key_value".to_string(),
-                AttributeValue::S(key.to_string()),
-            );
+        if let Some(key) = &stored.api_key_value {
+            item.insert("api_key_value".to_string(), AttributeValue::S(key.clone()));
         }
         self.client
             .put_item()
@@ -75,6 +90,39 @@ impl WebhookRepo {
             .await
             .map_err(StoreError::dynamo)?;
         out.item.map(|item| parse_doc(&item)).transpose()
+    }
+
+    /// All webhooks with their API keys — used by the dispatcher to match change events against
+    /// subscriptions. Paginates the scan internally.
+    pub async fn list_all(&self) -> Result<Vec<StoredWebhook>, StoreError> {
+        let mut all = Vec::new();
+        let mut start = None;
+        loop {
+            let out = self
+                .client
+                .scan()
+                .table_name(&self.table)
+                .set_exclusive_start_key(start)
+                .send()
+                .await
+                .map_err(StoreError::dynamo)?;
+            for item in out.items.unwrap_or_default() {
+                let webhook = parse_doc(&item)?;
+                let api_key_value = item
+                    .get("api_key_value")
+                    .and_then(|v| v.as_s().ok())
+                    .cloned();
+                all.push(StoredWebhook {
+                    webhook,
+                    api_key_value,
+                });
+            }
+            match out.last_evaluated_key {
+                Some(k) => start = Some(k),
+                None => break,
+            }
+        }
+        Ok(all)
     }
 
     /// Does a webhook with this id exist? Used to distinguish create (201) from replace (200).

@@ -1,27 +1,43 @@
-//! Webhook-dispatcher Lambda (DynamoDB-Streams-triggered) — delivers event notifications.
-//!
-//! Phase 2: match each change record against webhook subscription filters (`schema_ids`,
-//! `track_ids`, `timeline_reference.entity_id`, `editable_events`, `tags`), POST the relevant
-//! event type to the subscriber `url` with the `api_key_name` header, retry, and drive the
-//! webhook `status` to `error` on repeated failure. Phase 1 is a stub.
+//! Webhook-dispatcher binary — wires config/state to the [`Dispatcher`] and consumes the stream.
 
 use lambda_runtime::{Error, LambdaEvent, service_fn};
 use serde_json::Value;
-
-#[tracing::instrument(skip_all, fields(handler = "webhook_dispatcher"))]
-async fn handler(event: LambdaEvent<Value>) -> Result<(), Error> {
-    let records = event
-        .payload
-        .get("Records")
-        .and_then(Value::as_array)
-        .map(|r| r.len())
-        .unwrap_or(0);
-    tracing::info!(records, "webhook-dispatcher invoked (Phase 2 stub)");
-    Ok(())
-}
+use tads_http::{AppConfig, AppState};
+use tads_lambda_webhook_dispatcher::{Dispatcher, TableRoles};
 
 #[tokio::main]
 async fn main() -> Result<(), Error> {
     tads_telemetry::init();
-    lambda_runtime::run(service_fn(handler)).await
+
+    let config = AppConfig::load().map_err(|e| Error::from(e.to_string()))?;
+    let state = AppState::from_env()
+        .await
+        .map_err(|e| Error::from(e.to_string()))?;
+    let roles = TableRoles {
+        schemas: config.tables.schemas.clone(),
+        tracks: config.tables.tracks.clone(),
+        events: config.tables.events.clone(),
+    };
+    let http = reqwest::Client::builder()
+        .build()
+        .map_err(|e| Error::from(e.to_string()))?;
+    let dispatcher = Dispatcher::new(state.webhooks.clone(), roles, http);
+
+    lambda_runtime::run(service_fn(move |event: LambdaEvent<Value>| {
+        let dispatcher = dispatcher.clone();
+        async move {
+            let records = event
+                .payload
+                .get("Records")
+                .and_then(Value::as_array)
+                .cloned()
+                .unwrap_or_default();
+            tracing::info!(records = records.len(), "webhook-dispatcher batch received");
+            if let Err(e) = dispatcher.dispatch(&records).await {
+                tracing::error!(error = %e, "dispatch failed");
+            }
+            Ok::<(), Error>(())
+        }
+    }))
+    .await
 }

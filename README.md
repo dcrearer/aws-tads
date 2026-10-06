@@ -57,8 +57,13 @@ cursor pagination with `X-Paging-*`/`Link` headers, central error handling, obse
 - **`webhooks` CRUD — implemented.** `POST/GET/PUT/DELETE /service/webhooks[/{id}]` with tag
   filters + pagination. `api_key_value` is write-only (accepted, stored out-of-band, never
   returned).
-- **Remaining stubs (no-op):** webhook-dispatcher, search-indexer, and the granular property
-  sub-resources (`/tracks/{id}/label`, `/schemas/{id}/tags/{name}`, …).
+- **`webhook-dispatcher` — implemented.** DynamoDB-Streams-triggered; maps each change to a
+  webhook event, matches subscription filters (`events`, `track_ids`, `schema_ids`,
+  `editable_events`, `timeline_reference.entity_id`, `tags`), POSTs the callback to the
+  subscriber `url` with the `api_key_name` header (reqwest), retries, and drives the webhook to
+  `error` on persistent failure.
+- **Remaining stubs (no-op):** search-indexer, and the granular property sub-resources
+  (`/tracks/{id}/label`, `/schemas/{id}/tags/{name}`, …).
 
 ## Persistent store (DynamoDB)
 

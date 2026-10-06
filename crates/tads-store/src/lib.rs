@@ -26,4 +26,4 @@ pub use delete_requests::{DeleteRequestRepo, DeleteSortBy};
 pub use events::{EventQuery, EventRepo};
 pub use schemas::{SchemaQuery, SchemaRepo};
 pub use tracks::{TrackQuery, TrackRepo};
-pub use webhooks::{WebhookQuery, WebhookRepo};
+pub use webhooks::{StoredWebhook, WebhookQuery, WebhookRepo};
