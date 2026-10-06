@@ -66,8 +66,13 @@ cursor pagination with `X-Paging-*`/`Link` headers, central error handling, obse
   REMOVE→delete into per-resource OpenSearch indices (events enriched with
   `track_id`/`start_ns`/`end_ns` for range search), writing via a SigV4-signed OpenSearch
   (Serverless, `aoss`) client. Reads `TADS_OPENSEARCH_ENDPOINT`.
-- **Remaining (Phase 2 tail):** the granular property sub-resources (`/tracks/{id}/label`,
-  `/schemas/{id}/tags/{name}`, …), then the CDK infra stack.
+- **Granular property sub-resources — implemented.** `/tags`, `/tags/{name}`, `/description`,
+  `/label` (and `/external_id` for schemas; `/read_only`, `/allow_overlaps`, `/editable_events`
+  for tracks) GET/PUT/DELETE. Track mutations respect `read_only` (except the `read_only` toggle).
+
+**Phase 2 is feature-complete.** Remaining: the **CDK infra stack** (deployment) and two noted
+refinements — an event-id GSI so moving an Event's timerange doesn't orphan the old key, and the
+`allow_overlaps=true` overlap-conflict check.
 
 ## Persistent store (DynamoDB)
 

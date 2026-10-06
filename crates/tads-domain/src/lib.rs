@@ -14,7 +14,7 @@ pub mod validation;
 
 pub use error::DomainError;
 pub use ids::TadsId;
-pub use tags::Tags;
+pub use tags::{TagValue, Tags};
 pub use timerange::{TimeRange, Timestamp};
 pub use validation::{ensure_valid_schema, validate_payload};
 

@@ -1,8 +1,7 @@
 //! Schemas Lambda — Payload Schema registry (`/schemas/**`).
 //!
-//! Phase 1 implements list + CRUD + the immutable `schema` sub-resource. The granular metadata
-//! sub-resources (`/tags/{name}`, `/description`, `/label`, `/external_id`) are 501 stubs filled
-//! in Phase 2.
+//! Implements list + CRUD, the immutable `schema` sub-resource, and the granular metadata
+//! sub-resources (`/tags`, `/tags/{name}`, `/description`, `/label`, `/external_id`).
 
 use std::collections::HashMap;
 
@@ -12,7 +11,7 @@ use axum::http::StatusCode;
 use axum::response::{IntoResponse, Json, Response};
 use axum::routing::get;
 use chrono::Utc;
-use tads_domain::PayloadSchema;
+use tads_domain::{PayloadSchema, TagValue};
 use tads_http::error::ApiResult;
 use tads_http::{AppError, AppState, PagingHeaders, Principal};
 use tads_store::SchemaQuery;
@@ -25,26 +24,26 @@ fn router(state: AppState) -> Router {
             get(get_schema).put(put_schema).delete(delete_schema),
         )
         .route("/schemas/{schema_id}/schema", get(get_schema_body))
-        // Granular metadata sub-resources — Phase 2.
-        .route(
-            "/schemas/{schema_id}/tags",
-            get(todo_501).put(todo_501).delete(todo_501),
-        )
+        .route("/schemas/{schema_id}/tags", get(get_tags))
         .route(
             "/schemas/{schema_id}/tags/{name}",
-            get(todo_501).put(todo_501).delete(todo_501),
+            get(get_tag).put(put_tag).delete(delete_tag),
         )
         .route(
             "/schemas/{schema_id}/description",
-            get(todo_501).put(todo_501).delete(todo_501),
+            get(get_description)
+                .put(put_description)
+                .delete(delete_description),
         )
         .route(
             "/schemas/{schema_id}/label",
-            get(todo_501).put(todo_501).delete(todo_501),
+            get(get_label).put(put_label).delete(delete_label),
         )
         .route(
             "/schemas/{schema_id}/external_id",
-            get(todo_501).put(todo_501).delete(todo_501),
+            get(get_external_id)
+                .put(put_external_id)
+                .delete(delete_external_id),
         )
         .with_state(state)
 }
@@ -150,8 +149,162 @@ async fn delete_schema(
     Ok(StatusCode::NO_CONTENT.into_response())
 }
 
-async fn todo_501() -> StatusCode {
-    StatusCode::NOT_IMPLEMENTED
+// ---- Granular metadata sub-resources ---------------------------------------------------------
+//
+// Each loads the schema (404 if absent), mutates one field, bumps the server-managed `updated`
+// metadata, and re-persists. The immutable `schema` body is never touched here.
+
+async fn load(state: &AppState, id: &str) -> ApiResult<PayloadSchema> {
+    state
+        .schemas
+        .get(id)
+        .await?
+        .ok_or_else(|| AppError::NotFound(format!("schema {id} not found")))
+}
+
+async fn save(state: &AppState, principal: &Principal, mut schema: PayloadSchema) -> ApiResult<()> {
+    schema.updated = Some(Utc::now());
+    schema.updated_by = principal.actor().map(str::to_string);
+    state.schemas.put(&schema).await?;
+    Ok(())
+}
+
+#[tracing::instrument(skip_all, fields(handler = "get_schema_tags", schema_id = %id))]
+async fn get_tags(State(state): State<AppState>, Path(id): Path<String>) -> ApiResult<Response> {
+    Ok(Json(load(&state, &id).await?.tags).into_response())
+}
+
+#[tracing::instrument(skip_all, fields(handler = "get_schema_tag", schema_id = %id))]
+async fn get_tag(
+    State(state): State<AppState>,
+    Path((id, name)): Path<(String, String)>,
+) -> ApiResult<Response> {
+    let schema = load(&state, &id).await?;
+    match schema.tags.0.get(&name) {
+        Some(value) => Ok(Json(value).into_response()),
+        None => Err(AppError::NotFound(format!("tag `{name}` not found"))),
+    }
+}
+
+#[tracing::instrument(skip_all, fields(handler = "put_schema_tag", schema_id = %id))]
+async fn put_tag(
+    State(state): State<AppState>,
+    Path((id, name)): Path<(String, String)>,
+    principal: Principal,
+    Json(value): Json<TagValue>,
+) -> ApiResult<Response> {
+    let mut schema = load(&state, &id).await?;
+    schema.tags.0.insert(name, value);
+    save(&state, &principal, schema).await?;
+    Ok(StatusCode::NO_CONTENT.into_response())
+}
+
+#[tracing::instrument(skip_all, fields(handler = "delete_schema_tag", schema_id = %id))]
+async fn delete_tag(
+    State(state): State<AppState>,
+    Path((id, name)): Path<(String, String)>,
+    principal: Principal,
+) -> ApiResult<Response> {
+    let mut schema = load(&state, &id).await?;
+    schema.tags.0.remove(&name);
+    save(&state, &principal, schema).await?;
+    Ok(StatusCode::NO_CONTENT.into_response())
+}
+
+#[tracing::instrument(skip_all, fields(handler = "get_schema_description", schema_id = %id))]
+async fn get_description(
+    State(state): State<AppState>,
+    Path(id): Path<String>,
+) -> ApiResult<Response> {
+    Ok(Json(load(&state, &id).await?.description).into_response())
+}
+
+#[tracing::instrument(skip_all, fields(handler = "put_schema_description", schema_id = %id))]
+async fn put_description(
+    State(state): State<AppState>,
+    Path(id): Path<String>,
+    principal: Principal,
+    Json(value): Json<String>,
+) -> ApiResult<Response> {
+    let mut schema = load(&state, &id).await?;
+    schema.description = Some(value);
+    save(&state, &principal, schema).await?;
+    Ok(StatusCode::NO_CONTENT.into_response())
+}
+
+#[tracing::instrument(skip_all, fields(handler = "delete_schema_description", schema_id = %id))]
+async fn delete_description(
+    State(state): State<AppState>,
+    Path(id): Path<String>,
+    principal: Principal,
+) -> ApiResult<Response> {
+    let mut schema = load(&state, &id).await?;
+    schema.description = None;
+    save(&state, &principal, schema).await?;
+    Ok(StatusCode::NO_CONTENT.into_response())
+}
+
+#[tracing::instrument(skip_all, fields(handler = "get_schema_label", schema_id = %id))]
+async fn get_label(State(state): State<AppState>, Path(id): Path<String>) -> ApiResult<Response> {
+    Ok(Json(load(&state, &id).await?.label).into_response())
+}
+
+#[tracing::instrument(skip_all, fields(handler = "put_schema_label", schema_id = %id))]
+async fn put_label(
+    State(state): State<AppState>,
+    Path(id): Path<String>,
+    principal: Principal,
+    Json(value): Json<String>,
+) -> ApiResult<Response> {
+    let mut schema = load(&state, &id).await?;
+    schema.label = Some(value);
+    save(&state, &principal, schema).await?;
+    Ok(StatusCode::NO_CONTENT.into_response())
+}
+
+#[tracing::instrument(skip_all, fields(handler = "delete_schema_label", schema_id = %id))]
+async fn delete_label(
+    State(state): State<AppState>,
+    Path(id): Path<String>,
+    principal: Principal,
+) -> ApiResult<Response> {
+    let mut schema = load(&state, &id).await?;
+    schema.label = None;
+    save(&state, &principal, schema).await?;
+    Ok(StatusCode::NO_CONTENT.into_response())
+}
+
+#[tracing::instrument(skip_all, fields(handler = "get_schema_external_id", schema_id = %id))]
+async fn get_external_id(
+    State(state): State<AppState>,
+    Path(id): Path<String>,
+) -> ApiResult<Response> {
+    Ok(Json(load(&state, &id).await?.external_id).into_response())
+}
+
+#[tracing::instrument(skip_all, fields(handler = "put_schema_external_id", schema_id = %id))]
+async fn put_external_id(
+    State(state): State<AppState>,
+    Path(id): Path<String>,
+    principal: Principal,
+    Json(value): Json<String>,
+) -> ApiResult<Response> {
+    let mut schema = load(&state, &id).await?;
+    schema.external_id = Some(value);
+    save(&state, &principal, schema).await?;
+    Ok(StatusCode::NO_CONTENT.into_response())
+}
+
+#[tracing::instrument(skip_all, fields(handler = "delete_schema_external_id", schema_id = %id))]
+async fn delete_external_id(
+    State(state): State<AppState>,
+    Path(id): Path<String>,
+    principal: Principal,
+) -> ApiResult<Response> {
+    let mut schema = load(&state, &id).await?;
+    schema.external_id = None;
+    save(&state, &principal, schema).await?;
+    Ok(StatusCode::NO_CONTENT.into_response())
 }
 
 #[tokio::main]

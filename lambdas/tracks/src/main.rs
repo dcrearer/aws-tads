@@ -1,7 +1,8 @@
 //! Tracks Lambda — Track resources (`/tracks/**`, excluding `/events` which is its own Lambda).
 //!
-//! Phase 1 implements list + get + upsert + async delete. Granular property sub-resources are
-//! 501 stubs (Phase 2). `DELETE /tracks/{id}` enqueues a delete request and returns 202.
+//! Implements list + get + upsert + async delete, plus the granular property sub-resources.
+//! `DELETE /tracks/{id}` enqueues a delete request and returns 202. Mutations are rejected on a
+//! `read_only` track (except toggling `read_only` itself, so it can be unlocked).
 
 use std::collections::HashMap;
 
@@ -11,7 +12,7 @@ use axum::http::{HeaderMap, StatusCode, header::LOCATION};
 use axum::response::{IntoResponse, Json, Response};
 use axum::routing::get;
 use chrono::{Duration, Utc};
-use tads_domain::{DeleteStatus, TadsId, TimeRange, Track, TrackDeleteRequest};
+use tads_domain::{DeleteStatus, TadsId, TagValue, TimeRange, Track, TrackDeleteRequest};
 use tads_http::error::ApiResult;
 use tads_http::{AppError, AppState, PagingHeaders, Principal};
 use tads_store::TrackQuery;
@@ -26,28 +27,32 @@ fn router(state: AppState) -> Router {
             "/tracks/{track_id}",
             get(get_track).put(put_track).delete(delete_track),
         )
-        // Granular property sub-resources — Phase 2.
-        .route("/tracks/{track_id}/tags", get(todo_501))
+        .route("/tracks/{track_id}/tags", get(get_tags))
         .route(
             "/tracks/{track_id}/tags/{name}",
-            get(todo_501).put(todo_501).delete(todo_501),
+            get(get_tag).put(put_tag).delete(delete_tag),
         )
         .route(
             "/tracks/{track_id}/description",
-            get(todo_501).put(todo_501).delete(todo_501),
+            get(get_description)
+                .put(put_description)
+                .delete(delete_description),
         )
         .route(
             "/tracks/{track_id}/label",
-            get(todo_501).put(todo_501).delete(todo_501),
+            get(get_label).put(put_label).delete(delete_label),
         )
-        .route("/tracks/{track_id}/read_only", get(todo_501).put(todo_501))
+        .route(
+            "/tracks/{track_id}/read_only",
+            get(get_read_only).put(put_read_only),
+        )
         .route(
             "/tracks/{track_id}/allow_overlaps",
-            get(todo_501).put(todo_501),
+            get(get_allow_overlaps).put(put_allow_overlaps),
         )
         .route(
             "/tracks/{track_id}/editable_events",
-            get(todo_501).put(todo_501),
+            get(get_editable_events).put(put_editable_events),
         )
         .with_state(state)
 }
@@ -175,8 +180,214 @@ async fn delete_track(
     Ok((StatusCode::ACCEPTED, headers, Json(request)).into_response())
 }
 
-async fn todo_501() -> StatusCode {
-    StatusCode::NOT_IMPLEMENTED
+// ---- Granular property sub-resources ---------------------------------------------------------
+//
+// Each loads the track (404 if absent), mutates one field, bumps `metadata_updated`, and
+// re-persists. Mutations are rejected on a read_only track, except toggling read_only itself.
+
+async fn load(state: &AppState, id: &str) -> ApiResult<Track> {
+    state
+        .tracks
+        .get(id)
+        .await?
+        .ok_or_else(|| AppError::NotFound(format!("track {id} not found")))
+}
+
+/// Persist a metadata mutation. `allow_read_only` permits writing a read_only track (used only by
+/// the read_only toggle, so a locked track can be unlocked).
+async fn save(
+    state: &AppState,
+    principal: &Principal,
+    mut track: Track,
+    was_read_only: bool,
+    allow_read_only: bool,
+) -> ApiResult<()> {
+    if was_read_only && !allow_read_only {
+        return Err(AppError::Forbidden("track is read_only".into()));
+    }
+    track.metadata_updated = Some(Utc::now());
+    track.updated_by = principal.actor().map(str::to_string);
+    state.tracks.put(&track).await?;
+    Ok(())
+}
+
+#[tracing::instrument(skip_all, fields(handler = "get_track_tags", track_id = %id))]
+async fn get_tags(State(state): State<AppState>, Path(id): Path<String>) -> ApiResult<Response> {
+    Ok(Json(load(&state, &id).await?.tags).into_response())
+}
+
+#[tracing::instrument(skip_all, fields(handler = "get_track_tag", track_id = %id))]
+async fn get_tag(
+    State(state): State<AppState>,
+    Path((id, name)): Path<(String, String)>,
+) -> ApiResult<Response> {
+    let track = load(&state, &id).await?;
+    match track.tags.0.get(&name) {
+        Some(value) => Ok(Json(value).into_response()),
+        None => Err(AppError::NotFound(format!("tag `{name}` not found"))),
+    }
+}
+
+#[tracing::instrument(skip_all, fields(handler = "put_track_tag", track_id = %id))]
+async fn put_tag(
+    State(state): State<AppState>,
+    Path((id, name)): Path<(String, String)>,
+    principal: Principal,
+    Json(value): Json<TagValue>,
+) -> ApiResult<Response> {
+    let mut track = load(&state, &id).await?;
+    let ro = track.read_only;
+    track.tags.0.insert(name, value);
+    save(&state, &principal, track, ro, false).await?;
+    Ok(StatusCode::NO_CONTENT.into_response())
+}
+
+#[tracing::instrument(skip_all, fields(handler = "delete_track_tag", track_id = %id))]
+async fn delete_tag(
+    State(state): State<AppState>,
+    Path((id, name)): Path<(String, String)>,
+    principal: Principal,
+) -> ApiResult<Response> {
+    let mut track = load(&state, &id).await?;
+    let ro = track.read_only;
+    track.tags.0.remove(&name);
+    save(&state, &principal, track, ro, false).await?;
+    Ok(StatusCode::NO_CONTENT.into_response())
+}
+
+#[tracing::instrument(skip_all, fields(handler = "get_track_description", track_id = %id))]
+async fn get_description(
+    State(state): State<AppState>,
+    Path(id): Path<String>,
+) -> ApiResult<Response> {
+    Ok(Json(load(&state, &id).await?.description).into_response())
+}
+
+#[tracing::instrument(skip_all, fields(handler = "put_track_description", track_id = %id))]
+async fn put_description(
+    State(state): State<AppState>,
+    Path(id): Path<String>,
+    principal: Principal,
+    Json(value): Json<String>,
+) -> ApiResult<Response> {
+    let mut track = load(&state, &id).await?;
+    let ro = track.read_only;
+    track.description = Some(value);
+    save(&state, &principal, track, ro, false).await?;
+    Ok(StatusCode::NO_CONTENT.into_response())
+}
+
+#[tracing::instrument(skip_all, fields(handler = "delete_track_description", track_id = %id))]
+async fn delete_description(
+    State(state): State<AppState>,
+    Path(id): Path<String>,
+    principal: Principal,
+) -> ApiResult<Response> {
+    let mut track = load(&state, &id).await?;
+    let ro = track.read_only;
+    track.description = None;
+    save(&state, &principal, track, ro, false).await?;
+    Ok(StatusCode::NO_CONTENT.into_response())
+}
+
+#[tracing::instrument(skip_all, fields(handler = "get_track_label", track_id = %id))]
+async fn get_label(State(state): State<AppState>, Path(id): Path<String>) -> ApiResult<Response> {
+    Ok(Json(load(&state, &id).await?.label).into_response())
+}
+
+#[tracing::instrument(skip_all, fields(handler = "put_track_label", track_id = %id))]
+async fn put_label(
+    State(state): State<AppState>,
+    Path(id): Path<String>,
+    principal: Principal,
+    Json(value): Json<String>,
+) -> ApiResult<Response> {
+    let mut track = load(&state, &id).await?;
+    let ro = track.read_only;
+    track.label = Some(value);
+    save(&state, &principal, track, ro, false).await?;
+    Ok(StatusCode::NO_CONTENT.into_response())
+}
+
+#[tracing::instrument(skip_all, fields(handler = "delete_track_label", track_id = %id))]
+async fn delete_label(
+    State(state): State<AppState>,
+    Path(id): Path<String>,
+    principal: Principal,
+) -> ApiResult<Response> {
+    let mut track = load(&state, &id).await?;
+    let ro = track.read_only;
+    track.label = None;
+    save(&state, &principal, track, ro, false).await?;
+    Ok(StatusCode::NO_CONTENT.into_response())
+}
+
+#[tracing::instrument(skip_all, fields(handler = "get_track_read_only", track_id = %id))]
+async fn get_read_only(
+    State(state): State<AppState>,
+    Path(id): Path<String>,
+) -> ApiResult<Response> {
+    Ok(Json(load(&state, &id).await?.read_only).into_response())
+}
+
+#[tracing::instrument(skip_all, fields(handler = "put_track_read_only", track_id = %id))]
+async fn put_read_only(
+    State(state): State<AppState>,
+    Path(id): Path<String>,
+    principal: Principal,
+    Json(value): Json<bool>,
+) -> ApiResult<Response> {
+    let mut track = load(&state, &id).await?;
+    track.read_only = value;
+    // The read_only toggle may always be written (so a locked track can be unlocked).
+    save(&state, &principal, track, false, true).await?;
+    Ok(StatusCode::NO_CONTENT.into_response())
+}
+
+#[tracing::instrument(skip_all, fields(handler = "get_track_allow_overlaps", track_id = %id))]
+async fn get_allow_overlaps(
+    State(state): State<AppState>,
+    Path(id): Path<String>,
+) -> ApiResult<Response> {
+    Ok(Json(load(&state, &id).await?.allow_overlaps).into_response())
+}
+
+#[tracing::instrument(skip_all, fields(handler = "put_track_allow_overlaps", track_id = %id))]
+async fn put_allow_overlaps(
+    State(state): State<AppState>,
+    Path(id): Path<String>,
+    principal: Principal,
+    Json(value): Json<bool>,
+) -> ApiResult<Response> {
+    let mut track = load(&state, &id).await?;
+    let ro = track.read_only;
+    // NOTE: setting allow_overlaps=true while overlapping Events already exist should 400; that
+    // overlap scan is a follow-up (needs an events query here).
+    track.allow_overlaps = value;
+    save(&state, &principal, track, ro, false).await?;
+    Ok(StatusCode::NO_CONTENT.into_response())
+}
+
+#[tracing::instrument(skip_all, fields(handler = "get_track_editable_events", track_id = %id))]
+async fn get_editable_events(
+    State(state): State<AppState>,
+    Path(id): Path<String>,
+) -> ApiResult<Response> {
+    Ok(Json(load(&state, &id).await?.editable_events).into_response())
+}
+
+#[tracing::instrument(skip_all, fields(handler = "put_track_editable_events", track_id = %id))]
+async fn put_editable_events(
+    State(state): State<AppState>,
+    Path(id): Path<String>,
+    principal: Principal,
+    Json(value): Json<bool>,
+) -> ApiResult<Response> {
+    let mut track = load(&state, &id).await?;
+    let ro = track.read_only;
+    track.editable_events = value;
+    save(&state, &principal, track, ro, false).await?;
+    Ok(StatusCode::NO_CONTENT.into_response())
 }
 
 #[tokio::main]
