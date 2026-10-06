@@ -4,15 +4,21 @@ use serde_json::Value;
 
 use crate::error::DomainError;
 
-/// Validate `payload` against the JSON Schema `schema`.
+/// A compiled JSON Schema validator, reusable across many payloads.
 ///
-/// Returns [`DomainError::InvalidSchema`] if `schema` itself is not a usable JSON Schema, or
-/// [`DomainError::PayloadValidation`] (with the collected violations) if the payload does not
-/// conform. Used by the events handler before persisting a POSTed Event.
-pub fn validate_payload(payload: &Value, schema: &Value) -> Result<(), DomainError> {
-    let validator =
-        jsonschema::validator_for(schema).map_err(|e| DomainError::InvalidSchema(e.to_string()))?;
+/// Compiling a schema is ~150× more expensive than validating one payload against an
+/// already-compiled validator, so batch paths (e.g. a multi-Event POST, all against one Track's
+/// schema) should [`compile_schema`] once and [`validate_with`] per payload rather than calling
+/// [`validate_payload`] in a loop.
+pub type PayloadValidator = jsonschema::Validator;
 
+/// Compile a JSON Schema into a reusable [`PayloadValidator`].
+pub fn compile_schema(schema: &Value) -> Result<PayloadValidator, DomainError> {
+    jsonschema::validator_for(schema).map_err(|e| DomainError::InvalidSchema(e.to_string()))
+}
+
+/// Validate `payload` against an already-compiled validator, collecting any violations.
+pub fn validate_with(validator: &PayloadValidator, payload: &Value) -> Result<(), DomainError> {
     let errors: Vec<String> = validator
         .iter_errors(payload)
         .map(|e| e.to_string())
@@ -22,6 +28,14 @@ pub fn validate_payload(payload: &Value, schema: &Value) -> Result<(), DomainErr
     } else {
         Err(DomainError::PayloadValidation(errors.join("; ")))
     }
+}
+
+/// Validate `payload` against the JSON Schema `schema`, compiling the schema on the fly.
+///
+/// Convenience for one-off validation. In a loop over many payloads sharing one schema, prefer
+/// [`compile_schema`] + [`validate_with`] to avoid recompiling per payload.
+pub fn validate_payload(payload: &Value, schema: &Value) -> Result<(), DomainError> {
+    validate_with(&compile_schema(schema)?, payload)
 }
 
 /// Ensure `schema` is itself a usable JSON Schema (compiles). Used when a Payload Schema is

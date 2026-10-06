@@ -18,8 +18,9 @@ use axum::routing::get;
 use chrono::{Duration, Utc};
 use serde::Deserialize;
 use tads_domain::{
-    DeleteStatus, ErrorBody, EventPostResponse, EventPostResponses, PayloadSchema, TadsId,
-    TimeRange, Track, TrackDeleteRequest, TrackEvent, TrackEventPost, validate_payload,
+    DeleteStatus, ErrorBody, EventPostResponse, EventPostResponses, PayloadSchema,
+    PayloadValidator, TadsId, TimeRange, Track, TrackDeleteRequest, TrackEvent, TrackEventPost,
+    compile_schema, validate_with,
 };
 use tads_http::error::ApiResult;
 use tads_http::{AppError, AppState, PagingHeaders, Principal};
@@ -93,6 +94,9 @@ async fn post_events(
         return Err(AppError::Forbidden("track is read_only".into()));
     }
     let schema = load_schema(&state, &track).await?;
+    // Compile the Track's Payload Schema ONCE per request and reuse it for every Event in the
+    // batch — compiling per event is ~155x more expensive (see crates/*/benches).
+    let validator = compile_schema(&schema.schema)?;
 
     let incoming = match body {
         PostBody::One(e) => vec![e],
@@ -105,7 +109,7 @@ async fn post_events(
     let now = Utc::now();
     let mut responses = Vec::with_capacity(incoming.len());
     for post in incoming {
-        responses.push(process_one(&state, &track, &schema, post, now).await);
+        responses.push(process_one(&state, &track, &validator, post, now).await);
     }
 
     let all_successful = responses
@@ -122,14 +126,14 @@ async fn post_events(
 async fn process_one(
     state: &AppState,
     track: &Track,
-    schema: &PayloadSchema,
+    validator: &PayloadValidator,
     post: TrackEventPost,
     now: chrono::DateTime<Utc>,
 ) -> EventPostResponse {
     let id = post.id.unwrap_or_else(TadsId::new_v4);
 
-    // Payload must conform to the Track's Payload Schema.
-    if let Err(e) = validate_payload(&post.payload, &schema.schema) {
+    // Payload must conform to the Track's Payload Schema (validator compiled once per request).
+    if let Err(e) = validate_with(validator, &post.payload) {
         return failure(id, 400, "validation_error", &e.to_string());
     }
 
