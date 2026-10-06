@@ -1,0 +1,1726 @@
+[
+  {
+    "id": "52b442fc-0a9d-516a-82b5-e4cfe1ac2193",
+    "label": "Monitoring status",
+    "description": "A heartbeat proving compliance-store was actively watching the stream, whether or not anything happened (design brief: 'receiving nothing' and 'not started' must be distinguishable, and today they are not). started/monitoring/stopped lifecycle -- see the schema's own `description` for the full contract.",
+    "created_by": "service-account-compliance",
+    "timeline_reference": {
+      "entity_id": "https://mxl-tams.phrame.live/flows/34e6ddd5-696a-45bb-9193-ebf8a1d18838"
+    },
+    "tags": {},
+    "metadata_version": "1",
+    "created": "2026-10-06T13:32:42.809172Z",
+    "events_updated": "2026-10-06T19:11:42.911378Z",
+    "read_only": false,
+    "allow_overlaps": false,
+    "editable_events": true,
+    "schema_id": "3d394055-f8ff-565e-add4-32428a010500"
+  },
+  {
+    "id": "fe19d35f-3245-505b-8bca-6317d9fa0e81",
+    "label": "Programme events (DVB EIT)",
+    "description": "Programmes as the broadcaster declared them in the DVB Event Information Table -- the track that answers 'what was on air at 14:00' without demuxing the recording. Carries BOTH the declared start (editorial truth) and the observed instant (evidential truth); the event's timerange is the observed one. See the schema's own description for why.",
+    "created_by": "service-account-compliance",
+    "timeline_reference": {
+      "entity_id": "https://mxl-tams.phrame.live/flows/34e6ddd5-696a-45bb-9193-ebf8a1d18838"
+    },
+    "tags": {},
+    "metadata_version": "1",
+    "created": "2026-10-06T13:32:42.794507Z",
+    "read_only": false,
+    "allow_overlaps": false,
+    "editable_events": true,
+    "schema_id": "3819375c-fe08-597b-bf3a-4b439a2cf667"
+  },
+  {
+    "id": "71835d13-957b-53e6-aafe-e8d24bbc5311",
+    "label": "Subtitle/teletext text index",
+    "description": "A searchable text index of distinct captions, first-appearance-wins against a bounded dedup window. No producer yet -- plugins/tsduck has no teletext demux (see the brief's 'Not in this MR').",
+    "created_by": "service-account-compliance",
+    "timeline_reference": {
+      "entity_id": "https://mxl-tams.phrame.live/flows/34e6ddd5-696a-45bb-9193-ebf8a1d18838"
+    },
+    "tags": {},
+    "metadata_version": "1",
+    "created": "2026-10-06T13:32:42.781006Z",
+    "read_only": false,
+    "allow_overlaps": false,
+    "editable_events": true,
+    "schema_id": "7392a63c-91be-5a71-8672-f587a142056a"
+  },
+  {
+    "id": "c8cebbb6-6347-5922-b374-158c19b1ea27",
+    "label": "Recording gaps",
+    "description": "Discontinuities in the recorded TAMS flow, detected from consecutive segment timeranges (design sec 9: a correctness requirement, not telemetry).",
+    "created_by": "service-account-compliance",
+    "timeline_reference": {
+      "entity_id": "https://mxl-tams.phrame.live/flows/34e6ddd5-696a-45bb-9193-ebf8a1d18838"
+    },
+    "tags": {},
+    "metadata_version": "1",
+    "created": "2026-10-06T13:32:42.765143Z",
+    "events_updated": "2026-10-06T14:12:16.622420Z",
+    "read_only": false,
+    "allow_overlaps": false,
+    "editable_events": true,
+    "schema_id": "33cf26ce-47fd-5d3c-95a2-eab8fc249a4b"
+  },
+  {
+    "id": "f0fe6745-5b10-533e-8d12-0410ba820338",
+    "label": "TR 101 290 events",
+    "description": "TR 101 290 transport-stream fault counter increments, from plugins/tsduck's Tr101290Collector via the estate's MQTT stats convention.",
+    "created_by": "service-account-compliance",
+    "timeline_reference": {
+      "entity_id": "https://mxl-tams.phrame.live/flows/34e6ddd5-696a-45bb-9193-ebf8a1d18838"
+    },
+    "tags": {},
+    "metadata_version": "1",
+    "created": "2026-10-06T13:32:42.750044Z",
+    "events_updated": "2026-10-06T14:11:35.183439Z",
+    "read_only": false,
+    "allow_overlaps": true,
+    "editable_events": true,
+    "schema_id": "38e84ec5-f8bb-559e-9fb2-b70d7e34aafb"
+  },
+  {
+    "id": "13aeff64-89b3-5f22-8966-a6fe893223a4",
+    "label": "Timing health",
+    "description": "How far the PCR->TAI mapping could be trusted, one event per interval, written whether anything changed or not. Stamped from the system clock and never from the timeline it reports on -- see the schema description for why that distinction is the whole point.",
+    "created_by": "service-account-compliance",
+    "timeline_reference": {
+      "entity_id": "https://mxl-tams.phrame.live/flows/34e6ddd5-696a-45bb-9193-ebf8a1d18838"
+    },
+    "tags": {},
+    "metadata_version": "1",
+    "created": "2026-10-06T13:32:42.725293Z",
+    "read_only": false,
+    "allow_overlaps": false,
+    "editable_events": true,
+    "schema_id": "4f8395f9-d392-50c3-bf1f-48019eb25b9a"
+  },
+  {
+    "id": "08db188f-f2eb-5e8b-91ea-d7a2e4c17e21",
+    "label": "Subtitle/teletext text index",
+    "description": "A searchable text index of distinct captions, first-appearance-wins against a bounded dedup window. No producer yet -- plugins/tsduck has no teletext demux (see the brief's 'Not in this MR').",
+    "created_by": "service-account-compliance",
+    "timeline_reference": {
+      "entity_id": "https://mxl-tams.phrame.live/flows/b6e140c7-d4e7-4000-bee1-8e70ceb74533"
+    },
+    "tags": {},
+    "metadata_version": "1",
+    "created": "2026-10-03T10:15:57.898621Z",
+    "read_only": false,
+    "allow_overlaps": false,
+    "editable_events": true,
+    "schema_id": "c9fce093-a410-5155-aa59-c5b549e0bf0b"
+  },
+  {
+    "id": "fb622586-2d65-599a-ac36-a6ec6cfaf9b6",
+    "label": "Subtitle/teletext text index",
+    "description": "A searchable text index of distinct captions, first-appearance-wins against a bounded dedup window. No producer yet -- plugins/tsduck has no teletext demux (see the brief's 'Not in this MR').",
+    "created_by": "service-account-compliance",
+    "timeline_reference": {
+      "entity_id": "https://mxl-tams.phrame.live/flows/4f9c5776-2ed5-4899-808f-d58fcc6b5896"
+    },
+    "tags": {},
+    "metadata_version": "1",
+    "created": "2026-10-03T10:15:52.563109Z",
+    "read_only": false,
+    "allow_overlaps": false,
+    "editable_events": true,
+    "schema_id": "c9fce093-a410-5155-aa59-c5b549e0bf0b"
+  },
+  {
+    "id": "66fc6839-9afe-5e28-b1e2-cf3061619e67",
+    "label": "Subtitle/teletext text index",
+    "description": "A searchable text index of distinct captions, first-appearance-wins against a bounded dedup window. No producer yet -- plugins/tsduck has no teletext demux (see the brief's 'Not in this MR').",
+    "created_by": "service-account-compliance",
+    "timeline_reference": {
+      "entity_id": "https://mxl-tams.phrame.live/flows/0be86180-b117-419e-b936-e613c578c663"
+    },
+    "tags": {},
+    "metadata_version": "1",
+    "created": "2026-10-03T10:15:47.329766Z",
+    "read_only": false,
+    "allow_overlaps": false,
+    "editable_events": true,
+    "schema_id": "c9fce093-a410-5155-aa59-c5b549e0bf0b"
+  },
+  {
+    "id": "9950c5ea-241c-5ddf-be9e-4f8f0a7ad5fc",
+    "label": "Subtitle/teletext text index",
+    "description": "A searchable text index of distinct captions, first-appearance-wins against a bounded dedup window. No producer yet -- plugins/tsduck has no teletext demux (see the brief's 'Not in this MR').",
+    "created_by": "service-account-compliance",
+    "timeline_reference": {
+      "entity_id": "https://mxl-tams.phrame.live/flows/912d1c97-11a8-4839-aa37-4f38e8c11059"
+    },
+    "tags": {},
+    "metadata_version": "1",
+    "created": "2026-10-03T10:15:41.729427Z",
+    "read_only": false,
+    "allow_overlaps": false,
+    "editable_events": true,
+    "schema_id": "c9fce093-a410-5155-aa59-c5b549e0bf0b"
+  },
+  {
+    "id": "6cb6144d-9093-5931-8034-8fd8667bb575",
+    "label": "Subtitle/teletext text index",
+    "description": "A searchable text index of distinct captions, first-appearance-wins against a bounded dedup window. No producer yet -- plugins/tsduck has no teletext demux (see the brief's 'Not in this MR').",
+    "created_by": "service-account-compliance",
+    "updated_by": "service-account-compliance",
+    "timeline_reference": {
+      "entity_id": "https://mxl-tams.phrame.live/flows/34f13ae3-9355-4f23-a92c-67c716e23360"
+    },
+    "tags": {},
+    "metadata_version": "1",
+    "created": "2026-10-03T10:15:33.909986Z",
+    "metadata_updated": "2026-10-04T22:41:14.008947Z",
+    "events_updated": "2026-10-06T19:12:07.231161Z",
+    "read_only": false,
+    "allow_overlaps": false,
+    "editable_events": true,
+    "schema_id": "c9fce093-a410-5155-aa59-c5b549e0bf0b"
+  },
+  {
+    "id": "898c51e7-9c8f-525f-b3a6-74dfe31134de",
+    "label": "Subtitle/teletext text index",
+    "description": "A searchable text index of distinct captions, first-appearance-wins against a bounded dedup window. No producer yet -- plugins/tsduck has no teletext demux (see the brief's 'Not in this MR').",
+    "created_by": "service-account-compliance",
+    "timeline_reference": {
+      "entity_id": "https://mxl-tams.phrame.live/flows/9578252d-8479-4315-b3e4-41721da52071"
+    },
+    "tags": {},
+    "metadata_version": "1",
+    "created": "2026-10-03T10:14:51.030904Z",
+    "events_updated": "2026-10-06T19:12:08.612627Z",
+    "read_only": false,
+    "allow_overlaps": false,
+    "editable_events": true,
+    "schema_id": "c9fce093-a410-5155-aa59-c5b549e0bf0b"
+  },
+  {
+    "id": "c0a3f59d-9c3a-5455-9924-844259f1a488",
+    "label": "Subtitle/teletext text index",
+    "description": "A searchable text index of distinct captions, first-appearance-wins against a bounded dedup window. No producer yet -- plugins/tsduck has no teletext demux (see the brief's 'Not in this MR').",
+    "created_by": "service-account-compliance",
+    "timeline_reference": {
+      "entity_id": "https://mxl-tams.phrame.live/flows/b1432aff-a353-4f03-b44f-f16e6e53c91b"
+    },
+    "tags": {},
+    "metadata_version": "1",
+    "created": "2026-10-03T10:14:41.738357Z",
+    "events_updated": "2026-10-06T19:12:05.073036Z",
+    "read_only": false,
+    "allow_overlaps": false,
+    "editable_events": true,
+    "schema_id": "c9fce093-a410-5155-aa59-c5b549e0bf0b"
+  },
+  {
+    "id": "7cf97cb6-7b23-52d1-8223-93ffcf7e7f16",
+    "label": "Subtitle/teletext text index",
+    "description": "A searchable text index of distinct captions, first-appearance-wins against a bounded dedup window. No producer yet -- plugins/tsduck has no teletext demux (see the brief's 'Not in this MR').",
+    "created_by": "service-account-compliance",
+    "timeline_reference": {
+      "entity_id": "https://mxl-tams.phrame.live/flows/2a46ace7-0ff8-49c0-94ec-6de51cbf462a"
+    },
+    "tags": {},
+    "metadata_version": "1",
+    "created": "2026-10-03T10:14:32.707206Z",
+    "events_updated": "2026-10-06T19:12:05.073302Z",
+    "read_only": false,
+    "allow_overlaps": false,
+    "editable_events": true,
+    "schema_id": "c9fce093-a410-5155-aa59-c5b549e0bf0b"
+  },
+  {
+    "id": "9909c5d7-bbcc-5c34-a287-6a160cf93ce7",
+    "label": "Timing health",
+    "description": "How far the PCR->TAI mapping could be trusted, one event per interval, written whether anything changed or not. Stamped from the system clock and never from the timeline it reports on -- see the schema description for why that distinction is the whole point.",
+    "created_by": "service-account-compliance",
+    "updated_by": "service-account-compliance",
+    "timeline_reference": {
+      "entity_id": "https://mxl-tams.phrame.live/flows/2a46ace7-0ff8-49c0-94ec-6de51cbf462a"
+    },
+    "tags": {},
+    "metadata_version": "1",
+    "created": "2026-09-30T21:38:00.719693Z",
+    "metadata_updated": "2026-10-05T13:39:47.201415Z",
+    "read_only": false,
+    "allow_overlaps": false,
+    "editable_events": true,
+    "schema_id": "4f8395f9-d392-50c3-bf1f-48019eb25b9a"
+  },
+  {
+    "id": "aadfc95c-8163-5dfa-ba43-4b69c8228325",
+    "label": "Timing health",
+    "description": "How far the PCR->TAI mapping could be trusted, one event per interval, written whether anything changed or not. Stamped from the system clock and never from the timeline it reports on -- see the schema description for why that distinction is the whole point.",
+    "created_by": "service-account-compliance",
+    "updated_by": "service-account-compliance",
+    "timeline_reference": {
+      "entity_id": "https://mxl-tams.phrame.live/flows/34f13ae3-9355-4f23-a92c-67c716e23360"
+    },
+    "tags": {},
+    "metadata_version": "1",
+    "created": "2026-09-30T21:37:06.736108Z",
+    "metadata_updated": "2026-10-05T14:11:18.683405Z",
+    "read_only": false,
+    "allow_overlaps": false,
+    "editable_events": true,
+    "schema_id": "4f8395f9-d392-50c3-bf1f-48019eb25b9a"
+  },
+  {
+    "id": "9446bf87-b6b9-5bfc-aee1-dd7334545756",
+    "label": "Timing health",
+    "description": "How far the PCR->TAI mapping could be trusted, one event per interval, written whether anything changed or not. Stamped from the system clock and never from the timeline it reports on -- see the schema description for why that distinction is the whole point.",
+    "created_by": "service-account-compliance",
+    "updated_by": "service-account-compliance",
+    "timeline_reference": {
+      "entity_id": "https://mxl-tams.phrame.live/flows/9578252d-8479-4315-b3e4-41721da52071"
+    },
+    "tags": {},
+    "metadata_version": "1",
+    "created": "2026-09-30T21:36:12.167698Z",
+    "metadata_updated": "2026-10-05T14:11:10.135281Z",
+    "read_only": false,
+    "allow_overlaps": false,
+    "editable_events": true,
+    "schema_id": "4f8395f9-d392-50c3-bf1f-48019eb25b9a"
+  },
+  {
+    "id": "57f244ce-6082-54f3-a110-54754fd2acbc",
+    "label": "Timing health",
+    "description": "How far the PCR->TAI mapping could be trusted, one event per interval, written whether anything changed or not. Stamped from the system clock and never from the timeline it reports on -- see the schema description for why that distinction is the whole point.",
+    "created_by": "service-account-compliance",
+    "updated_by": "service-account-compliance",
+    "timeline_reference": {
+      "entity_id": "https://mxl-tams.phrame.live/flows/b1432aff-a353-4f03-b44f-f16e6e53c91b"
+    },
+    "tags": {},
+    "metadata_version": "1",
+    "created": "2026-09-30T21:35:18.994855Z",
+    "metadata_updated": "2026-10-05T14:11:01.531454Z",
+    "read_only": false,
+    "allow_overlaps": false,
+    "editable_events": true,
+    "schema_id": "4f8395f9-d392-50c3-bf1f-48019eb25b9a"
+  },
+  {
+    "id": "4e41f313-26e0-5a90-a185-3ae49f6134d9",
+    "label": "Timing health",
+    "description": "How far the PCR->TAI mapping could be trusted, one event per interval, written whether anything changed or not. Stamped from the system clock and never from the timeline it reports on -- see the schema description for why that distinction is the whole point.",
+    "created_by": "service-account-compliance",
+    "updated_by": "service-account-compliance",
+    "timeline_reference": {
+      "entity_id": "https://mxl-tams.phrame.live/flows/b6e140c7-d4e7-4000-bee1-8e70ceb74533"
+    },
+    "tags": {},
+    "metadata_version": "1",
+    "created": "2026-09-30T21:34:27.059797Z",
+    "metadata_updated": "2026-10-06T10:40:18.140684Z",
+    "read_only": false,
+    "allow_overlaps": false,
+    "editable_events": true,
+    "schema_id": "4f8395f9-d392-50c3-bf1f-48019eb25b9a"
+  },
+  {
+    "id": "340d3271-eae1-5b48-bd4f-f23c20d0dab8",
+    "label": "Timing health",
+    "description": "How far the PCR->TAI mapping could be trusted, one event per interval, written whether anything changed or not. Stamped from the system clock and never from the timeline it reports on -- see the schema description for why that distinction is the whole point.",
+    "created_by": "service-account-compliance",
+    "updated_by": "service-account-compliance",
+    "timeline_reference": {
+      "entity_id": "https://mxl-tams.phrame.live/flows/4f9c5776-2ed5-4899-808f-d58fcc6b5896"
+    },
+    "tags": {},
+    "metadata_version": "1",
+    "created": "2026-09-30T21:33:36.653524Z",
+    "metadata_updated": "2026-10-06T10:40:13.300959Z",
+    "read_only": false,
+    "allow_overlaps": false,
+    "editable_events": true,
+    "schema_id": "4f8395f9-d392-50c3-bf1f-48019eb25b9a"
+  },
+  {
+    "id": "7e6e6bd8-2cbf-5247-bfec-1e74cb726d59",
+    "label": "Timing health",
+    "description": "How far the PCR->TAI mapping could be trusted, one event per interval, written whether anything changed or not. Stamped from the system clock and never from the timeline it reports on -- see the schema description for why that distinction is the whole point.",
+    "created_by": "service-account-compliance",
+    "updated_by": "service-account-compliance",
+    "timeline_reference": {
+      "entity_id": "https://mxl-tams.phrame.live/flows/0be86180-b117-419e-b936-e613c578c663"
+    },
+    "tags": {},
+    "metadata_version": "1",
+    "created": "2026-09-30T21:32:46.124673Z",
+    "metadata_updated": "2026-10-06T10:40:07.960157Z",
+    "read_only": false,
+    "allow_overlaps": false,
+    "editable_events": true,
+    "schema_id": "4f8395f9-d392-50c3-bf1f-48019eb25b9a"
+  },
+  {
+    "id": "a8b88cd1-7a3a-560e-bfa7-086260098bfd",
+    "label": "Timing health",
+    "description": "How far the PCR->TAI mapping could be trusted, one event per interval, written whether anything changed or not. Stamped from the system clock and never from the timeline it reports on -- see the schema description for why that distinction is the whole point.",
+    "created_by": "service-account-compliance",
+    "updated_by": "service-account-compliance",
+    "timeline_reference": {
+      "entity_id": "https://mxl-tams.phrame.live/flows/912d1c97-11a8-4839-aa37-4f38e8c11059"
+    },
+    "tags": {},
+    "metadata_version": "1",
+    "created": "2026-09-30T21:31:20.918950Z",
+    "metadata_updated": "2026-10-06T10:40:03.240968Z",
+    "read_only": false,
+    "allow_overlaps": false,
+    "editable_events": true,
+    "schema_id": "4f8395f9-d392-50c3-bf1f-48019eb25b9a"
+  },
+  {
+    "id": "284ee17c-a0e1-504f-9179-c13830017eba",
+    "label": "Monitoring status",
+    "description": "A heartbeat proving compliance-store was actively watching the stream, whether or not anything happened (design brief: 'receiving nothing' and 'not started' must be distinguishable, and today they are not). started/monitoring/stopped lifecycle -- see the schema's own `description` for the full contract.",
+    "created_by": "service-account-compliance",
+    "updated_by": "service-account-compliance",
+    "timeline_reference": {
+      "entity_id": "https://mxl-tams.phrame.live/flows/2a46ace7-0ff8-49c0-94ec-6de51cbf462a"
+    },
+    "tags": {},
+    "metadata_version": "1",
+    "created": "2026-09-29T16:59:55.322268Z",
+    "metadata_updated": "2026-10-05T13:39:48.421800Z",
+    "events_updated": "2026-10-06T19:11:48.561229Z",
+    "read_only": false,
+    "allow_overlaps": false,
+    "editable_events": true,
+    "schema_id": "3d394055-f8ff-565e-add4-32428a010500"
+  },
+  {
+    "id": "5b6c8a46-286c-5b3e-9a05-6014569759fd",
+    "label": "Programme events (DVB EIT)",
+    "description": "Programmes as the broadcaster declared them in the DVB Event Information Table -- the track that answers 'what was on air at 14:00' without demuxing the recording. Carries BOTH the declared start (editorial truth) and the observed instant (evidential truth); the event's timerange is the observed one. See the schema's own description for why.",
+    "created_by": "service-account-compliance",
+    "updated_by": "service-account-compliance",
+    "timeline_reference": {
+      "entity_id": "https://mxl-tams.phrame.live/flows/2a46ace7-0ff8-49c0-94ec-6de51cbf462a"
+    },
+    "tags": {},
+    "metadata_version": "1",
+    "created": "2026-09-29T16:59:55.298556Z",
+    "metadata_updated": "2026-10-05T13:39:48.326974Z",
+    "events_updated": "2026-10-06T18:39:35.080931Z",
+    "read_only": false,
+    "allow_overlaps": false,
+    "editable_events": true,
+    "schema_id": "3819375c-fe08-597b-bf3a-4b439a2cf667"
+  },
+  {
+    "id": "c372120d-141c-5255-8b6f-b5b6e3b2fd51",
+    "label": "Recording gaps",
+    "description": "Discontinuities in the recorded TAMS flow, detected from consecutive segment timeranges (design sec 9: a correctness requirement, not telemetry).",
+    "created_by": "service-account-compliance",
+    "updated_by": "service-account-compliance",
+    "timeline_reference": {
+      "entity_id": "https://mxl-tams.phrame.live/flows/2a46ace7-0ff8-49c0-94ec-6de51cbf462a"
+    },
+    "tags": {},
+    "metadata_version": "1",
+    "created": "2026-09-29T16:59:55.245195Z",
+    "metadata_updated": "2026-10-05T13:39:47.887296Z",
+    "events_updated": "2026-10-04T08:21:58.622288Z",
+    "read_only": false,
+    "allow_overlaps": false,
+    "editable_events": true,
+    "schema_id": "33cf26ce-47fd-5d3c-95a2-eab8fc249a4b"
+  },
+  {
+    "id": "b0701470-e2ad-5f2a-9ba1-cecd1fdcff1e",
+    "label": "TR 101 290 events",
+    "description": "TR 101 290 transport-stream fault counter increments, from plugins/tsduck's Tr101290Collector via the estate's MQTT stats convention.",
+    "created_by": "service-account-compliance",
+    "updated_by": "service-account-compliance",
+    "timeline_reference": {
+      "entity_id": "https://mxl-tams.phrame.live/flows/2a46ace7-0ff8-49c0-94ec-6de51cbf462a"
+    },
+    "tags": {},
+    "metadata_version": "1",
+    "created": "2026-09-29T16:59:55.209356Z",
+    "metadata_updated": "2026-10-05T13:39:47.487714Z",
+    "events_updated": "2026-10-06T19:12:04.678803Z",
+    "read_only": false,
+    "allow_overlaps": true,
+    "editable_events": true,
+    "schema_id": "38e84ec5-f8bb-559e-9fb2-b70d7e34aafb"
+  },
+  {
+    "id": "ff36e030-0915-518e-966d-0991267bb9e0",
+    "label": "Monitoring status",
+    "description": "A heartbeat proving compliance-store was actively watching the stream, whether or not anything happened (design brief: 'receiving nothing' and 'not started' must be distinguishable, and today they are not). started/monitoring/stopped lifecycle -- see the schema's own `description` for the full contract.",
+    "created_by": "service-account-compliance",
+    "updated_by": "service-account-compliance",
+    "timeline_reference": {
+      "entity_id": "https://mxl-tams.phrame.live/flows/9578252d-8479-4315-b3e4-41721da52071"
+    },
+    "tags": {},
+    "metadata_version": "1",
+    "created": "2026-09-29T16:59:42.491332Z",
+    "metadata_updated": "2026-10-05T14:11:10.221408Z",
+    "events_updated": "2026-10-06T19:11:10.307067Z",
+    "read_only": false,
+    "allow_overlaps": false,
+    "editable_events": true,
+    "schema_id": "3d394055-f8ff-565e-add4-32428a010500"
+  },
+  {
+    "id": "894cb9fb-572e-5293-96b0-1179ecaca8eb",
+    "label": "Programme events (DVB EIT)",
+    "description": "Programmes as the broadcaster declared them in the DVB Event Information Table -- the track that answers 'what was on air at 14:00' without demuxing the recording. Carries BOTH the declared start (editorial truth) and the observed instant (evidential truth); the event's timerange is the observed one. See the schema's own description for why.",
+    "created_by": "service-account-compliance",
+    "updated_by": "service-account-compliance",
+    "timeline_reference": {
+      "entity_id": "https://mxl-tams.phrame.live/flows/9578252d-8479-4315-b3e4-41721da52071"
+    },
+    "tags": {},
+    "metadata_version": "1",
+    "created": "2026-09-29T16:59:42.465654Z",
+    "metadata_updated": "2026-10-05T14:11:10.200693Z",
+    "events_updated": "2026-10-06T18:29:48.358182Z",
+    "read_only": false,
+    "allow_overlaps": false,
+    "editable_events": true,
+    "schema_id": "3819375c-fe08-597b-bf3a-4b439a2cf667"
+  },
+  {
+    "id": "a7c32531-164c-5209-bf73-47f8d3cd9190",
+    "label": "Recording gaps",
+    "description": "Discontinuities in the recorded TAMS flow, detected from consecutive segment timeranges (design sec 9: a correctness requirement, not telemetry).",
+    "created_by": "service-account-compliance",
+    "updated_by": "service-account-compliance",
+    "timeline_reference": {
+      "entity_id": "https://mxl-tams.phrame.live/flows/9578252d-8479-4315-b3e4-41721da52071"
+    },
+    "tags": {},
+    "metadata_version": "1",
+    "created": "2026-09-29T16:59:42.412800Z",
+    "metadata_updated": "2026-10-05T14:11:10.178005Z",
+    "events_updated": "2026-10-04T08:19:59.774672Z",
+    "read_only": false,
+    "allow_overlaps": false,
+    "editable_events": true,
+    "schema_id": "33cf26ce-47fd-5d3c-95a2-eab8fc249a4b"
+  },
+  {
+    "id": "d83eb8b5-f2a5-596c-bc91-c564fa9b7f56",
+    "label": "TR 101 290 events",
+    "description": "TR 101 290 transport-stream fault counter increments, from plugins/tsduck's Tr101290Collector via the estate's MQTT stats convention.",
+    "created_by": "service-account-compliance",
+    "updated_by": "service-account-compliance",
+    "timeline_reference": {
+      "entity_id": "https://mxl-tams.phrame.live/flows/9578252d-8479-4315-b3e4-41721da52071"
+    },
+    "tags": {},
+    "metadata_version": "1",
+    "created": "2026-09-29T16:59:42.378911Z",
+    "metadata_updated": "2026-10-05T14:11:10.155064Z",
+    "events_updated": "2026-10-06T19:12:08.292542Z",
+    "read_only": false,
+    "allow_overlaps": true,
+    "editable_events": true,
+    "schema_id": "38e84ec5-f8bb-559e-9fb2-b70d7e34aafb"
+  },
+  {
+    "id": "96a95fdb-ca3a-5590-ae54-0496c8173862",
+    "label": "Monitoring status",
+    "description": "A heartbeat proving compliance-store was actively watching the stream, whether or not anything happened (design brief: 'receiving nothing' and 'not started' must be distinguishable, and today they are not). started/monitoring/stopped lifecycle -- see the schema's own `description` for the full contract.",
+    "created_by": "service-account-compliance",
+    "updated_by": "service-account-compliance",
+    "timeline_reference": {
+      "entity_id": "https://mxl-tams.phrame.live/flows/b1432aff-a353-4f03-b44f-f16e6e53c91b"
+    },
+    "tags": {},
+    "metadata_version": "1",
+    "created": "2026-09-29T16:59:30.167636Z",
+    "metadata_updated": "2026-10-05T14:11:01.710311Z",
+    "events_updated": "2026-10-06T19:12:01.951124Z",
+    "read_only": false,
+    "allow_overlaps": false,
+    "editable_events": true,
+    "schema_id": "3d394055-f8ff-565e-add4-32428a010500"
+  },
+  {
+    "id": "b20ee714-abb9-5cbf-a848-1dda95b5e54c",
+    "label": "Programme events (DVB EIT)",
+    "description": "Programmes as the broadcaster declared them in the DVB Event Information Table -- the track that answers 'what was on air at 14:00' without demuxing the recording. Carries BOTH the declared start (editorial truth) and the observed instant (evidential truth); the event's timerange is the observed one. See the schema's own description for why.",
+    "created_by": "service-account-compliance",
+    "updated_by": "service-account-compliance",
+    "timeline_reference": {
+      "entity_id": "https://mxl-tams.phrame.live/flows/b1432aff-a353-4f03-b44f-f16e6e53c91b"
+    },
+    "tags": {},
+    "metadata_version": "1",
+    "created": "2026-09-29T16:59:30.151012Z",
+    "metadata_updated": "2026-10-05T14:11:01.673647Z",
+    "events_updated": "2026-10-06T18:59:35.219462Z",
+    "read_only": false,
+    "allow_overlaps": false,
+    "editable_events": true,
+    "schema_id": "3819375c-fe08-597b-bf3a-4b439a2cf667"
+  },
+  {
+    "id": "e4cd98e0-9b52-585d-82ce-7f6993eb9f2f",
+    "label": "Recording gaps",
+    "description": "Discontinuities in the recorded TAMS flow, detected from consecutive segment timeranges (design sec 9: a correctness requirement, not telemetry).",
+    "created_by": "service-account-compliance",
+    "updated_by": "service-account-compliance",
+    "timeline_reference": {
+      "entity_id": "https://mxl-tams.phrame.live/flows/b1432aff-a353-4f03-b44f-f16e6e53c91b"
+    },
+    "tags": {},
+    "metadata_version": "1",
+    "created": "2026-09-29T16:59:30.097599Z",
+    "metadata_updated": "2026-10-05T14:11:01.594087Z",
+    "events_updated": "2026-10-05T10:15:26.415446Z",
+    "read_only": false,
+    "allow_overlaps": false,
+    "editable_events": true,
+    "schema_id": "33cf26ce-47fd-5d3c-95a2-eab8fc249a4b"
+  },
+  {
+    "id": "3d06fb43-d35d-5ca8-b385-eab76baf66b8",
+    "label": "TR 101 290 events",
+    "description": "TR 101 290 transport-stream fault counter increments, from plugins/tsduck's Tr101290Collector via the estate's MQTT stats convention.",
+    "created_by": "service-account-compliance",
+    "updated_by": "service-account-compliance",
+    "timeline_reference": {
+      "entity_id": "https://mxl-tams.phrame.live/flows/b1432aff-a353-4f03-b44f-f16e6e53c91b"
+    },
+    "tags": {},
+    "metadata_version": "1",
+    "created": "2026-09-29T16:59:30.065290Z",
+    "metadata_updated": "2026-10-05T14:11:01.585294Z",
+    "events_updated": "2026-10-06T19:12:04.679238Z",
+    "read_only": false,
+    "allow_overlaps": true,
+    "editable_events": true,
+    "schema_id": "38e84ec5-f8bb-559e-9fb2-b70d7e34aafb"
+  },
+  {
+    "id": "e3f25958-3a63-5697-ba75-953b0c8d80e7",
+    "label": "Monitoring status",
+    "description": "A heartbeat proving compliance-store was actively watching the stream, whether or not anything happened (design brief: 'receiving nothing' and 'not started' must be distinguishable, and today they are not). started/monitoring/stopped lifecycle -- see the schema's own `description` for the full contract.",
+    "created_by": "service-account-compliance",
+    "updated_by": "service-account-compliance",
+    "timeline_reference": {
+      "entity_id": "https://mxl-tams.phrame.live/flows/34f13ae3-9355-4f23-a92c-67c716e23360"
+    },
+    "tags": {},
+    "metadata_version": "1",
+    "created": "2026-09-29T16:59:15.665937Z",
+    "metadata_updated": "2026-10-05T14:11:18.735530Z",
+    "events_updated": "2026-10-06T19:11:18.921234Z",
+    "read_only": false,
+    "allow_overlaps": false,
+    "editable_events": true,
+    "schema_id": "3d394055-f8ff-565e-add4-32428a010500"
+  },
+  {
+    "id": "4804941f-c048-5282-bbaa-a0be48b5205c",
+    "label": "Programme events (DVB EIT)",
+    "description": "Programmes as the broadcaster declared them in the DVB Event Information Table -- the track that answers 'what was on air at 14:00' without demuxing the recording. Carries BOTH the declared start (editorial truth) and the observed instant (evidential truth); the event's timerange is the observed one. See the schema's own description for why.",
+    "created_by": "service-account-compliance",
+    "updated_by": "service-account-compliance",
+    "timeline_reference": {
+      "entity_id": "https://mxl-tams.phrame.live/flows/34f13ae3-9355-4f23-a92c-67c716e23360"
+    },
+    "tags": {},
+    "metadata_version": "1",
+    "created": "2026-09-29T16:59:15.619444Z",
+    "metadata_updated": "2026-10-05T14:11:18.727425Z",
+    "events_updated": "2026-10-06T18:59:37.049095Z",
+    "read_only": false,
+    "allow_overlaps": false,
+    "editable_events": true,
+    "schema_id": "3819375c-fe08-597b-bf3a-4b439a2cf667"
+  },
+  {
+    "id": "0f28baef-0069-5d32-9385-df6c81c1fdd2",
+    "label": "Recording gaps",
+    "description": "Discontinuities in the recorded TAMS flow, detected from consecutive segment timeranges (design sec 9: a correctness requirement, not telemetry).",
+    "created_by": "service-account-compliance",
+    "updated_by": "service-account-compliance",
+    "timeline_reference": {
+      "entity_id": "https://mxl-tams.phrame.live/flows/34f13ae3-9355-4f23-a92c-67c716e23360"
+    },
+    "tags": {},
+    "metadata_version": "1",
+    "created": "2026-09-29T16:59:15.462701Z",
+    "metadata_updated": "2026-10-05T14:11:18.705663Z",
+    "events_updated": "2026-10-05T10:15:34.125065Z",
+    "read_only": false,
+    "allow_overlaps": false,
+    "editable_events": true,
+    "schema_id": "33cf26ce-47fd-5d3c-95a2-eab8fc249a4b"
+  },
+  {
+    "id": "3e5d06fb-49d7-5aa6-856d-d4eafa117a47",
+    "label": "TR 101 290 events",
+    "description": "TR 101 290 transport-stream fault counter increments, from plugins/tsduck's Tr101290Collector via the estate's MQTT stats convention.",
+    "created_by": "service-account-compliance",
+    "updated_by": "service-account-compliance",
+    "timeline_reference": {
+      "entity_id": "https://mxl-tams.phrame.live/flows/34f13ae3-9355-4f23-a92c-67c716e23360"
+    },
+    "tags": {},
+    "metadata_version": "1",
+    "created": "2026-09-29T16:59:15.387106Z",
+    "metadata_updated": "2026-10-05T14:11:18.698816Z",
+    "events_updated": "2026-10-06T19:12:06.901963Z",
+    "read_only": false,
+    "allow_overlaps": true,
+    "editable_events": true,
+    "schema_id": "38e84ec5-f8bb-559e-9fb2-b70d7e34aafb"
+  },
+  {
+    "id": "8689f44d-de7f-5401-b16b-6815c0ae605f",
+    "label": "Monitoring status",
+    "description": "A heartbeat proving compliance-store was actively watching the stream, whether or not anything happened (design brief: 'receiving nothing' and 'not started' must be distinguishable, and today they are not). started/monitoring/stopped lifecycle -- see the schema's own `description` for the full contract.",
+    "created_by": "service-account-compliance",
+    "updated_by": "service-account-compliance",
+    "timeline_reference": {
+      "entity_id": "https://mxl-tams.phrame.live/flows/b6e140c7-d4e7-4000-bee1-8e70ceb74533"
+    },
+    "tags": {},
+    "metadata_version": "1",
+    "created": "2026-09-29T16:59:02.955869Z",
+    "metadata_updated": "2026-10-06T10:40:18.508866Z",
+    "events_updated": "2026-10-06T19:11:18.616054Z",
+    "read_only": false,
+    "allow_overlaps": false,
+    "editable_events": true,
+    "schema_id": "3d394055-f8ff-565e-add4-32428a010500"
+  },
+  {
+    "id": "5de17996-ddc2-5733-b16a-5d621be5c511",
+    "label": "Programme events (DVB EIT)",
+    "description": "Programmes as the broadcaster declared them in the DVB Event Information Table -- the track that answers 'what was on air at 14:00' without demuxing the recording. Carries BOTH the declared start (editorial truth) and the observed instant (evidential truth); the event's timerange is the observed one. See the schema's own description for why.",
+    "created_by": "service-account-compliance",
+    "updated_by": "service-account-compliance",
+    "timeline_reference": {
+      "entity_id": "https://mxl-tams.phrame.live/flows/b6e140c7-d4e7-4000-bee1-8e70ceb74533"
+    },
+    "tags": {},
+    "metadata_version": "1",
+    "created": "2026-09-29T16:59:02.927336Z",
+    "metadata_updated": "2026-10-06T10:40:18.494513Z",
+    "events_updated": "2026-10-06T18:00:05.135010Z",
+    "read_only": false,
+    "allow_overlaps": false,
+    "editable_events": true,
+    "schema_id": "3819375c-fe08-597b-bf3a-4b439a2cf667"
+  },
+  {
+    "id": "263cc8c4-1a61-5922-ad07-75cf34e56535",
+    "label": "Recording gaps",
+    "description": "Discontinuities in the recorded TAMS flow, detected from consecutive segment timeranges (design sec 9: a correctness requirement, not telemetry).",
+    "created_by": "service-account-compliance",
+    "updated_by": "service-account-compliance",
+    "timeline_reference": {
+      "entity_id": "https://mxl-tams.phrame.live/flows/b6e140c7-d4e7-4000-bee1-8e70ceb74533"
+    },
+    "tags": {},
+    "metadata_version": "1",
+    "created": "2026-09-29T16:59:02.763404Z",
+    "metadata_updated": "2026-10-06T10:40:18.341027Z",
+    "events_updated": "2026-10-05T04:14:42.265080Z",
+    "read_only": false,
+    "allow_overlaps": false,
+    "editable_events": true,
+    "schema_id": "33cf26ce-47fd-5d3c-95a2-eab8fc249a4b"
+  },
+  {
+    "id": "95e4bbed-2781-5353-b83c-be543c219a9b",
+    "label": "TR 101 290 events",
+    "description": "TR 101 290 transport-stream fault counter increments, from plugins/tsduck's Tr101290Collector via the estate's MQTT stats convention.",
+    "created_by": "service-account-compliance",
+    "updated_by": "service-account-compliance",
+    "timeline_reference": {
+      "entity_id": "https://mxl-tams.phrame.live/flows/b6e140c7-d4e7-4000-bee1-8e70ceb74533"
+    },
+    "tags": {},
+    "metadata_version": "1",
+    "created": "2026-09-29T16:59:02.465462Z",
+    "metadata_updated": "2026-10-06T10:40:18.249743Z",
+    "events_updated": "2026-10-06T19:12:05.001794Z",
+    "read_only": false,
+    "allow_overlaps": true,
+    "editable_events": true,
+    "schema_id": "38e84ec5-f8bb-559e-9fb2-b70d7e34aafb"
+  },
+  {
+    "id": "47413bda-bba2-5b85-afbb-289f1cd500bb",
+    "label": "Monitoring status",
+    "description": "A heartbeat proving compliance-store was actively watching the stream, whether or not anything happened (design brief: 'receiving nothing' and 'not started' must be distinguishable, and today they are not). started/monitoring/stopped lifecycle -- see the schema's own `description` for the full contract.",
+    "created_by": "service-account-compliance",
+    "updated_by": "service-account-compliance",
+    "timeline_reference": {
+      "entity_id": "https://mxl-tams.phrame.live/flows/4f9c5776-2ed5-4899-808f-d58fcc6b5896"
+    },
+    "tags": {},
+    "metadata_version": "1",
+    "created": "2026-09-29T16:58:47.226021Z",
+    "metadata_updated": "2026-10-06T10:40:13.749607Z",
+    "events_updated": "2026-10-06T19:11:13.943579Z",
+    "read_only": false,
+    "allow_overlaps": false,
+    "editable_events": true,
+    "schema_id": "3d394055-f8ff-565e-add4-32428a010500"
+  },
+  {
+    "id": "2ee0c2a0-6f63-52df-a6e5-334667396a55",
+    "label": "Programme events (DVB EIT)",
+    "description": "Programmes as the broadcaster declared them in the DVB Event Information Table -- the track that answers 'what was on air at 14:00' without demuxing the recording. Carries BOTH the declared start (editorial truth) and the observed instant (evidential truth); the event's timerange is the observed one. See the schema's own description for why.",
+    "created_by": "service-account-compliance",
+    "updated_by": "service-account-compliance",
+    "timeline_reference": {
+      "entity_id": "https://mxl-tams.phrame.live/flows/4f9c5776-2ed5-4899-808f-d58fcc6b5896"
+    },
+    "tags": {},
+    "metadata_version": "1",
+    "created": "2026-09-29T16:58:47.199308Z",
+    "metadata_updated": "2026-10-06T10:40:13.739920Z",
+    "events_updated": "2026-10-06T18:02:05.197492Z",
+    "read_only": false,
+    "allow_overlaps": false,
+    "editable_events": true,
+    "schema_id": "3819375c-fe08-597b-bf3a-4b439a2cf667"
+  },
+  {
+    "id": "c577c121-f447-5e3f-86c2-162f78718826",
+    "label": "Recording gaps",
+    "description": "Discontinuities in the recorded TAMS flow, detected from consecutive segment timeranges (design sec 9: a correctness requirement, not telemetry).",
+    "created_by": "service-account-compliance",
+    "updated_by": "service-account-compliance",
+    "timeline_reference": {
+      "entity_id": "https://mxl-tams.phrame.live/flows/4f9c5776-2ed5-4899-808f-d58fcc6b5896"
+    },
+    "tags": {},
+    "metadata_version": "1",
+    "created": "2026-09-29T16:58:47.147388Z",
+    "metadata_updated": "2026-10-06T10:40:13.544659Z",
+    "events_updated": "2026-10-05T04:14:34.956703Z",
+    "read_only": false,
+    "allow_overlaps": false,
+    "editable_events": true,
+    "schema_id": "33cf26ce-47fd-5d3c-95a2-eab8fc249a4b"
+  },
+  {
+    "id": "0c3a0d43-1e72-58d5-a751-d45127f00295",
+    "label": "TR 101 290 events",
+    "description": "TR 101 290 transport-stream fault counter increments, from plugins/tsduck's Tr101290Collector via the estate's MQTT stats convention.",
+    "created_by": "service-account-compliance",
+    "updated_by": "service-account-compliance",
+    "timeline_reference": {
+      "entity_id": "https://mxl-tams.phrame.live/flows/4f9c5776-2ed5-4899-808f-d58fcc6b5896"
+    },
+    "tags": {},
+    "metadata_version": "1",
+    "created": "2026-09-29T16:58:47.115401Z",
+    "metadata_updated": "2026-10-06T10:40:13.442262Z",
+    "events_updated": "2026-10-06T19:12:05.114922Z",
+    "read_only": false,
+    "allow_overlaps": true,
+    "editable_events": true,
+    "schema_id": "38e84ec5-f8bb-559e-9fb2-b70d7e34aafb"
+  },
+  {
+    "id": "40213ef2-e1aa-5a82-b63a-2bef09122b08",
+    "label": "Monitoring status",
+    "description": "A heartbeat proving compliance-store was actively watching the stream, whether or not anything happened (design brief: 'receiving nothing' and 'not started' must be distinguishable, and today they are not). started/monitoring/stopped lifecycle -- see the schema's own `description` for the full contract.",
+    "created_by": "service-account-compliance",
+    "updated_by": "service-account-compliance",
+    "timeline_reference": {
+      "entity_id": "https://mxl-tams.phrame.live/flows/0be86180-b117-419e-b936-e613c578c663"
+    },
+    "tags": {},
+    "metadata_version": "1",
+    "created": "2026-09-29T16:58:31.902589Z",
+    "metadata_updated": "2026-10-06T10:40:08.025179Z",
+    "events_updated": "2026-10-06T19:12:08.091723Z",
+    "read_only": false,
+    "allow_overlaps": false,
+    "editable_events": true,
+    "schema_id": "3d394055-f8ff-565e-add4-32428a010500"
+  },
+  {
+    "id": "3a822cd4-973c-5329-aaac-e5be7b9fba5f",
+    "label": "Programme events (DVB EIT)",
+    "description": "Programmes as the broadcaster declared them in the DVB Event Information Table -- the track that answers 'what was on air at 14:00' without demuxing the recording. Carries BOTH the declared start (editorial truth) and the observed instant (evidential truth); the event's timerange is the observed one. See the schema's own description for why.",
+    "created_by": "service-account-compliance",
+    "updated_by": "service-account-compliance",
+    "timeline_reference": {
+      "entity_id": "https://mxl-tams.phrame.live/flows/0be86180-b117-419e-b936-e613c578c663"
+    },
+    "tags": {},
+    "metadata_version": "1",
+    "created": "2026-09-29T16:58:31.875627Z",
+    "metadata_updated": "2026-10-06T10:40:08.016234Z",
+    "events_updated": "2026-10-06T18:00:05.653925Z",
+    "read_only": false,
+    "allow_overlaps": false,
+    "editable_events": true,
+    "schema_id": "3819375c-fe08-597b-bf3a-4b439a2cf667"
+  },
+  {
+    "id": "4b7b3aa1-c771-501d-b2cb-696a15e4100c",
+    "label": "Recording gaps",
+    "description": "Discontinuities in the recorded TAMS flow, detected from consecutive segment timeranges (design sec 9: a correctness requirement, not telemetry).",
+    "created_by": "service-account-compliance",
+    "updated_by": "service-account-compliance",
+    "timeline_reference": {
+      "entity_id": "https://mxl-tams.phrame.live/flows/0be86180-b117-419e-b936-e613c578c663"
+    },
+    "tags": {},
+    "metadata_version": "1",
+    "created": "2026-09-29T16:58:31.823321Z",
+    "metadata_updated": "2026-10-06T10:40:07.988858Z",
+    "events_updated": "2026-10-05T10:16:32.298548Z",
+    "read_only": false,
+    "allow_overlaps": false,
+    "editable_events": true,
+    "schema_id": "33cf26ce-47fd-5d3c-95a2-eab8fc249a4b"
+  },
+  {
+    "id": "3f5d961d-20d8-5103-ac25-70cda55c8638",
+    "label": "TR 101 290 events",
+    "description": "TR 101 290 transport-stream fault counter increments, from plugins/tsduck's Tr101290Collector via the estate's MQTT stats convention.",
+    "created_by": "service-account-compliance",
+    "updated_by": "service-account-compliance",
+    "timeline_reference": {
+      "entity_id": "https://mxl-tams.phrame.live/flows/0be86180-b117-419e-b936-e613c578c663"
+    },
+    "tags": {},
+    "metadata_version": "1",
+    "created": "2026-09-29T16:58:31.790176Z",
+    "metadata_updated": "2026-10-06T10:40:07.975944Z",
+    "events_updated": "2026-10-06T19:12:05.597475Z",
+    "read_only": false,
+    "allow_overlaps": true,
+    "editable_events": true,
+    "schema_id": "38e84ec5-f8bb-559e-9fb2-b70d7e34aafb"
+  },
+  {
+    "id": "61b74da4-15b7-5138-bff9-014312403729",
+    "label": "Monitoring status",
+    "description": "A heartbeat proving compliance-store was actively watching the stream, whether or not anything happened (design brief: 'receiving nothing' and 'not started' must be distinguishable, and today they are not). started/monitoring/stopped lifecycle -- see the schema's own `description` for the full contract.",
+    "created_by": "service-account-compliance",
+    "updated_by": "service-account-compliance",
+    "timeline_reference": {
+      "entity_id": "https://mxl-tams.phrame.live/flows/912d1c97-11a8-4839-aa37-4f38e8c11059"
+    },
+    "tags": {},
+    "metadata_version": "1",
+    "created": "2026-09-29T16:58:07.553062Z",
+    "metadata_updated": "2026-10-06T10:40:03.367869Z",
+    "events_updated": "2026-10-06T19:12:03.548704Z",
+    "read_only": false,
+    "allow_overlaps": false,
+    "editable_events": true,
+    "schema_id": "3d394055-f8ff-565e-add4-32428a010500"
+  },
+  {
+    "id": "13b23b14-87f0-574c-8833-adbb1350ab91",
+    "label": "Programme events (DVB EIT)",
+    "description": "Programmes as the broadcaster declared them in the DVB Event Information Table -- the track that answers 'what was on air at 14:00' without demuxing the recording. Carries BOTH the declared start (editorial truth) and the observed instant (evidential truth); the event's timerange is the observed one. See the schema's own description for why.",
+    "created_by": "service-account-compliance",
+    "updated_by": "service-account-compliance",
+    "timeline_reference": {
+      "entity_id": "https://mxl-tams.phrame.live/flows/912d1c97-11a8-4839-aa37-4f38e8c11059"
+    },
+    "tags": {},
+    "metadata_version": "1",
+    "created": "2026-09-29T16:58:07.521154Z",
+    "metadata_updated": "2026-10-06T10:40:03.344508Z",
+    "events_updated": "2026-10-06T17:00:05.712887Z",
+    "read_only": false,
+    "allow_overlaps": false,
+    "editable_events": true,
+    "schema_id": "3819375c-fe08-597b-bf3a-4b439a2cf667"
+  },
+  {
+    "id": "06fb0cc0-1242-5602-a02a-bacf6ca29f95",
+    "label": "Recording gaps",
+    "description": "Discontinuities in the recorded TAMS flow, detected from consecutive segment timeranges (design sec 9: a correctness requirement, not telemetry).",
+    "created_by": "service-account-compliance",
+    "updated_by": "service-account-compliance",
+    "timeline_reference": {
+      "entity_id": "https://mxl-tams.phrame.live/flows/912d1c97-11a8-4839-aa37-4f38e8c11059"
+    },
+    "tags": {},
+    "metadata_version": "1",
+    "created": "2026-09-29T16:58:07.411036Z",
+    "metadata_updated": "2026-10-06T10:40:03.297427Z",
+    "events_updated": "2026-10-05T10:16:32.761809Z",
+    "read_only": false,
+    "allow_overlaps": false,
+    "editable_events": true,
+    "schema_id": "33cf26ce-47fd-5d3c-95a2-eab8fc249a4b"
+  },
+  {
+    "id": "ca4e3c5d-6083-5f3c-96dd-dc727a382062",
+    "label": "TR 101 290 events",
+    "description": "TR 101 290 transport-stream fault counter increments, from plugins/tsduck's Tr101290Collector via the estate's MQTT stats convention.",
+    "created_by": "service-account-compliance",
+    "updated_by": "service-account-compliance",
+    "timeline_reference": {
+      "entity_id": "https://mxl-tams.phrame.live/flows/912d1c97-11a8-4839-aa37-4f38e8c11059"
+    },
+    "tags": {},
+    "metadata_version": "1",
+    "created": "2026-09-29T16:58:07.271787Z",
+    "metadata_updated": "2026-10-06T10:40:03.272281Z",
+    "events_updated": "2026-10-06T19:12:05.843163Z",
+    "read_only": false,
+    "allow_overlaps": true,
+    "editable_events": true,
+    "schema_id": "38e84ec5-f8bb-559e-9fb2-b70d7e34aafb"
+  },
+  {
+    "id": "c62447e6-96f7-524f-83cc-2e8b56de1b58",
+    "label": "Monitoring status",
+    "description": "A heartbeat proving compliance-store was actively watching the stream, whether or not anything happened (design brief: 'receiving nothing' and 'not started' must be distinguishable, and today they are not). started/monitoring/stopped lifecycle -- see the schema's own `description` for the full contract.",
+    "created_by": "service-account-compliance",
+    "timeline_reference": {
+      "entity_id": "https://mxl-tams.phrame.live/flows/f1b801b1-8b04-4077-a3d7-f72b01cf68ed"
+    },
+    "tags": {},
+    "metadata_version": "1",
+    "created": "2026-09-29T15:18:31.443154Z",
+    "events_updated": "2026-09-29T16:48:16.752792Z",
+    "read_only": false,
+    "allow_overlaps": false,
+    "editable_events": true,
+    "schema_id": "3d394055-f8ff-565e-add4-32428a010500"
+  },
+  {
+    "id": "79724f1f-a86e-58c4-8eba-615b2eaeb612",
+    "label": "Programme events (DVB EIT)",
+    "description": "Programmes as the broadcaster declared them in the DVB Event Information Table -- the track that answers 'what was on air at 14:00' without demuxing the recording. Carries BOTH the declared start (editorial truth) and the observed instant (evidential truth); the event's timerange is the observed one. See the schema's own description for why.",
+    "created_by": "service-account-compliance",
+    "timeline_reference": {
+      "entity_id": "https://mxl-tams.phrame.live/flows/f1b801b1-8b04-4077-a3d7-f72b01cf68ed"
+    },
+    "tags": {},
+    "metadata_version": "1",
+    "created": "2026-09-29T15:18:31.413488Z",
+    "events_updated": "2026-09-29T15:18:32.789051Z",
+    "read_only": false,
+    "allow_overlaps": false,
+    "editable_events": true,
+    "schema_id": "3819375c-fe08-597b-bf3a-4b439a2cf667"
+  },
+  {
+    "id": "dd343aa9-d03c-57d9-82f0-a522217361e3",
+    "label": "Recording gaps",
+    "description": "Discontinuities in the recorded TAMS flow, detected from consecutive segment timeranges (design sec 9: a correctness requirement, not telemetry).",
+    "created_by": "service-account-compliance",
+    "timeline_reference": {
+      "entity_id": "https://mxl-tams.phrame.live/flows/f1b801b1-8b04-4077-a3d7-f72b01cf68ed"
+    },
+    "tags": {},
+    "metadata_version": "1",
+    "created": "2026-09-29T15:18:31.380364Z",
+    "read_only": false,
+    "allow_overlaps": false,
+    "editable_events": true,
+    "schema_id": "33cf26ce-47fd-5d3c-95a2-eab8fc249a4b"
+  },
+  {
+    "id": "c5868183-3387-5aa6-b55f-9a3a232dc95e",
+    "label": "TR 101 290 events",
+    "description": "TR 101 290 transport-stream fault counter increments, from plugins/tsduck's Tr101290Collector via the estate's MQTT stats convention.",
+    "created_by": "service-account-compliance",
+    "timeline_reference": {
+      "entity_id": "https://mxl-tams.phrame.live/flows/f1b801b1-8b04-4077-a3d7-f72b01cf68ed"
+    },
+    "tags": {},
+    "metadata_version": "1",
+    "created": "2026-09-29T15:18:31.341277Z",
+    "events_updated": "2026-09-29T16:48:13.010487Z",
+    "read_only": false,
+    "allow_overlaps": true,
+    "editable_events": true,
+    "schema_id": "38e84ec5-f8bb-559e-9fb2-b70d7e34aafb"
+  },
+  {
+    "id": "b82cfbea-f608-5604-a8c9-0dcd23276350",
+    "label": "Monitoring status",
+    "description": "A heartbeat proving compliance-store was actively watching the stream, whether or not anything happened (design brief: 'receiving nothing' and 'not started' must be distinguishable, and today they are not). started/monitoring/stopped lifecycle -- see the schema's own `description` for the full contract.",
+    "created_by": "service-account-compliance",
+    "updated_by": "service-account-compliance",
+    "timeline_reference": {
+      "entity_id": "https://mxl-tams.phrame.live/flows/7a84d1e2-261a-4a93-8bb6-5d7e73fd37c2"
+    },
+    "tags": {},
+    "metadata_version": "1",
+    "created": "2026-09-25T13:10:58.796818Z",
+    "metadata_updated": "2026-09-29T16:51:30.884030Z",
+    "events_updated": "2026-09-29T16:57:14.158867Z",
+    "read_only": false,
+    "allow_overlaps": false,
+    "editable_events": true,
+    "schema_id": "3d394055-f8ff-565e-add4-32428a010500"
+  },
+  {
+    "id": "80ad68ff-7a3d-5116-8a25-676da2066960",
+    "label": "Programme events (DVB EIT)",
+    "description": "Programmes as the broadcaster declared them in the DVB Event Information Table -- the track that answers 'what was on air at 14:00' without demuxing the recording. Carries BOTH the declared start (editorial truth) and the observed instant (evidential truth); the event's timerange is the observed one. See the schema's own description for why.",
+    "created_by": "service-account-compliance",
+    "updated_by": "service-account-compliance",
+    "timeline_reference": {
+      "entity_id": "https://mxl-tams.phrame.live/flows/7a84d1e2-261a-4a93-8bb6-5d7e73fd37c2"
+    },
+    "tags": {},
+    "metadata_version": "1",
+    "created": "2026-09-25T13:10:58.769063Z",
+    "metadata_updated": "2026-09-29T16:51:30.863058Z",
+    "events_updated": "2026-09-29T16:51:32.702845Z",
+    "read_only": false,
+    "allow_overlaps": false,
+    "editable_events": true,
+    "schema_id": "3819375c-fe08-597b-bf3a-4b439a2cf667"
+  },
+  {
+    "id": "10cbed24-77de-517a-8717-2fd7119157fa",
+    "label": "Recording gaps",
+    "description": "Discontinuities in the recorded TAMS flow, detected from consecutive segment timeranges (design sec 9: a correctness requirement, not telemetry).",
+    "created_by": "service-account-compliance",
+    "updated_by": "service-account-compliance",
+    "timeline_reference": {
+      "entity_id": "https://mxl-tams.phrame.live/flows/7a84d1e2-261a-4a93-8bb6-5d7e73fd37c2"
+    },
+    "tags": {},
+    "metadata_version": "1",
+    "created": "2026-09-25T13:10:58.712985Z",
+    "metadata_updated": "2026-09-29T16:51:30.821806Z",
+    "read_only": false,
+    "allow_overlaps": false,
+    "editable_events": true,
+    "schema_id": "33cf26ce-47fd-5d3c-95a2-eab8fc249a4b"
+  },
+  {
+    "id": "08886459-4e16-57d8-8367-9a6a8fee5bad",
+    "label": "TR 101 290 events",
+    "description": "TR 101 290 transport-stream fault counter increments, from plugins/tsduck's Tr101290Collector via the estate's MQTT stats convention.",
+    "created_by": "service-account-compliance",
+    "updated_by": "service-account-compliance",
+    "timeline_reference": {
+      "entity_id": "https://mxl-tams.phrame.live/flows/7a84d1e2-261a-4a93-8bb6-5d7e73fd37c2"
+    },
+    "tags": {},
+    "metadata_version": "1",
+    "created": "2026-09-25T13:10:58.678810Z",
+    "metadata_updated": "2026-09-29T16:51:30.795598Z",
+    "events_updated": "2026-09-29T16:57:12.267970Z",
+    "read_only": false,
+    "allow_overlaps": true,
+    "editable_events": true,
+    "schema_id": "38e84ec5-f8bb-559e-9fb2-b70d7e34aafb"
+  },
+  {
+    "id": "1303aa4b-7d77-5306-9bdf-6638930e1a78",
+    "label": "Monitoring status",
+    "description": "A heartbeat proving compliance-store was actively watching the stream, whether or not anything happened (design brief: 'receiving nothing' and 'not started' must be distinguishable, and today they are not). started/monitoring/stopped lifecycle -- see the schema's own `description` for the full contract.",
+    "created_by": "service-account-compliance",
+    "updated_by": "service-account-compliance",
+    "timeline_reference": {
+      "entity_id": "https://mxl-tams.phrame.live/flows/f6d500b7-800b-4c3e-be80-f2f315e3ff4b"
+    },
+    "tags": {},
+    "metadata_version": "1",
+    "created": "2026-09-25T13:10:31.608816Z",
+    "metadata_updated": "2026-09-29T16:53:01.313314Z",
+    "events_updated": "2026-09-29T16:57:08.909839Z",
+    "read_only": false,
+    "allow_overlaps": false,
+    "editable_events": true,
+    "schema_id": "3d394055-f8ff-565e-add4-32428a010500"
+  },
+  {
+    "id": "ca8a5d64-9e5a-53ca-8dce-cf88acd7f328",
+    "label": "Programme events (DVB EIT)",
+    "description": "Programmes as the broadcaster declared them in the DVB Event Information Table -- the track that answers 'what was on air at 14:00' without demuxing the recording. Carries BOTH the declared start (editorial truth) and the observed instant (evidential truth); the event's timerange is the observed one. See the schema's own description for why.",
+    "created_by": "service-account-compliance",
+    "updated_by": "service-account-compliance",
+    "timeline_reference": {
+      "entity_id": "https://mxl-tams.phrame.live/flows/f6d500b7-800b-4c3e-be80-f2f315e3ff4b"
+    },
+    "tags": {},
+    "metadata_version": "1",
+    "created": "2026-09-25T13:10:31.451398Z",
+    "metadata_updated": "2026-09-29T16:53:01.290698Z",
+    "events_updated": "2026-09-29T16:53:03.449483Z",
+    "read_only": false,
+    "allow_overlaps": false,
+    "editable_events": true,
+    "schema_id": "3819375c-fe08-597b-bf3a-4b439a2cf667"
+  },
+  {
+    "id": "76903da6-8618-54d9-8ec0-98e6fc94d6e7",
+    "label": "Recording gaps",
+    "description": "Discontinuities in the recorded TAMS flow, detected from consecutive segment timeranges (design sec 9: a correctness requirement, not telemetry).",
+    "created_by": "service-account-compliance",
+    "updated_by": "service-account-compliance",
+    "timeline_reference": {
+      "entity_id": "https://mxl-tams.phrame.live/flows/f6d500b7-800b-4c3e-be80-f2f315e3ff4b"
+    },
+    "tags": {},
+    "metadata_version": "1",
+    "created": "2026-09-25T13:10:30.605299Z",
+    "metadata_updated": "2026-09-29T16:53:01.255513Z",
+    "read_only": false,
+    "allow_overlaps": false,
+    "editable_events": true,
+    "schema_id": "33cf26ce-47fd-5d3c-95a2-eab8fc249a4b"
+  },
+  {
+    "id": "e6dfc650-f765-5ca4-b2ae-46d1606569f9",
+    "label": "TR 101 290 events",
+    "description": "TR 101 290 transport-stream fault counter increments, from plugins/tsduck's Tr101290Collector via the estate's MQTT stats convention.",
+    "created_by": "service-account-compliance",
+    "updated_by": "service-account-compliance",
+    "timeline_reference": {
+      "entity_id": "https://mxl-tams.phrame.live/flows/f6d500b7-800b-4c3e-be80-f2f315e3ff4b"
+    },
+    "tags": {},
+    "metadata_version": "1",
+    "created": "2026-09-25T13:10:30.211271Z",
+    "metadata_updated": "2026-09-29T16:53:01.241390Z",
+    "events_updated": "2026-09-29T16:57:08.207836Z",
+    "read_only": false,
+    "allow_overlaps": true,
+    "editable_events": true,
+    "schema_id": "38e84ec5-f8bb-559e-9fb2-b70d7e34aafb"
+  },
+  {
+    "id": "f72fc099-f115-5c41-aa54-a3398ec1bd0e",
+    "label": "Monitoring status",
+    "description": "A heartbeat proving compliance-store was actively watching the stream, whether or not anything happened (design brief: 'receiving nothing' and 'not started' must be distinguishable, and today they are not). started/monitoring/stopped lifecycle -- see the schema's own `description` for the full contract.",
+    "created_by": "service-account-compliance",
+    "updated_by": "service-account-compliance",
+    "timeline_reference": {
+      "entity_id": "https://mxl-tams.phrame.live/flows/6f576b37-7dca-40cf-8ee3-f29b055bd6fd"
+    },
+    "tags": {},
+    "metadata_version": "1",
+    "created": "2026-09-25T13:09:59.913958Z",
+    "metadata_updated": "2026-09-29T16:51:46.770138Z",
+    "events_updated": "2026-09-29T16:57:03.470649Z",
+    "read_only": false,
+    "allow_overlaps": false,
+    "editable_events": true,
+    "schema_id": "3d394055-f8ff-565e-add4-32428a010500"
+  },
+  {
+    "id": "141db75d-d9a7-57d3-8d17-9c126345d1bf",
+    "label": "Programme events (DVB EIT)",
+    "description": "Programmes as the broadcaster declared them in the DVB Event Information Table -- the track that answers 'what was on air at 14:00' without demuxing the recording. Carries BOTH the declared start (editorial truth) and the observed instant (evidential truth); the event's timerange is the observed one. See the schema's own description for why.",
+    "created_by": "service-account-compliance",
+    "updated_by": "service-account-compliance",
+    "timeline_reference": {
+      "entity_id": "https://mxl-tams.phrame.live/flows/6f576b37-7dca-40cf-8ee3-f29b055bd6fd"
+    },
+    "tags": {},
+    "metadata_version": "1",
+    "created": "2026-09-25T13:09:59.610498Z",
+    "metadata_updated": "2026-09-29T16:51:46.662774Z",
+    "events_updated": "2026-09-29T16:51:47.799946Z",
+    "read_only": false,
+    "allow_overlaps": false,
+    "editable_events": true,
+    "schema_id": "3819375c-fe08-597b-bf3a-4b439a2cf667"
+  },
+  {
+    "id": "d6f052ae-f4fb-5bf9-94f7-78c813a6a1bc",
+    "label": "Recording gaps",
+    "description": "Discontinuities in the recorded TAMS flow, detected from consecutive segment timeranges (design sec 9: a correctness requirement, not telemetry).",
+    "created_by": "service-account-compliance",
+    "updated_by": "service-account-compliance",
+    "timeline_reference": {
+      "entity_id": "https://mxl-tams.phrame.live/flows/6f576b37-7dca-40cf-8ee3-f29b055bd6fd"
+    },
+    "tags": {},
+    "metadata_version": "1",
+    "created": "2026-09-25T13:09:59.108737Z",
+    "metadata_updated": "2026-09-29T16:51:46.466880Z",
+    "read_only": false,
+    "allow_overlaps": false,
+    "editable_events": true,
+    "schema_id": "33cf26ce-47fd-5d3c-95a2-eab8fc249a4b"
+  },
+  {
+    "id": "940e35f4-c034-5467-885a-814233c3f546",
+    "label": "TR 101 290 events",
+    "description": "TR 101 290 transport-stream fault counter increments, from plugins/tsduck's Tr101290Collector via the estate's MQTT stats convention.",
+    "created_by": "service-account-compliance",
+    "updated_by": "service-account-compliance",
+    "timeline_reference": {
+      "entity_id": "https://mxl-tams.phrame.live/flows/6f576b37-7dca-40cf-8ee3-f29b055bd6fd"
+    },
+    "tags": {},
+    "metadata_version": "1",
+    "created": "2026-09-25T13:09:58.759477Z",
+    "metadata_updated": "2026-09-29T16:51:46.329270Z",
+    "events_updated": "2026-09-29T16:57:02.596542Z",
+    "read_only": false,
+    "allow_overlaps": true,
+    "editable_events": true,
+    "schema_id": "38e84ec5-f8bb-559e-9fb2-b70d7e34aafb"
+  },
+  {
+    "id": "0a2351ac-7616-54c3-8818-ecfec22f83ad",
+    "label": "Monitoring status",
+    "description": "A heartbeat proving compliance-store was actively watching the stream, whether or not anything happened (design brief: 'receiving nothing' and 'not started' must be distinguishable, and today they are not). started/monitoring/stopped lifecycle -- see the schema's own `description` for the full contract.",
+    "created_by": "service-account-compliance",
+    "updated_by": "service-account-compliance",
+    "timeline_reference": {
+      "entity_id": "https://mxl-tams.phrame.live/flows/291d56b4-3e87-41f0-9766-474bb00b5def"
+    },
+    "tags": {},
+    "metadata_version": "1",
+    "created": "2026-09-25T13:09:06.095339Z",
+    "metadata_updated": "2026-09-29T16:51:17.591375Z",
+    "events_updated": "2026-09-29T16:57:34.662965Z",
+    "read_only": false,
+    "allow_overlaps": false,
+    "editable_events": true,
+    "schema_id": "3d394055-f8ff-565e-add4-32428a010500"
+  },
+  {
+    "id": "e9bd9fb6-f4f7-52ae-b706-ce2823146245",
+    "label": "Programme events (DVB EIT)",
+    "description": "Programmes as the broadcaster declared them in the DVB Event Information Table -- the track that answers 'what was on air at 14:00' without demuxing the recording. Carries BOTH the declared start (editorial truth) and the observed instant (evidential truth); the event's timerange is the observed one. See the schema's own description for why.",
+    "created_by": "service-account-compliance",
+    "updated_by": "service-account-compliance",
+    "timeline_reference": {
+      "entity_id": "https://mxl-tams.phrame.live/flows/291d56b4-3e87-41f0-9766-474bb00b5def"
+    },
+    "tags": {},
+    "metadata_version": "1",
+    "created": "2026-09-25T13:09:06.033439Z",
+    "metadata_updated": "2026-09-29T16:51:17.563325Z",
+    "events_updated": "2026-09-29T09:00:07.340663Z",
+    "read_only": false,
+    "allow_overlaps": false,
+    "editable_events": true,
+    "schema_id": "3819375c-fe08-597b-bf3a-4b439a2cf667"
+  },
+  {
+    "id": "50006171-03e0-5531-9407-c3a55f608dd5",
+    "label": "Recording gaps",
+    "description": "Discontinuities in the recorded TAMS flow, detected from consecutive segment timeranges (design sec 9: a correctness requirement, not telemetry).",
+    "created_by": "service-account-compliance",
+    "updated_by": "service-account-compliance",
+    "timeline_reference": {
+      "entity_id": "https://mxl-tams.phrame.live/flows/291d56b4-3e87-41f0-9766-474bb00b5def"
+    },
+    "tags": {},
+    "metadata_version": "1",
+    "created": "2026-09-25T13:09:05.964075Z",
+    "metadata_updated": "2026-09-29T16:51:17.525020Z",
+    "read_only": false,
+    "allow_overlaps": false,
+    "editable_events": true,
+    "schema_id": "33cf26ce-47fd-5d3c-95a2-eab8fc249a4b"
+  },
+  {
+    "id": "122e6801-50aa-5ffb-899c-cf6441f9da90",
+    "label": "TR 101 290 events",
+    "description": "TR 101 290 transport-stream fault counter increments, from plugins/tsduck's Tr101290Collector via the estate's MQTT stats convention.",
+    "created_by": "service-account-compliance",
+    "updated_by": "service-account-compliance",
+    "timeline_reference": {
+      "entity_id": "https://mxl-tams.phrame.live/flows/291d56b4-3e87-41f0-9766-474bb00b5def"
+    },
+    "tags": {},
+    "metadata_version": "1",
+    "created": "2026-09-25T13:09:05.921646Z",
+    "metadata_updated": "2026-09-29T16:51:17.499378Z",
+    "events_updated": "2026-09-29T16:57:31.956588Z",
+    "read_only": false,
+    "allow_overlaps": true,
+    "editable_events": true,
+    "schema_id": "38e84ec5-f8bb-559e-9fb2-b70d7e34aafb"
+  },
+  {
+    "id": "2eb6aa75-a5fa-5832-b4a1-28c3288a6bc1",
+    "label": "Monitoring status",
+    "description": "A heartbeat proving compliance-store was actively watching the stream, whether or not anything happened (design brief: 'receiving nothing' and 'not started' must be distinguishable, and today they are not). started/monitoring/stopped lifecycle -- see the schema's own `description` for the full contract.",
+    "created_by": "service-account-compliance",
+    "updated_by": "service-account-compliance",
+    "timeline_reference": {
+      "entity_id": "https://mxl-tams.phrame.live/flows/2465ddb6-354c-4c0b-8ae3-e81b465d3a53"
+    },
+    "tags": {},
+    "metadata_version": "1",
+    "created": "2026-09-25T13:08:40.524818Z",
+    "metadata_updated": "2026-09-29T16:50:01.977760Z",
+    "events_updated": "2026-09-29T16:57:29.713627Z",
+    "read_only": false,
+    "allow_overlaps": false,
+    "editable_events": true,
+    "schema_id": "3d394055-f8ff-565e-add4-32428a010500"
+  },
+  {
+    "id": "4f2e0687-61c9-522a-9ca9-0009461abfa3",
+    "label": "Programme events (DVB EIT)",
+    "description": "Programmes as the broadcaster declared them in the DVB Event Information Table -- the track that answers 'what was on air at 14:00' without demuxing the recording. Carries BOTH the declared start (editorial truth) and the observed instant (evidential truth); the event's timerange is the observed one. See the schema's own description for why.",
+    "created_by": "service-account-compliance",
+    "updated_by": "service-account-compliance",
+    "timeline_reference": {
+      "entity_id": "https://mxl-tams.phrame.live/flows/2465ddb6-354c-4c0b-8ae3-e81b465d3a53"
+    },
+    "tags": {},
+    "metadata_version": "1",
+    "created": "2026-09-25T13:08:40.488165Z",
+    "metadata_updated": "2026-09-29T16:50:01.954474Z",
+    "events_updated": "2026-09-29T09:04:06.862913Z",
+    "read_only": false,
+    "allow_overlaps": false,
+    "editable_events": true,
+    "schema_id": "3819375c-fe08-597b-bf3a-4b439a2cf667"
+  },
+  {
+    "id": "90f4e608-2a22-53ba-9ecd-2e29415953b3",
+    "label": "Recording gaps",
+    "description": "Discontinuities in the recorded TAMS flow, detected from consecutive segment timeranges (design sec 9: a correctness requirement, not telemetry).",
+    "created_by": "service-account-compliance",
+    "updated_by": "service-account-compliance",
+    "timeline_reference": {
+      "entity_id": "https://mxl-tams.phrame.live/flows/2465ddb6-354c-4c0b-8ae3-e81b465d3a53"
+    },
+    "tags": {},
+    "metadata_version": "1",
+    "created": "2026-09-25T13:08:40.429462Z",
+    "metadata_updated": "2026-09-29T16:50:01.915452Z",
+    "read_only": false,
+    "allow_overlaps": false,
+    "editable_events": true,
+    "schema_id": "33cf26ce-47fd-5d3c-95a2-eab8fc249a4b"
+  },
+  {
+    "id": "2e92d95e-5ec2-52fc-bf13-5cd509fea4b5",
+    "label": "TR 101 290 events",
+    "description": "TR 101 290 transport-stream fault counter increments, from plugins/tsduck's Tr101290Collector via the estate's MQTT stats convention.",
+    "created_by": "service-account-compliance",
+    "updated_by": "service-account-compliance",
+    "timeline_reference": {
+      "entity_id": "https://mxl-tams.phrame.live/flows/2465ddb6-354c-4c0b-8ae3-e81b465d3a53"
+    },
+    "tags": {},
+    "metadata_version": "1",
+    "created": "2026-09-25T13:08:40.309432Z",
+    "metadata_updated": "2026-09-29T16:50:01.889021Z",
+    "events_updated": "2026-09-29T16:57:26.348493Z",
+    "read_only": false,
+    "allow_overlaps": true,
+    "editable_events": true,
+    "schema_id": "38e84ec5-f8bb-559e-9fb2-b70d7e34aafb"
+  },
+  {
+    "id": "fa432716-76e6-559e-b320-b41c7c841617",
+    "label": "Monitoring status",
+    "description": "A heartbeat proving compliance-store was actively watching the stream, whether or not anything happened (design brief: 'receiving nothing' and 'not started' must be distinguishable, and today they are not). started/monitoring/stopped lifecycle -- see the schema's own `description` for the full contract.",
+    "created_by": "service-account-compliance",
+    "updated_by": "service-account-compliance",
+    "timeline_reference": {
+      "entity_id": "https://mxl-tams.phrame.live/flows/c4d414c2-afef-420f-9f73-41dc86ca2819"
+    },
+    "tags": {},
+    "metadata_version": "1",
+    "created": "2026-09-25T13:08:16.133585Z",
+    "metadata_updated": "2026-09-29T16:49:46.690440Z",
+    "events_updated": "2026-09-29T16:57:24.507590Z",
+    "read_only": false,
+    "allow_overlaps": false,
+    "editable_events": true,
+    "schema_id": "3d394055-f8ff-565e-add4-32428a010500"
+  },
+  {
+    "id": "59a9e09c-63cd-5112-9caf-5051573ed93c",
+    "label": "Programme events (DVB EIT)",
+    "description": "Programmes as the broadcaster declared them in the DVB Event Information Table -- the track that answers 'what was on air at 14:00' without demuxing the recording. Carries BOTH the declared start (editorial truth) and the observed instant (evidential truth); the event's timerange is the observed one. See the schema's own description for why.",
+    "created_by": "service-account-compliance",
+    "updated_by": "service-account-compliance",
+    "timeline_reference": {
+      "entity_id": "https://mxl-tams.phrame.live/flows/c4d414c2-afef-420f-9f73-41dc86ca2819"
+    },
+    "tags": {},
+    "metadata_version": "1",
+    "created": "2026-09-25T13:08:16.076327Z",
+    "metadata_updated": "2026-09-29T16:49:46.666217Z",
+    "events_updated": "2026-09-29T12:00:06.753746Z",
+    "read_only": false,
+    "allow_overlaps": false,
+    "editable_events": true,
+    "schema_id": "3819375c-fe08-597b-bf3a-4b439a2cf667"
+  },
+  {
+    "id": "05691e43-7115-5139-898d-d2ef79a1fc79",
+    "label": "Recording gaps",
+    "description": "Discontinuities in the recorded TAMS flow, detected from consecutive segment timeranges (design sec 9: a correctness requirement, not telemetry).",
+    "created_by": "service-account-compliance",
+    "updated_by": "service-account-compliance",
+    "timeline_reference": {
+      "entity_id": "https://mxl-tams.phrame.live/flows/c4d414c2-afef-420f-9f73-41dc86ca2819"
+    },
+    "tags": {},
+    "metadata_version": "1",
+    "created": "2026-09-25T13:08:15.781447Z",
+    "metadata_updated": "2026-09-29T16:49:46.623206Z",
+    "read_only": false,
+    "allow_overlaps": false,
+    "editable_events": true,
+    "schema_id": "33cf26ce-47fd-5d3c-95a2-eab8fc249a4b"
+  },
+  {
+    "id": "551b2a2c-36be-5968-90fb-5d0670cae4cf",
+    "label": "TR 101 290 events",
+    "description": "TR 101 290 transport-stream fault counter increments, from plugins/tsduck's Tr101290Collector via the estate's MQTT stats convention.",
+    "created_by": "service-account-compliance",
+    "updated_by": "service-account-compliance",
+    "timeline_reference": {
+      "entity_id": "https://mxl-tams.phrame.live/flows/c4d414c2-afef-420f-9f73-41dc86ca2819"
+    },
+    "tags": {},
+    "metadata_version": "1",
+    "created": "2026-09-25T13:08:15.348572Z",
+    "metadata_updated": "2026-09-29T16:49:46.590308Z",
+    "events_updated": "2026-09-29T16:57:21.041785Z",
+    "read_only": false,
+    "allow_overlaps": true,
+    "editable_events": true,
+    "schema_id": "38e84ec5-f8bb-559e-9fb2-b70d7e34aafb"
+  },
+  {
+    "id": "c5b3f8ad-2664-5f02-abf1-ea8bc6d35ddc",
+    "label": "Monitoring status",
+    "description": "A heartbeat proving compliance-store was actively watching the stream, whether or not anything happened (design brief: 'receiving nothing' and 'not started' must be distinguishable, and today they are not). started/monitoring/stopped lifecycle -- see the schema's own `description` for the full contract.",
+    "created_by": "service-account-compliance",
+    "updated_by": "service-account-compliance",
+    "timeline_reference": {
+      "entity_id": "https://mxl-tams.phrame.live/flows/fbda95b1-b86a-4039-894f-81106abe7880"
+    },
+    "tags": {},
+    "metadata_version": "1",
+    "created": "2026-09-25T13:07:50.925339Z",
+    "metadata_updated": "2026-09-29T16:48:31.065427Z",
+    "events_updated": "2026-09-29T16:57:19.622738Z",
+    "read_only": false,
+    "allow_overlaps": false,
+    "editable_events": true,
+    "schema_id": "3d394055-f8ff-565e-add4-32428a010500"
+  },
+  {
+    "id": "48f9cec8-8b28-53ad-8904-ff6f31d878fc",
+    "label": "Programme events (DVB EIT)",
+    "description": "Programmes as the broadcaster declared them in the DVB Event Information Table -- the track that answers 'what was on air at 14:00' without demuxing the recording. Carries BOTH the declared start (editorial truth) and the observed instant (evidential truth); the event's timerange is the observed one. See the schema's own description for why.",
+    "created_by": "service-account-compliance",
+    "updated_by": "service-account-compliance",
+    "timeline_reference": {
+      "entity_id": "https://mxl-tams.phrame.live/flows/fbda95b1-b86a-4039-894f-81106abe7880"
+    },
+    "tags": {},
+    "metadata_version": "1",
+    "created": "2026-09-25T13:07:50.892643Z",
+    "metadata_updated": "2026-09-29T16:48:31.055684Z",
+    "events_updated": "2026-09-29T11:00:06.294731Z",
+    "read_only": false,
+    "allow_overlaps": false,
+    "editable_events": true,
+    "schema_id": "3819375c-fe08-597b-bf3a-4b439a2cf667"
+  },
+  {
+    "id": "7db9ed33-1b9d-5ef3-8e99-9aec71dedd78",
+    "label": "Recording gaps",
+    "description": "Discontinuities in the recorded TAMS flow, detected from consecutive segment timeranges (design sec 9: a correctness requirement, not telemetry).",
+    "created_by": "service-account-compliance",
+    "updated_by": "service-account-compliance",
+    "timeline_reference": {
+      "entity_id": "https://mxl-tams.phrame.live/flows/fbda95b1-b86a-4039-894f-81106abe7880"
+    },
+    "tags": {},
+    "metadata_version": "1",
+    "created": "2026-09-25T13:07:50.828639Z",
+    "metadata_updated": "2026-09-29T16:48:31.024590Z",
+    "read_only": false,
+    "allow_overlaps": false,
+    "editable_events": true,
+    "schema_id": "33cf26ce-47fd-5d3c-95a2-eab8fc249a4b"
+  },
+  {
+    "id": "e02d04f8-bb1e-5aea-beea-322f3dd55ff9",
+    "label": "TR 101 290 events",
+    "description": "TR 101 290 transport-stream fault counter increments, from plugins/tsduck's Tr101290Collector via the estate's MQTT stats convention.",
+    "created_by": "service-account-compliance",
+    "updated_by": "service-account-compliance",
+    "timeline_reference": {
+      "entity_id": "https://mxl-tams.phrame.live/flows/fbda95b1-b86a-4039-894f-81106abe7880"
+    },
+    "tags": {},
+    "metadata_version": "1",
+    "created": "2026-09-25T13:07:50.781772Z",
+    "metadata_updated": "2026-09-29T16:48:30.988817Z",
+    "events_updated": "2026-09-29T16:57:15.451570Z",
+    "read_only": false,
+    "allow_overlaps": true,
+    "editable_events": true,
+    "schema_id": "38e84ec5-f8bb-559e-9fb2-b70d7e34aafb"
+  },
+  {
+    "id": "00ddf2cc-67a5-5299-bfb5-3cd6fd12d89f",
+    "label": "Birdfeeder Garden — wildlife events",
+    "description": "Activity detected by metadata-extractor on the garden feeder camera. Annotates the TAMS flow of the same name.",
+    "created_by": "service-account-compliance",
+    "timeline_reference": {
+      "entity_id": "https://mxl-tams.phrame.live/flows/26c4d746-5b29-52aa-a5c7-1a8cf6efebfa"
+    },
+    "tags": {},
+    "metadata_version": "1",
+    "created": "2026-09-25T12:03:29.728161Z",
+    "events_updated": "2026-10-06T19:05:55.424714Z",
+    "read_only": false,
+    "allow_overlaps": true,
+    "editable_events": true,
+    "schema_id": "b7bbf030-a6b7-5093-8f00-085bde40b533"
+  },
+  {
+    "id": "2d456754-ff21-5ab6-bcd3-b78d320508c3",
+    "label": "Programme events (DVB EIT)",
+    "description": "Programmes as the broadcaster declared them in the DVB Event Information Table -- the track that answers 'what was on air at 14:00' without demuxing the recording. Carries BOTH the declared start (editorial truth) and the observed instant (evidential truth); the event's timerange is the observed one. See the schema's own description for why.",
+    "created_by": "service-account-compliance",
+    "updated_by": "service-account-compliance",
+    "timeline_reference": {
+      "entity_id": "https://mxl-tams.phrame.live/flows/cf5c5407-5724-43a1-a77e-bd0c6d2446db"
+    },
+    "tags": {},
+    "metadata_version": "1",
+    "created": "2026-09-24T14:08:17.205938Z",
+    "metadata_updated": "2026-09-29T16:54:16.960590Z",
+    "events_updated": "2026-09-29T16:56:46.253402Z",
+    "read_only": false,
+    "allow_overlaps": false,
+    "editable_events": true,
+    "schema_id": "3819375c-fe08-597b-bf3a-4b439a2cf667"
+  },
+  {
+    "id": "05bb5ecf-a037-57f2-96d6-71ba78556c58",
+    "label": "Monitoring status",
+    "description": "A heartbeat proving compliance-store was actively watching the stream, whether or not anything happened (design brief: 'receiving nothing' and 'not started' must be distinguishable, and today they are not). started/monitoring/stopped lifecycle -- see the schema's own `description` for the full contract.",
+    "created_by": "service-account-compliance",
+    "updated_by": "service-account-compliance",
+    "timeline_reference": {
+      "entity_id": "https://mxl-tams.phrame.live/flows/cf5c5407-5724-43a1-a77e-bd0c6d2446db"
+    },
+    "tags": {},
+    "metadata_version": "1",
+    "created": "2026-09-23T13:39:19.044150Z",
+    "metadata_updated": "2026-09-29T16:54:16.987335Z",
+    "events_updated": "2026-09-29T16:56:57.992099Z",
+    "read_only": false,
+    "allow_overlaps": false,
+    "editable_events": true,
+    "schema_id": "3d394055-f8ff-565e-add4-32428a010500"
+  },
+  {
+    "id": "2e0c6644-357b-51bd-a6ea-7a6cbb23b518",
+    "label": "Recording gaps",
+    "description": "Discontinuities in the recorded TAMS flow, detected from consecutive segment timeranges (design sec 9: a correctness requirement, not telemetry).",
+    "created_by": "service-account-compliance",
+    "updated_by": "service-account-compliance",
+    "timeline_reference": {
+      "entity_id": "https://mxl-tams.phrame.live/flows/cf5c5407-5724-43a1-a77e-bd0c6d2446db"
+    },
+    "tags": {},
+    "metadata_version": "1",
+    "created": "2026-09-23T13:39:18.961432Z",
+    "metadata_updated": "2026-09-29T16:54:16.913450Z",
+    "events_updated": "2026-09-28T13:28:27.126649Z",
+    "read_only": false,
+    "allow_overlaps": false,
+    "editable_events": true,
+    "schema_id": "33cf26ce-47fd-5d3c-95a2-eab8fc249a4b"
+  },
+  {
+    "id": "2919f366-92c9-5bb7-bb4c-eb70bc6223c8",
+    "label": "TR 101 290 events",
+    "description": "TR 101 290 transport-stream fault counter increments, from plugins/tsduck's Tr101290Collector via the estate's MQTT stats convention.",
+    "created_by": "service-account-compliance",
+    "updated_by": "service-account-compliance",
+    "timeline_reference": {
+      "entity_id": "https://mxl-tams.phrame.live/flows/cf5c5407-5724-43a1-a77e-bd0c6d2446db"
+    },
+    "tags": {},
+    "metadata_version": "1",
+    "created": "2026-09-23T13:39:18.920592Z",
+    "metadata_updated": "2026-09-29T16:54:16.889266Z",
+    "events_updated": "2026-09-29T16:56:53.845933Z",
+    "read_only": false,
+    "allow_overlaps": true,
+    "editable_events": true,
+    "schema_id": "38e84ec5-f8bb-559e-9fb2-b70d7e34aafb"
+  },
+  {
+    "id": "0b69be5b-5d42-5dc9-96a5-2e5207a6586c",
+    "label": "Monitoring status",
+    "description": "A heartbeat proving compliance-store was actively watching the stream, whether or not anything happened (design brief: 'receiving nothing' and 'not started' must be distinguishable, and today they are not). started/monitoring/stopped lifecycle -- see the schema's own `description` for the full contract.",
+    "created_by": "service-account-compliance",
+    "timeline_reference": {
+      "entity_id": "https://mxl-tams.phrame.live/flows/5143afef-2691-43b4-a877-fe27fbdf7905"
+    },
+    "tags": {},
+    "metadata_version": "1",
+    "created": "2026-09-23T11:12:14.235198Z",
+    "events_updated": "2026-09-23T13:38:38.701027Z",
+    "read_only": false,
+    "allow_overlaps": false,
+    "editable_events": true,
+    "schema_id": "3d394055-f8ff-565e-add4-32428a010500"
+  },
+  {
+    "id": "a4df1983-2956-543d-830f-4231842ea972",
+    "label": "Recording gaps",
+    "description": "Discontinuities in the recorded TAMS flow, detected from consecutive segment timeranges (design sec 9: a correctness requirement, not telemetry).",
+    "created_by": "service-account-compliance",
+    "updated_by": "service-account-compliance",
+    "timeline_reference": {
+      "entity_id": "https://mxl-tams.phrame.live/flows/5143afef-2691-43b4-a877-fe27fbdf7905"
+    },
+    "tags": {},
+    "metadata_version": "1",
+    "created": "2026-09-22T16:17:25.735049Z",
+    "metadata_updated": "2026-09-23T11:12:14.168580Z",
+    "read_only": false,
+    "allow_overlaps": false,
+    "editable_events": true,
+    "schema_id": "33cf26ce-47fd-5d3c-95a2-eab8fc249a4b"
+  },
+  {
+    "id": "f0cf3392-5240-506f-a89a-7c46a255ff6e",
+    "label": "TR 101 290 events",
+    "description": "TR 101 290 transport-stream fault counter increments, from plugins/tsduck's Tr101290Collector via the estate's MQTT stats convention.",
+    "created_by": "service-account-compliance",
+    "updated_by": "service-account-compliance",
+    "timeline_reference": {
+      "entity_id": "https://mxl-tams.phrame.live/flows/5143afef-2691-43b4-a877-fe27fbdf7905"
+    },
+    "tags": {},
+    "metadata_version": "1",
+    "created": "2026-09-22T16:17:25.682866Z",
+    "metadata_updated": "2026-09-23T11:12:14.127750Z",
+    "events_updated": "2026-09-23T13:38:38.340134Z",
+    "read_only": false,
+    "allow_overlaps": true,
+    "editable_events": true,
+    "schema_id": "38e84ec5-f8bb-559e-9fb2-b70d7e34aafb"
+  }
+]

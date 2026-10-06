@@ -1,0 +1,156 @@
+[
+  {
+    "id": "22fdcb5a-3e23-4791-b226-5d4509f01682",
+    "track_id": "7cf97cb6-7b23-52d1-8223-93ffcf7e7f16",
+    "timerange_to_delete": "[1791213323:822729451_1791392674:695093523)",
+    "delete_track": false,
+    "created": "2026-10-05T14:14:30.754718Z",
+    "created_by": "service-account-compliance",
+    "updated": "2026-10-05T14:14:37.108880Z",
+    "expiry": "2026-10-12T14:14:30.754718Z",
+    "status": "done"
+  },
+  {
+    "id": "9742fd19-29f7-4d90-8ee4-d98923da2963",
+    "track_id": "c0a3f59d-9c3a-5455-9924-844259f1a488",
+    "timerange_to_delete": "[1791213313:471073347_1791396396:57312429)",
+    "delete_track": false,
+    "created": "2026-10-05T14:14:27.985496Z",
+    "created_by": "service-account-compliance",
+    "updated": "2026-10-05T14:14:34.487276Z",
+    "expiry": "2026-10-12T14:14:27.985496Z",
+    "status": "done"
+  },
+  {
+    "id": "c5d8f10a-e226-4fe3-8ae0-a8c96ef58564",
+    "track_id": "898c51e7-9c8f-525f-b3a6-74dfe31134de",
+    "timerange_to_delete": "[1791213314:204819105_1791396442:838498661)",
+    "delete_track": false,
+    "created": "2026-10-05T14:14:26.173564Z",
+    "created_by": "service-account-compliance",
+    "updated": "2026-10-05T14:14:28.295642Z",
+    "expiry": "2026-10-12T14:14:26.173564Z",
+    "status": "done"
+  },
+  {
+    "id": "8b267148-b702-4a4c-87e1-ef74dc10e3d0",
+    "track_id": "6cb6144d-9093-5931-8034-8fd8667bb575",
+    "timerange_to_delete": "[1791213263:581796045_1791284596:716493914)",
+    "delete_track": false,
+    "created": "2026-10-05T14:13:24.080568Z",
+    "created_by": "service-account-compliance",
+    "updated": "2026-10-05T14:13:25.801227Z",
+    "expiry": "2026-10-12T14:13:24.080568Z",
+    "status": "done"
+  },
+  {
+    "id": "f22bbb08-a5ad-430a-a437-21ed2ede23de",
+    "track_id": "1a9f631e-9eea-5c4d-9798-63e558cc1ac9",
+    "timerange_to_delete": "[1790161967:550118412_1790170754:110118412)",
+    "delete_track": false,
+    "created": "2026-10-03T10:11:48.850298Z",
+    "created_by": "service-account-compliance",
+    "updated": "2026-10-03T10:11:51.140174Z",
+    "expiry": "2026-10-10T10:11:48.850298Z",
+    "status": "done"
+  },
+  {
+    "id": "848114ef-6316-462a-8c05-4c930d7e5c58",
+    "track_id": "9afe3394-efb9-5991-803b-c7575262b4b8",
+    "timerange_to_delete": "[1790123074:98936328_1790811738:62519105)",
+    "delete_track": false,
+    "created": "2026-10-03T10:11:32.985564Z",
+    "created_by": "service-account-compliance",
+    "updated": "2026-10-03T10:12:01.348514Z",
+    "expiry": "2026-10-10T10:11:32.985564Z",
+    "status": "done"
+  },
+  {
+    "id": "fdf2cf52-989f-41ba-8728-e6b9fa0dd6ea",
+    "track_id": "49e9d746-6335-590b-81a0-42f1715b2b22",
+    "timerange_to_delete": "[1790341834:433111269_1790783324:70356144)",
+    "delete_track": false,
+    "created": "2026-10-03T10:11:19.247507Z",
+    "created_by": "service-account-compliance",
+    "updated": "2026-10-03T10:11:54.267970Z",
+    "expiry": "2026-10-10T10:11:19.247507Z",
+    "status": "done"
+  },
+  {
+    "id": "8fcdf555-2985-4168-afcb-ef7b69999a83",
+    "track_id": "0aa77280-3e2c-5987-878c-047e21d8d03c",
+    "timerange_to_delete": "[1790341866:550953947_1790811782:48505081)",
+    "delete_track": false,
+    "created": "2026-10-03T10:11:06.463484Z",
+    "created_by": "service-account-compliance",
+    "updated": "2026-10-03T10:11:29.817325Z",
+    "expiry": "2026-10-10T10:11:06.463484Z",
+    "status": "done"
+  },
+  {
+    "id": "e4619430-1bf4-4626-b262-30de56b72f4d",
+    "track_id": "b0a432ea-15c3-5d98-9dc8-ce3ad9c99cda",
+    "timerange_to_delete": "[1790341892:987317382_1790783365:640051800)",
+    "delete_track": false,
+    "created": "2026-10-03T10:10:41.987965Z",
+    "created_by": "service-account-compliance",
+    "updated": "2026-10-03T10:11:20.921761Z",
+    "expiry": "2026-10-10T10:10:41.987965Z",
+    "status": "done"
+  },
+  {
+    "id": "98b6c6d1-ef6e-426b-a730-524e01d33869",
+    "track_id": "6cb6144d-9093-5931-8034-8fd8667bb575",
+    "timerange_to_delete": "[1790701189:918752070_1791001707:124534979)",
+    "delete_track": false,
+    "created": "2026-10-03T10:10:26.721981Z",
+    "created_by": "service-account-compliance",
+    "updated": "2026-10-03T10:11:09.625683Z",
+    "expiry": "2026-10-10T10:10:26.721981Z",
+    "status": "done"
+  },
+  {
+    "id": "1f4ac39d-cf44-4770-9223-7d1c599d4788",
+    "track_id": "c0a3f59d-9c3a-5455-9924-844259f1a488",
+    "timerange_to_delete": "[1790701204:849242933_1791001718:387358763)",
+    "delete_track": false,
+    "created": "2026-10-03T10:10:10.971860Z",
+    "created_by": "service-account-compliance",
+    "updated": "2026-10-03T10:10:47.266Z",
+    "expiry": "2026-10-10T10:10:10.971860Z",
+    "status": "done"
+  },
+  {
+    "id": "1cba3613-d693-4c36-8d69-d0bc82efeb47",
+    "track_id": "898c51e7-9c8f-525f-b3a6-74dfe31134de",
+    "timerange_to_delete": "[1790701241:975594057_1791001681:358062089)",
+    "delete_track": false,
+    "created": "2026-10-03T10:10:01.009220Z",
+    "created_by": "service-account-compliance",
+    "updated": "2026-10-03T10:10:27.339113Z",
+    "expiry": "2026-10-10T10:10:01.009220Z",
+    "status": "done"
+  },
+  {
+    "id": "6cfda634-352b-4c15-9e95-c86a36e5ec15",
+    "track_id": "7cf97cb6-7b23-52d1-8223-93ffcf7e7f16",
+    "timerange_to_delete": "[1790701229:175090544_1791001739:135164613)",
+    "delete_track": false,
+    "created": "2026-10-03T10:09:53.688450Z",
+    "created_by": "service-account-compliance",
+    "updated": "2026-10-03T10:10:05.284312Z",
+    "expiry": "2026-10-10T10:09:53.688450Z",
+    "status": "done"
+  },
+  {
+    "id": "8a064e2f-eb99-4410-9180-a1a390965815",
+    "track_id": "2fb7eddb-e0bd-5392-94bf-f68d09388bd3",
+    "timerange_to_delete": "[1790695144:842033492_1790705871:385708786)",
+    "delete_track": false,
+    "created": "2026-10-03T10:09:11.998488Z",
+    "created_by": "service-account-compliance",
+    "updated": "2026-10-03T10:09:12.543914Z",
+    "expiry": "2026-10-10T10:09:11.998488Z",
+    "status": "done"
+  }
+]

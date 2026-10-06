@@ -1,0 +1,760 @@
+[
+  {
+    "id": "7392a63c-91be-5a71-8672-f587a142056a",
+    "external_id": "phrame.compliance-recorder.subtitle-text.v2",
+    "label": "Subtitle/teletext text",
+    "description": "One distinct caption, captured once on first appearance. v2 adds hold_seconds and partials_collapsed, recording whether the event is a collapsed snake-subtitled line and how many partials folded into it. v1 remains registered for events written before 2026-10-03 and differs only by their absence.",
+    "created_by": "service-account-compliance",
+    "updated_by": "service-account-compliance",
+    "created": "2026-10-05T13:39:47.982782Z",
+    "updated": "2026-10-06T13:32:42.777091Z",
+    "tags": {},
+    "schema": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "additionalProperties": false,
+      "description": "One distinct caption, captured ONCE on first appearance against a bounded dedup window (default 60s, configurable) -- teletext retransmits a page for a few seconds, so the window absorbs every retransmission while letting a genuinely recurring caption (the same line spoken again minutes later) reappear as its own event. This is a SEARCHABLE TEXT INDEX, not a subtitling track: no attempt is made to represent duration-on-screen precisely. NOT YET PRODUCED as of this MR -- plugins/tsduck has no teletext demux (a spike proved extraction feasible against real BBC Parliament captions, docs/evidence/teletext-live-sample.srt, but the plugin work is a separate MR). Registered now so the compliance browser has a stable contract ahead of that work.",
+      "properties": {
+        "dedup_window_seconds": {
+          "description": "The bounded first-appearance-wins window this event was evaluated against. Recorded on the event itself so a later change to the configured window is visible in old data rather than silently assumed to have always applied.",
+          "minimum": 1,
+          "type": "integer"
+        },
+        "hold_seconds": {
+          "description": "The hold cap in force when this event was written -- how long a line could be held back while still being built before being written anyway. Recorded for the same reason as dedup_window_seconds: a later change to the configured hold should be visible in old data rather than silently assumed to have always applied. OPTIONAL, for the same reason as partials_collapsed.",
+          "minimum": 1,
+          "type": "integer"
+        },
+        "page": {
+          "description": "Teletext page number, when the source is teletext and a page number is known.",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "partials_collapsed": {
+          "description": "How many superseded captions were folded into this event by the snake-subtitling hold. 0 is an ordinary caption that absorbed nothing; a snake line is typically 10-25, since such subtitling builds a line a word at a time. `partials_collapsed > 0` is therefore the reliable test for 'this event is a collapsed snake line'. OPTIONAL: events written before 2026-10-02 carry no such field, because the collapse did not exist then and nothing should imply otherwise.",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "pid": {
+          "description": "The teletext/subtitle elementary stream PID this text came from.",
+          "maximum": 8191,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "text": {
+          "description": "The caption text, as extracted. Not normalised beyond what the demux itself does.",
+          "minLength": 1,
+          "type": "string"
+        }
+      },
+      "required": [
+        "text",
+        "pid",
+        "dedup_window_seconds"
+      ],
+      "title": "Subtitle/teletext text (search index)",
+      "type": "object"
+    }
+  },
+  {
+    "id": "c9fce093-a410-5155-aa59-c5b549e0bf0b",
+    "external_id": "phrame.compliance-recorder.subtitle-text.v1",
+    "label": "Subtitle/teletext text",
+    "description": "One distinct caption, captured once on first appearance.",
+    "created_by": "service-account-compliance",
+    "updated_by": "service-account-compliance",
+    "created": "2026-10-03T10:14:32.695396Z",
+    "updated": "2026-10-04T22:41:14.005314Z",
+    "tags": {},
+    "schema": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "additionalProperties": false,
+      "description": "One distinct caption, captured ONCE on first appearance against a bounded dedup window (default 60s, configurable) -- teletext retransmits a page for a few seconds, so the window absorbs every retransmission while letting a genuinely recurring caption (the same line spoken again minutes later) reappear as its own event. This is a SEARCHABLE TEXT INDEX, not a subtitling track: no attempt is made to represent duration-on-screen precisely. NOT YET PRODUCED as of this MR -- plugins/tsduck has no teletext demux (a spike proved extraction feasible against real BBC Parliament captions, docs/evidence/teletext-live-sample.srt, but the plugin work is a separate MR). Registered now so the compliance browser has a stable contract ahead of that work.",
+      "properties": {
+        "dedup_window_seconds": {
+          "description": "The bounded first-appearance-wins window this event was evaluated against. Recorded on the event itself so a later change to the configured window is visible in old data rather than silently assumed to have always applied.",
+          "minimum": 1,
+          "type": "integer"
+        },
+        "hold_seconds": {
+          "description": "The hold cap in force when this event was written -- how long a line could be held back while still being built before being written anyway. Recorded for the same reason as dedup_window_seconds: a later change to the configured hold should be visible in old data rather than silently assumed to have always applied. OPTIONAL, for the same reason as partials_collapsed.",
+          "minimum": 1,
+          "type": "integer"
+        },
+        "page": {
+          "description": "Teletext page number, when the source is teletext and a page number is known.",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "partials_collapsed": {
+          "description": "How many superseded captions were folded into this event by the snake-subtitling hold. 0 is an ordinary caption that absorbed nothing; a snake line is typically 10-25, since such subtitling builds a line a word at a time. `partials_collapsed > 0` is therefore the reliable test for 'this event is a collapsed snake line'. OPTIONAL: events written before 2026-10-02 carry no such field, because the collapse did not exist then and nothing should imply otherwise.",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "pid": {
+          "description": "The teletext/subtitle elementary stream PID this text came from.",
+          "maximum": 8191,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "text": {
+          "description": "The caption text, as extracted. Not normalised beyond what the demux itself does.",
+          "minLength": 1,
+          "type": "string"
+        }
+      },
+      "required": [
+        "text",
+        "pid",
+        "dedup_window_seconds"
+      ],
+      "title": "Subtitle/teletext text (search index)",
+      "type": "object"
+    }
+  },
+  {
+    "id": "4f8395f9-d392-50c3-bf1f-48019eb25b9a",
+    "external_id": "phrame.compliance-recorder.timing-health.v1",
+    "label": "Timing health",
+    "description": "The recorder's PCR->TAI anchor state for one interval: forced re-anchors, refusals, the ceiling in force and the kernel TAI offset.",
+    "created_by": "service-account-compliance",
+    "updated_by": "service-account-compliance",
+    "created": "2026-09-30T21:31:20.906109Z",
+    "updated": "2026-10-06T13:32:42.721300Z",
+    "tags": {},
+    "schema": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "additionalProperties": false,
+      "description": "How far the recorder's PCR->TAI mapping could be trusted during this interval, written every interval whether anything changed or not. This track exists because on 2026-09-28 eight channels recorded ~58,000 segments with timestamps hours out, and the only evidence was a counter inside a process that nobody read and that died with the container. Timestamps in an evidential store are immutable, so a wrong one can never be corrected -- but a contemporaneous, immutable record of how much it deserved to be trusted is the next best thing, and is what turns 'these segments are wrong and we found out by eye two days later' into 'the record says confidence collapsed at 15:27:48'. CRITICAL PROPERTY: this event's timerange is derived from the system clock, NEVER from the PCR timeline it reports on. If it were stamped on that timeline, then at the exact moment the timeline broke, the record proving it broke would be misfiled by the same offset -- filed next to the very segments it was meant to qualify. The values are the plugin's own, taken verbatim from source.tai_anchor on the stats topic; deltas are for this interval, totals are cumulative for the run.",
+      "properties": {
+        "consecutive_refused": {
+          "description": "The refusal run in progress at the end of this interval. THE LEADING INDICATOR: it climbs toward TaiAnchor's threshold before a forced re-anchor happens, so an alert on this fires while the timeline is still correct rather than after it has already been wrong.",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "drift_ppm": {
+          "description": "The broadcaster's oscillator error as this recorder measures it, over the whole run. Diagnostic rather than a timeline input: PCR carries the rate, the clock carries the truth.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "forced_reanchors_in_window": {
+          "description": "Forced re-anchors during THIS interval, so the moment of an excursion is locatable without differencing the totals by hand.",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "forced_reanchors_total": {
+          "description": "Cumulative forced re-anchors for this run. THE FIELD TO ALARM ON: any value above zero means a displacement survived TaiAnchor's consecutive-refusal threshold, so the timeline was wrong for up to that many intervals before the clock was allowed to win. Segments written during the excursion are suspect and cannot be corrected after the fact.",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "last_correction_ns": {
+          "description": "The most recent correction applied, signed. Its SIGN over successive intervals is diagnostic: consistently one direction is genuine oscillator drift, alternating is measurement jitter about zero.",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "max_correction_ns": {
+          "description": "The drift ceiling in force. Recorded because it is chosen per service kind (5 ms video, 250 ms audio-only, since a sparse-PCR audio service has an order of magnitude more measurement noise): refused and forced counts from two channels cannot be compared without knowing which ceiling produced them.",
+          "minimum": 0,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "pcr_reference": {
+          "description": "Whether a PCR->TAI anchor had been established at all. False means no PCR had yet been seen, so there was no timeline to be right or wrong about.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "primary_kind": {
+          "description": "The service kind the plugin resolved, which is what selects max_correction_ns.",
+          "enum": [
+            "video",
+            "audio",
+            "none",
+            null
+          ],
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "reanchors_in_window": {
+          "description": "Accepted corrections during this interval.",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "reanchors_total": {
+          "description": "Cumulative corrections ACCEPTED as ordinary drift. Healthy operation is this number rising steadily while refused and forced stay at zero.",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "refused_in_window": {
+          "description": "Refusals during this interval.",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "refused_total": {
+          "description": "Cumulative corrections rejected as too large to be drift. Refusals alone are not a fault -- a transient must not move the timeline -- but a rising count with no forced re-anchors means the guard is absorbing something repeatedly.",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "stats_stale": {
+          "description": "True when no stats message arrived during this interval, so the values are carried over from the last one that did. Written rather than skipped: a silent absence of records is indistinguishable from a healthy recorder that nobody asked, which is the failure this track exists to prevent.",
+          "type": "boolean"
+        },
+        "tai_offset_seconds": {
+          "description": "CLOCK_TAI minus CLOCK_REALTIME as the kernel reports it, expected to be 37. ZERO MEANS THE HOST IS NOT MAINTAINING A TAI OFFSET and every timestamp in this interval is 37 s out -- which was true on this host until PTP was installed on 2026-09-29, and was invisible because nothing recorded it. systemd-timesyncd cannot set this; PTP or a chrony leap-second table must.",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "total_correction_ns": {
+          "description": "Cumulative signed correction applied across the run -- how far the mapping has been moved in total since it was anchored.",
+          "type": [
+            "integer",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "forced_reanchors_total",
+        "refused_total",
+        "consecutive_refused"
+      ],
+      "title": "Timing health",
+      "type": "object"
+    }
+  },
+  {
+    "id": "b7bbf030-a6b7-5093-8f00-085bde40b533",
+    "external_id": "https://gitlab.3adesign.co.uk/phrame/metadata-extractor/schemas/wildlife-event-v1",
+    "label": "Wildlife detection event v1",
+    "description": "One animal visit detected over a VDI stream: extent, trajectory, species identification and the detector settings that produced it.",
+    "created_by": "service-account-compliance",
+    "created": "2026-09-25T12:03:29.689676Z",
+    "updated": "2026-09-25T12:03:29.689676Z",
+    "tags": {},
+    "schema": {
+      "$id": "https://gitlab.3adesign.co.uk/phrame/metadata-extractor/schemas/wildlife-event-v1",
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "additionalProperties": false,
+      "description": "One visit by an animal, as detected over a VDI stream. ONE RECORD PER EVENT, never one per frame: the trajectory lives in this payload. At 25fps a per-frame track would be 2.16M records per camera per day, against a measured TADS ceiling of ~106 events/sec, and the O(n^2) overlap check on PUT /tracks/{id} is quadratic in track size. Per-event is ~1000/day.",
+      "properties": {
+        "bbox": {
+          "description": "x0,y0,x1,y1 in SOURCE pixels, union over the event",
+          "items": {
+            "type": "integer"
+          },
+          "maxItems": 4,
+          "minItems": 4,
+          "type": "array"
+        },
+        "detector": {
+          "additionalProperties": true,
+          "description": "Thresholds that produced this event. Recorded because they are NOT portable: the same scene measured p50=0 overcast and p50=244 in afternoon sun, and apparent object size depends entirely on framing. Without these an event cannot be reinterpreted later.",
+          "properties": {
+            "method": {
+              "enum": [
+                "mog2"
+              ],
+              "type": "string"
+            },
+            "min_area": {
+              "type": "number"
+            },
+            "normalise": {
+              "type": "boolean"
+            },
+            "proxy_width": {
+              "type": "integer"
+            },
+            "var_threshold": {
+              "type": "number"
+            },
+            "version": {
+              "type": "string"
+            }
+          },
+          "type": "object"
+        },
+        "duration_s": {
+          "minimum": 0,
+          "type": "number"
+        },
+        "end_tai_ns": {
+          "type": "integer"
+        },
+        "frames": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "identification": {
+          "additionalProperties": false,
+          "description": "Classifier output. Advisory: it annotates, it does not gate. Every event is recorded whatever this says, because a missed bird costs more than a kept clip of a branch and the classifier's recall on small garden birds is unproven.",
+          "properties": {
+            "alternatives": {
+              "items": {
+                "additionalProperties": false,
+                "properties": {
+                  "confidence": {
+                    "type": "number"
+                  },
+                  "label": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "label",
+                  "confidence"
+                ],
+                "type": "object"
+              },
+              "type": "array"
+            },
+            "confidence": {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            "furniture_score": {
+              "description": "Probability mass on feeders, poles and fences. High with a low species score means the crop framed the perch rather than the animal -- a box-quality signal, not a sighting.",
+              "type": "number"
+            },
+            "label": {
+              "type": "string"
+            },
+            "model": {
+              "type": "string"
+            },
+            "species": {
+              "description": "best match against the UK garden watchlist",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "species_confidence": {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            "vote_frames": {
+              "description": "frames voted on; one still of a moving animal is fragile",
+              "type": "integer"
+            }
+          },
+          "type": "object"
+        },
+        "kind": {
+          "description": "motion_event is an animal visit. signal_condition covers the health family from the project scope -- loss of picture, flat raster, concealment -- which shares a timeline and is cheaper to carry here than in a second store.",
+          "enum": [
+            "motion_event",
+            "signal_condition"
+          ]
+        },
+        "path": {
+          "description": "Trajectory, sampled not per-frame. Keeps one record per event affordable while preserving where the animal went.",
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "area_px": {
+                "type": "integer"
+              },
+              "box": {
+                "items": {
+                  "type": "integer"
+                },
+                "maxItems": 4,
+                "minItems": 4,
+                "type": "array"
+              },
+              "dt_ms": {
+                "description": "offset from start_tai_ns",
+                "type": "integer"
+              }
+            },
+            "required": [
+              "dt_ms",
+              "box"
+            ],
+            "type": "object"
+          },
+          "type": "array"
+        },
+        "peak_area_px": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "quality": {
+          "additionalProperties": false,
+          "properties": {
+            "corrupt_frames": {
+              "description": "frames excluded as decode corruption during this event",
+              "type": "integer"
+            },
+            "producer_drops": {
+              "description": "frames the VDI writer overwrote before we read them",
+              "type": "integer"
+            }
+          },
+          "type": "object"
+        },
+        "schema_version": {
+          "const": 1
+        },
+        "source": {
+          "additionalProperties": false,
+          "properties": {
+            "camera": {
+              "description": "human label, e.g. birdfeeder-garden",
+              "type": "string"
+            },
+            "stream": {
+              "description": "VDI stream UUID",
+              "type": "string"
+            },
+            "substream": {
+              "enum": [
+                "video",
+                "proxy",
+                "video_compressed"
+              ],
+              "type": "string"
+            }
+          },
+          "required": [
+            "stream",
+            "substream"
+          ],
+          "type": "object"
+        },
+        "start_tai_ns": {
+          "description": "TAI nanoseconds, taken straight from PluginFrame::origination_time. Same clock TAMS records against, so an event maps onto the recording without conversion.",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "schema_version",
+        "kind",
+        "start_tai_ns",
+        "end_tai_ns",
+        "source"
+      ],
+      "title": "Wildlife detection event",
+      "type": "object"
+    }
+  },
+  {
+    "id": "3819375c-fe08-597b-bf3a-4b439a2cf667",
+    "external_id": "phrame.compliance-recorder.programme-event.v1",
+    "label": "Programme event (DVB EIT)",
+    "description": "One programme as declared in EIT present/following, captured on first appearance and again whenever its content changes.",
+    "created_by": "service-account-compliance",
+    "updated_by": "service-account-compliance",
+    "created": "2026-09-24T14:08:17.187893Z",
+    "updated": "2026-10-06T13:32:42.791780Z",
+    "tags": {},
+    "schema": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "additionalProperties": false,
+      "description": "One programme as the broadcaster declared it in the DVB Event Information Table, captured when it first appears and again whenever its content changes. This is the track that answers 'what programme was on air at 14:00' without demuxing the recording.\n\nSCOPE. The feed carries EIT present/following for the recorded service only (p/f Actual, service 0x18A4 on the reference stream), so in practice each event is either the programme now on air or the one next. `present_following` distinguishes them and `running_status` says which of those the broadcaster claims. Events for other services are counted by the plugin and NOT written here.\n\nTIME, AND WHICH ONE TO TRUST. Two different times are recorded and they answer different questions. `declared_start` is what the BROADCASTER said, converted from the EIT's UTC start time; it is the editorial truth and is what a compliance query should use. `observed_at` is when this recorder first saw the declaration, on the recording's own PCR-derived timeline; it is the evidential truth and is what ties the event to a point in the stored stream. They can differ by hours -- an EIT announces the following programme long before it starts -- and conflating them would put a programme boundary in the wrong place.\n\nThe TADS event's own timerange is set from `observed_at`, because that is the instant in the recording this event is evidence about. `declared_start` is carried in the payload so a query can order by it instead.",
+      "properties": {
+        "declared_duration_seconds": {
+          "description": "Declared duration in seconds, from the EIT. The broadcaster's intention, not a measurement of what was recorded.",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "declared_start": {
+          "description": "When the BROADCASTER said the programme starts, as '{seconds}:{nanoseconds}' TAI. Converted from the EIT's declared UTC start. This is the editorial truth -- use it to answer 'what was scheduled at 14:00'.",
+          "type": "string"
+        },
+        "event_id": {
+          "description": "DVB event id. Unique per service, and reused by the broadcaster over long periods -- so (service_id, event_id) identifies a programme within a schedule, not for all time.",
+          "maximum": 65535,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "language_code": {
+          "description": "ISO 639-2 language of `name` and `short_description`, as the descriptor declared it.",
+          "type": "string"
+        },
+        "name": {
+          "description": "Programme title from the short event descriptor, e.g. 'Live Scottish Parliament'. May be empty when the broadcaster sends none.",
+          "type": "string"
+        },
+        "observed_at": {
+          "description": "When this recorder first saw the declaration, as '{seconds}:{nanoseconds}' TAI on the recording's own timeline. The evidential truth -- use it to find the point in the stored stream where this event is visible.",
+          "type": "string"
+        },
+        "present_following": {
+          "description": "True when this is the PRESENT programme (on air now), false when it is the FOLLOWING one (announced, not yet started). A following event becoming present is a new event, not an update.",
+          "type": "boolean"
+        },
+        "running_status": {
+          "description": "DVB running_status verbatim: 0 undefined, 1 not running, 2 starts in a few seconds, 3 pausing, 4 running, 5 service off-air. Kept as the raw code rather than a decoded string so a value the spec adds later is preserved rather than lost to an unknown-enum fallback.",
+          "maximum": 7,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "service_id": {
+          "description": "DVB service id the programme belongs to. Recorded even though only the primary service is written here, so a future change that widens the scope does not make old events ambiguous.",
+          "maximum": 65535,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "short_description": {
+          "description": "Synopsis from the short event descriptor.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "service_id",
+        "event_id",
+        "present_following",
+        "running_status",
+        "declared_start",
+        "declared_duration_seconds"
+      ],
+      "title": "Programme event (DVB EIT)",
+      "type": "object"
+    }
+  },
+  {
+    "id": "3d394055-f8ff-565e-add4-32428a010500",
+    "external_id": "phrame.compliance-recorder.monitoring-status.v1",
+    "label": "Monitoring status",
+    "description": "One of three lifecycle events (started/monitoring/stopped), discriminated by `state`. See the schema's own `description` for the full contract.",
+    "created_by": "service-account-compliance",
+    "updated_by": "service-account-compliance",
+    "created": "2026-09-22T22:23:11.943202Z",
+    "updated": "2026-10-06T13:32:42.805509Z",
+    "tags": {},
+    "schema": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "description": "A heartbeat proving compliance-store was actively watching the stream, written whether or not anything of interest happened -- the fourth track, distinct from the TR 101 290 fault track, so an empty error track cannot be mistaken for 'nothing was watching' (see the monitoring-status brief). Three event shapes share this one schema/track, discriminated by `state`, read together as a lifecycle: exactly one `started` at the run's beginning, one `monitoring` event per poll interval for as long as the process runs, and -- only on a clean shutdown -- one `stopped` at the end. A `monitoring` event's own `timerange` covers the whole interval it reports on, and consecutive `monitoring` events are contiguous (each ends exactly where the next begins), so a GAP in this track between two `monitoring` events is itself meaningful: it means monitoring stopped, whether or not a `stopped` event follows.",
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "flow_id": {
+              "description": "The TAMS flow this run is recording into (TAMS_FLOW_ID).",
+              "minLength": 1,
+              "type": "string"
+            },
+            "local_address": {
+              "description": "The receiving network interface's local address (TS_LOCAL_ADDRESS). A wrong interface receives nothing, silently -- recorded here so that failure mode is auditable after the fact rather than only debuggable live.",
+              "minLength": 1,
+              "type": "string"
+            },
+            "source": {
+              "description": "The configured transport-stream source being recorded, e.g. an RTP/UDP multicast URL (TS_SOURCE).",
+              "minLength": 1,
+              "type": "string"
+            },
+            "state": {
+              "const": "started"
+            },
+            "stream_id": {
+              "description": "The VDI stream id shared with input-processor/tams-recorder for this run (STREAM_ID).",
+              "minLength": 1,
+              "type": "string"
+            },
+            "version": {
+              "description": "compliance-store's own build version (Cargo package version), so a captured `started` event pins which build of the recorder was watching.",
+              "minLength": 1,
+              "type": "string"
+            }
+          },
+          "required": [
+            "state",
+            "source",
+            "local_address",
+            "flow_id",
+            "stream_id",
+            "version"
+          ]
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "counters_nonzero": {
+              "additionalProperties": {
+                "minimum": 1,
+                "type": "integer"
+              },
+              "description": "Only the TR 101 290 counters whose CUMULATIVE value is currently non-zero, keyed by TSDuck counter name (same names as the tr101290-event schema's `counter`). Zero counters are omitted so a clean stream produces a small event; an empty object here means every counter TSDuck reports is currently zero.",
+              "type": "object"
+            },
+            "errors_total": {
+              "description": "Sum of all TR 101 290 counters' CUMULATIVE values as of this event, i.e. sum(counters_nonzero) plus every counter that is currently zero. Cumulative for the same reason packet_count is.",
+              "minimum": 0,
+              "type": "integer"
+            },
+            "packet_count": {
+              "description": "CUMULATIVE transport-stream packet count as of this event's `timerange` end, taken verbatim from the plugin's own running total (plugin_query_stats' `source.packets`) -- NOT a delta within the interval, unlike the TR 101 290 track's `count`. Cumulative here because this is a liveness signal: a monitoring event with the same packet_count as the previous one proves the count has stalled, which a per-interval delta of 0 could not distinguish from 'no MQTT tick has ever arrived'.",
+              "minimum": 0,
+              "type": "integer"
+            },
+            "state": {
+              "const": "monitoring"
+            }
+          },
+          "required": [
+            "state",
+            "packet_count",
+            "errors_total",
+            "counters_nonzero"
+          ]
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "reason": {
+              "description": "Why this run ended. Today the only writer is the SIGTERM/SIGINT handler, which always writes \"signal\" -- a crash, SIGKILL or power loss writes nothing at all, which is the asymmetry this track is built to expose (see the brief): heartbeats ending WITH a `stopped` event means a deliberate shutdown; heartbeats ending with NO `stopped` event means the process died.",
+              "minLength": 1,
+              "type": "string"
+            },
+            "state": {
+              "const": "stopped"
+            }
+          },
+          "required": [
+            "state",
+            "reason"
+          ]
+        }
+      ],
+      "title": "Monitoring status",
+      "type": "object"
+    }
+  },
+  {
+    "id": "33cf26ce-47fd-5d3c-95a2-eab8fc249a4b",
+    "external_id": "phrame.compliance-recorder.recording-gap.v1",
+    "label": "Recording gap",
+    "description": "A discontinuity in the recorded TAMS flow -- the event's own timerange IS the gap.",
+    "created_by": "service-account-compliance",
+    "updated_by": "service-account-compliance",
+    "created": "2026-09-22T16:17:25.716042Z",
+    "updated": "2026-10-06T13:32:42.761422Z",
+    "tags": {},
+    "schema": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "additionalProperties": false,
+      "description": "A discontinuity in the recorded TAMS flow. The event's own TADS `timerange` IS the gap -- no bytes were captured during it -- detected by comparing consecutive segment timeranges registered against the flow, not by a dropped-frame counter (design doc sec 9: this is a correctness requirement, not telemetry). `segment_cut_without_rap` marks a segment boundary with no random-access point at the instant of the cut, which is a discoverability risk (playback cannot start exactly there) even though bytes exist on both sides -- its `timerange` is the zero-or-near-zero instant of the cut itself, not a gap in bytes.",
+      "properties": {
+        "following_segment_object_id": {
+          "description": "TAMS segment object_id immediately after the gap/cut, when known.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "kind": {
+          "description": "segment_gap: nothing was recorded between two consecutive segments. segment_cut_without_rap: a segment boundary fell mid-GOP.",
+          "enum": [
+            "segment_gap",
+            "segment_cut_without_rap"
+          ],
+          "type": "string"
+        },
+        "preceding_segment_object_id": {
+          "description": "TAMS segment object_id immediately before the gap/cut, when known.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "segments_cut_without_rap_total": {
+          "description": "tams-recorder's own cumulative segments_cut_without_rap counter, same caveat as segments_dropped_total.",
+          "minimum": 0,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "segments_dropped_total": {
+          "description": "tams-recorder's own cumulative segments_dropped counter at the time this event was written, when the MQTT stats path was reachable. Corroborating context, NOT the source of this event's timerange -- see the schema description.",
+          "minimum": 0,
+          "type": [
+            "integer",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "kind"
+      ],
+      "title": "Recording gap",
+      "type": "object"
+    }
+  },
+  {
+    "id": "38e84ec5-f8bb-559e-9fb2-b70d7e34aafb",
+    "external_id": "phrame.compliance-recorder.tr101290-event.v1",
+    "label": "TR 101 290 fault event",
+    "description": "One or more TR 101 290 counter increments observed during one poll window. See the schema's own `description` for the full contract.",
+    "created_by": "service-account-compliance",
+    "updated_by": "service-account-compliance",
+    "created": "2026-09-22T16:17:25.668970Z",
+    "updated": "2026-10-06T13:32:42.746017Z",
+    "tags": {},
+    "schema": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "additionalProperties": false,
+      "description": "One or more TR 101 290 counter increments observed during one poll window of the transport-stream monitor (plugins/tsduck's Tr101290Collector, wrapping TSDuck's ts::tr101290::Analyzer). `count` is a DELTA within this event's `timerange`, not a cumulative total -- the source counters (plugin_query_stats' `tr101290` object) are cumulative since the stream started, and compliance-store differences successive ticks before writing one event per counter that increased. Counter names and severities come verbatim from TSDuck's ts::tr101290::GetCounterDescriptions().",
+      "properties": {
+        "count": {
+          "description": "Number of NEW occurrences of this counter within [timerange) -- a delta against the previous poll tick, never the cumulative total the source counter actually holds.",
+          "minimum": 1,
+          "type": "integer"
+        },
+        "counter": {
+          "description": "TSDuck's TR 101 290 counter name, e.g. \"sync_byte_error\", \"continuity_count_error\", \"pcr_repetition_error\", \"PID_error\". Verbatim from the plugin's JSON -- not renamed or normalised, so a schema/counter-name mismatch is directly greppable.",
+          "minLength": 1,
+          "type": "string"
+        },
+        "pids": {
+          "description": "PIDs attributable to this delta, when unambiguous. The source's by_pid map carries only a per-PID (packets, errors) total, not a per-PID breakdown by counter name -- so when more than one PID's error total moved in the same tick, the specific PID(s) responsible for THIS counter cannot be determined from the feed, and this array is left empty rather than guessed.",
+          "items": {
+            "maximum": 8191,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "type": "array"
+        },
+        "severity": {
+          "description": "TR 101 290 priority as TSDuck reports it: 1 = first priority (necessary for decodability), 2 = second priority (recommended for continuous monitoring), 3 = third priority (application dependent). Static per counter name, not a measurement.",
+          "enum": [
+            1,
+            2,
+            3
+          ],
+          "type": "integer"
+        },
+        "suppressed_total": {
+          "description": "Cumulative count of occurrences suppressed by the intermittent-PID false-positive policy (design doc 5.3) as of this tick, carried for audit. Not included in `count`, and not itself a fault.",
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "counter",
+        "severity",
+        "count"
+      ],
+      "title": "TR 101 290 fault event",
+      "type": "object"
+    }
+  }
+]
