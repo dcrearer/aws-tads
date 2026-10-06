@@ -49,9 +49,13 @@ Async workers (event-driven): `delete-worker` (SQS), `webhook-dispatcher` + `sea
 upsert (single/batch, per-event schema validation) + list + async delete, service endpoints,
 cursor pagination with `X-Paging-*`/`Link` headers, central error handling, observability.
 
-**Phase 2 (stubbed — return 501 / no-op):** granular property sub-resources
-(`/tracks/{id}/label`, `/schemas/{id}/tags/{name}`, …), webhooks CRUD, the delete-worker,
-webhook-dispatcher, and search-indexer.
+**Phase 2 (in progress):**
+- **`delete-worker` — implemented.** SQS-triggered; advances delete requests
+  `created→started→done|error`, deletes Events wholly within `timerange_to_delete` (eternity ⇒
+  all Events on the track) via batched `BatchWriteItem`, deletes the Track if `delete_track`.
+  Idempotent on SQS redelivery.
+- **Remaining stubs (501 / no-op):** webhooks CRUD, webhook-dispatcher, search-indexer, and the
+  granular property sub-resources (`/tracks/{id}/label`, `/schemas/{id}/tags/{name}`, …).
 
 ## Persistent store (DynamoDB)
 

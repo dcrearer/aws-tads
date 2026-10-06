@@ -46,6 +46,25 @@ impl DeleteRequestRepo {
 
     /// Persist a new delete request and enqueue it for the worker.
     pub async fn create(&self, request: &TrackDeleteRequest) -> Result<(), StoreError> {
+        self.put(request).await?;
+
+        self.sqs
+            .send_message()
+            .queue_url(&self.queue_url)
+            .message_body(request.id.to_string())
+            .send()
+            .await
+            .map_err(StoreError::dynamo)?;
+        Ok(())
+    }
+
+    /// Persist status/progress updates to an existing request (used by the delete-worker as it
+    /// advances `created → started → done|error`). Does not re-enqueue.
+    pub async fn update(&self, request: &TrackDeleteRequest) -> Result<(), StoreError> {
+        self.put(request).await
+    }
+
+    async fn put(&self, request: &TrackDeleteRequest) -> Result<(), StoreError> {
         let doc =
             serde_json::to_string(request).map_err(|e| StoreError::Serialization(e.to_string()))?;
 
@@ -67,14 +86,6 @@ impl DeleteRequestRepo {
             .put_item()
             .table_name(&self.table)
             .set_item(Some(item))
-            .send()
-            .await
-            .map_err(StoreError::dynamo)?;
-
-        self.sqs
-            .send_message()
-            .queue_url(&self.queue_url)
-            .message_body(request.id.to_string())
             .send()
             .await
             .map_err(StoreError::dynamo)?;
