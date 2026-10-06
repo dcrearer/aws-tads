@@ -64,9 +64,10 @@ chrono = { version = "0.4.39", features = ["serde"] }
 config = { version = "0.15.6", default-features = false, features = ["yaml"] }
 base64 = "0.22.1"
 
-# Testing
+# Testing / benchmarking
 aws-smithy-mocks = "0.1.1"
 aws-smithy-types = "1.2.13"
+criterion = "0.5.1"
 
 [profile.release]
 # Lambda-friendly release profile: small, fast cold starts.

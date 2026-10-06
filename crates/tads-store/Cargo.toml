@@ -21,3 +21,8 @@ tokio = { workspace = true }
 aws-smithy-mocks.workspace = true
 aws-smithy-types.workspace = true
 aws-sdk-dynamodb = { workspace = true, features = ["test-util"] }
+criterion.workspace = true
+
+[[bench]]
+name = "store"
+harness = false
