@@ -4,7 +4,7 @@ use std::sync::Arc;
 
 use aws_config::BehaviorVersion;
 use tads_domain::Service;
-use tads_store::{DeleteRequestRepo, EventRepo, SchemaRepo, StoreConfig, TrackRepo};
+use tads_store::{DeleteRequestRepo, EventRepo, SchemaRepo, StoreConfig, TrackRepo, WebhookRepo};
 
 use crate::config::AppConfig;
 use crate::error::AppError;
@@ -16,6 +16,7 @@ pub struct AppState {
     pub schemas: SchemaRepo,
     pub tracks: TrackRepo,
     pub events: EventRepo,
+    pub webhooks: WebhookRepo,
     pub delete_requests: DeleteRequestRepo,
     pub service: Arc<Service>,
 }
@@ -57,6 +58,7 @@ impl AppState {
                 store.events_table.clone(),
                 store.max_payload_bytes,
             ),
+            webhooks: WebhookRepo::new(dynamo.clone(), store.webhooks_table.clone()),
             delete_requests: DeleteRequestRepo::new(
                 dynamo,
                 sqs,

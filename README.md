@@ -54,8 +54,11 @@ cursor pagination with `X-Paging-*`/`Link` headers, central error handling, obse
   `created→started→done|error`, deletes Events wholly within `timerange_to_delete` (eternity ⇒
   all Events on the track) via batched `BatchWriteItem`, deletes the Track if `delete_track`.
   Idempotent on SQS redelivery.
-- **Remaining stubs (501 / no-op):** webhooks CRUD, webhook-dispatcher, search-indexer, and the
-  granular property sub-resources (`/tracks/{id}/label`, `/schemas/{id}/tags/{name}`, …).
+- **`webhooks` CRUD — implemented.** `POST/GET/PUT/DELETE /service/webhooks[/{id}]` with tag
+  filters + pagination. `api_key_value` is write-only (accepted, stored out-of-band, never
+  returned).
+- **Remaining stubs (no-op):** webhook-dispatcher, search-indexer, and the granular property
+  sub-resources (`/tracks/{id}/label`, `/schemas/{id}/tags/{name}`, …).
 
 ## Persistent store (DynamoDB)
 

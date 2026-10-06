@@ -2675,10 +2675,19 @@ dependencies = [
 name = "tads-lambda-webhooks"
 version = "0.1.0"
 dependencies = [
+ "aws-sdk-dynamodb",
+ "aws-sdk-sqs",
+ "aws-smithy-mocks",
  "axum",
+ "http 1.5.0",
  "lambda_http",
+ "serde_json",
+ "tads-domain",
  "tads-http",
+ "tads-store",
  "tokio",
+ "tower 0.5.3",
+ "tracing",
 ]
 
 [[package]]

@@ -16,6 +16,7 @@ pub mod delete_requests;
 pub mod events;
 pub mod schemas;
 pub mod tracks;
+pub mod webhooks;
 
 pub use config::StoreConfig;
 pub use cursor::{Page, PageParams};
@@ -25,3 +26,4 @@ pub use delete_requests::{DeleteRequestRepo, DeleteSortBy};
 pub use events::{EventQuery, EventRepo};
 pub use schemas::{SchemaQuery, SchemaRepo};
 pub use tracks::{TrackQuery, TrackRepo};
+pub use webhooks::{WebhookQuery, WebhookRepo};
