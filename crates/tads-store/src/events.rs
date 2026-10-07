@@ -174,6 +174,21 @@ impl EventRepo {
         Ok(!inserted)
     }
 
+    /// Whether this track currently has any two Events whose timeranges overlap. Backs the
+    /// `allow_overlaps` → `false` guard (a self-join on the GiST overlap index).
+    pub async fn has_overlaps(&self, track_id: &str) -> Result<bool, StoreError> {
+        let exists: bool = sqlx::query_scalar(
+            "SELECT EXISTS( \
+                SELECT 1 FROM track_event a JOIN track_event b \
+                  ON a.track_id = b.track_id AND a.event_id <> b.event_id AND a.tr && b.tr \
+                WHERE a.track_id = $1)",
+        )
+        .bind(parse_uuid(track_id)?)
+        .fetch_one(&self.pool)
+        .await?;
+        Ok(exists)
+    }
+
     /// Delete every Event wholly contained within `timerange` (eternity deletes all Events on the
     /// track). Returns the number deleted and records one outbox `remove` per deleted Event.
     pub async fn delete_all_within(

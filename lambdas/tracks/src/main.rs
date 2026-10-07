@@ -132,6 +132,14 @@ async fn put_track(
     body.metadata_updated = Some(now);
     body.updated_by = principal.actor().map(str::to_string);
 
+    // Can't disable overlaps on a track that already contains overlapping Events (on create there
+    // are none, so this is a no-op). The write path enforces the flag for new Events separately.
+    if !body.allow_overlaps && state.events.has_overlaps(&id).await? {
+        return Err(AppError::Conflict(
+            "cannot set allow_overlaps=false: track already has overlapping Events".into(),
+        ));
+    }
+
     state.tracks.put(&body).await?;
 
     if existed {
@@ -361,8 +369,12 @@ async fn put_allow_overlaps(
 ) -> ApiResult<Response> {
     let mut track = load(&state, &id).await?;
     let ro = track.read_only;
-    // NOTE: setting allow_overlaps=true while overlapping Events already exist should 400; that
-    // overlap scan is a follow-up (needs an events query here).
+    // Disabling overlaps is only allowed when no two Events currently overlap on this track.
+    if !value && state.events.has_overlaps(&id).await? {
+        return Err(AppError::Conflict(
+            "cannot set allow_overlaps=false: track already has overlapping Events".into(),
+        ));
+    }
     track.allow_overlaps = value;
     save(&state, &principal, track, ro, false).await?;
     Ok(StatusCode::NO_CONTENT.into_response())
