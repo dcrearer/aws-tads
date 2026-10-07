@@ -1,0 +1,17 @@
+## Linux-native build of all workspace Lambda binaries.
+## Routes around the macOS zig cross-compile failure (aws-lc-sys/ring) by building
+## natively on Linux inside the official cargo-lambda image. See README "Deployment".
+# Pinned by digest for reproducible builds (resolves cargo-lambda:latest at time of writing).
+FROM ghcr.io/cargo-lambda/cargo-lambda@sha256:060e014c9178f87d5e411eb75f1940ee8fc758b0bc7cf503832f2724f8367cdb AS builder
+WORKDIR /src
+
+# Copy the workspace (target/, cdk/.venv, .git excluded via .containerignore).
+COPY . .
+
+# One build at the workspace root compiles every `[[bin]]` into target/lambda/<name>/bootstrap.
+# `-j 2` caps parallel rustc jobs: release+LTO links are memory-heavy and OOM-kill on a
+# small container/VM if too many run at once.
+RUN cargo lambda build --release --arm64 -j 2
+
+FROM scratch
+COPY --from=builder /src/target/lambda /lambda

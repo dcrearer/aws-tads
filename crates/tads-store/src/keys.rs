@@ -1,25 +1,46 @@
-//! Sort-key encoding for the events table.
+//! TimeRange ↔ Postgres `int8range` / `bigint` mapping.
 //!
-//! DynamoDB sorts range keys lexicographically, so a signed nanosecond value must be mapped to
-//! an order-preserving fixed-width string. We flip the sign bit of the `i128` and format it as
-//! 32 lower-case hex digits; the composite SK appends the event id to disambiguate events that
-//! share a start instant (overlaps are allowed).
+//! TAI nanoseconds are stored as `bigint` (`seconds*1e9 + nanos`), matching the reference
+//! implementation. The domain [`TimeRange`] exposes `i128` bounds with `i128::MIN`/`i128::MAX`
+//! sentinels for unboundedness (eternity); those map to open `int8range` bounds here.
 
-/// Order-preserving 32-hex-digit encoding of a signed nanosecond value.
-pub fn encode_sortable(nanos: i128) -> String {
-    let biased = (nanos as u128) ^ (1u128 << 127);
-    format!("{biased:032x}")
+use std::ops::Bound;
+
+use sqlx::postgres::types::PgRange;
+use tads_domain::TimeRange;
+
+/// Clamp an `i128` nanosecond bound to `i64`. Finite TAI values fit comfortably; the sentinels
+/// saturate (and are treated as unbounded by [`pg_range`]).
+pub fn ns_to_i64(n: i128) -> i64 {
+    n.clamp(i64::MIN as i128, i64::MAX as i128) as i64
 }
 
-/// Composite event sort key: `<sortable(start_ns)>#<event_id>`.
-pub fn event_sort_key(start_nanos: i128, event_id: &str) -> String {
-    format!("{}#{}", encode_sortable(start_nanos), event_id)
+/// The inclusive-lower scalar used for ordering / the `start_ns` column.
+pub fn start_ns(tr: &TimeRange) -> i64 {
+    ns_to_i64(tr.lower_nanos())
 }
 
-/// Upper-bound sentinel for a start-time range query: the encoding of `b` with no id suffix,
-/// which sorts strictly below any `encode_sortable(b)#id`, giving `start_ns < b` semantics.
-pub fn start_upper_bound(exclusive_upper_nanos: i128) -> String {
-    encode_sortable(exclusive_upper_nanos)
+/// The exclusive-upper scalar used for the `end_ns` column.
+pub fn end_ns(tr: &TimeRange) -> i64 {
+    ns_to_i64(tr.upper_nanos())
+}
+
+/// Build the half-open `[lower, upper)` `int8range` for a TimeRange, using open bounds for the
+/// eternity sentinels so GiST `&&` overlap behaves correctly at the extremes.
+pub fn pg_range(tr: &TimeRange) -> PgRange<i64> {
+    let lower = tr.lower_nanos();
+    let upper = tr.upper_nanos();
+    let start = if lower == i128::MIN {
+        Bound::Unbounded
+    } else {
+        Bound::Included(ns_to_i64(lower))
+    };
+    let end = if upper == i128::MAX {
+        Bound::Unbounded
+    } else {
+        Bound::Excluded(ns_to_i64(upper))
+    };
+    PgRange { start, end }
 }
 
 #[cfg(test)]
@@ -27,43 +48,29 @@ mod tests {
     use super::*;
 
     #[test]
-    fn encoding_is_monotonic_including_negatives() {
-        let samples = [
-            i128::MIN,
-            -1_000_000_000,
-            -1,
-            0,
-            1,
-            1_000_000_000,
-            i128::MAX,
-        ];
-        let mut encoded: Vec<String> = samples.iter().map(|n| encode_sortable(*n)).collect();
-        let sorted = {
-            let mut e = encoded.clone();
-            e.sort();
-            e
-        };
-        assert_eq!(encoded, sorted, "hex encoding must preserve numeric order");
-        encoded.dedup();
-        assert_eq!(encoded.len(), samples.len(), "encodings must be unique");
+    fn finite_range_is_half_open() {
+        let tr: TimeRange = "[0:0_10:0)".parse().unwrap();
+        let r = pg_range(&tr);
+        assert_eq!(r.start, Bound::Included(0));
+        assert_eq!(r.end, Bound::Excluded(10_000_000_000));
+        assert_eq!(start_ns(&tr), 0);
+        assert_eq!(end_ns(&tr), 10_000_000_000);
     }
 
     #[test]
-    fn composite_key_orders_by_start_then_id() {
-        let a = event_sort_key(10, "aaaa");
-        let b = event_sort_key(10, "bbbb");
-        let c = event_sort_key(20, "aaaa");
-        assert!(a < b);
-        assert!(b < c);
+    fn eternity_is_unbounded_both_ends() {
+        let tr = TimeRange::eternity();
+        let r = pg_range(&tr);
+        assert_eq!(r.start, Bound::Unbounded);
+        assert_eq!(r.end, Bound::Unbounded);
     }
 
     #[test]
-    fn upper_bound_excludes_equal_start() {
-        // An event starting exactly at the exclusive upper bound must sort above the sentinel.
-        let sentinel = start_upper_bound(20);
-        let at_bound = event_sort_key(20, "aaaa");
-        assert!(at_bound > sentinel);
-        let below = event_sort_key(19, "zzzz");
-        assert!(below < sentinel);
+    fn open_start_is_unbounded_lower() {
+        let tr: TimeRange = "(5:0_".parse().unwrap();
+        let r = pg_range(&tr);
+        // exclusive start 5:0 is nudged to 5:0+1ns by lower_nanos()
+        assert_eq!(r.start, Bound::Included(5_000_000_001));
+        assert_eq!(r.end, Bound::Unbounded);
     }
 }

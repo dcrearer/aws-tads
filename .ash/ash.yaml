@@ -1,0 +1,90 @@
+project_name: aws-tads
+
+global_settings:
+  severity_threshold: MEDIUM
+
+  # Each suppression documents an accepted risk or verified false positive. Expirations force
+  # periodic re-review (and will re-surface the finding in ~90 days). Keep this list minimal:
+  # genuine findings are fixed at the source (CDK stack, Dockerfile, CI workflow), not suppressed.
+  suppressions:
+    # -- False positives -----------------------------------------------------------------------
+    - rule_id: SECRET-SECRET-KEYWORD
+      path: lambdas/webhooks/tests/smoke.rs
+      reason: >-
+        Test fixture, not a real secret. The literal "super-secret" is the input to a test that
+        asserts the webhook api_key_value is NOT echoed back in responses.
+      expiration: "2027-01-04"
+
+    # -- Transitive dependency advisories (AWS SDK), not exploitable in our usage --------------
+    # All four come from the AWS SDK's bundled rustls 0.21 / aws-smithy-json and are NOT flagged
+    # by `cargo audit` (RustSec), the project's gating dependency auditor. The real fix is an
+    # AWS SDK + Rust-toolchain bump (tracked separately). None are reachable in our client-side,
+    # trusted-endpoint usage.
+    - rule_id: GHSA-8ffr-xgwf-xj56-aws-smithy-json
+      path: Cargo.lock
+      reason: >-
+        Server-side DoS in smithy-rs GENERATED SERVERS (uncontrolled recursion parsing untrusted
+        JSON). We use aws-smithy-json only as an AWS client, parsing trusted service responses;
+        inbound request bodies are parsed by serde_json/jsonschema, not this crate. Fixed in
+        0.62.7, outside aws-config 1.8.11's pinned ^0.61 range.
+      expiration: "2027-01-04"
+    - rule_id: GHSA-82j2-j2ch-gfr8-rustls-webpki
+      path: Cargo.lock
+      reason: >-
+        rustls-webpki panic on malformed CRL BIT STRING. The Lambdas' TLS client talks only to
+        AWS endpoints with known-good certs and performs no CRL processing of attacker-controlled
+        data. Via AWS SDK's rustls 0.21; fix requires a rustls 0.23 / SDK bump.
+      expiration: "2027-01-04"
+    - rule_id: GHSA-965h-392x-2mh5-rustls-webpki
+      path: Cargo.lock
+      reason: >-
+        LOW: name-constraint handling for URI names. Not reachable — client validates only AWS
+        service certificates. Via AWS SDK's rustls 0.21; fix requires a rustls 0.23 / SDK bump.
+      expiration: "2027-01-04"
+    - rule_id: GHSA-xgp8-3hg3-c2mh-rustls-webpki
+      path: Cargo.lock
+      reason: >-
+        LOW: wildcard name-constraint handling. Not reachable — client validates only AWS service
+        certificates. Via AWS SDK's rustls 0.21; fix requires a rustls 0.23 / SDK bump.
+      expiration: "2027-01-04"
+
+    # -- Accepted architectural decisions ------------------------------------------------------
+    # The DB-touching app Lambdas now run in the VPC. CKV_AWS_117 fires only for the authorizer
+    # (deliberately OUT of the VPC — it needs public egress to Cognito JWKS and touches no DB) and
+    # the CDK-managed helper Lambdas (migrate provider + Cognito client-secret reader).
+    - rule_id: CKV_AWS_117
+      path: '**/cdk.out/TadsStack.template.json'
+      reason: >-
+        Authorizer is intentionally not in the VPC (needs public egress to Cognito JWKS, no DB);
+        the remaining hits are CDK-managed deploy-time helper Lambdas.
+      expiration: "2027-01-04"
+
+    # CKV_AWS_116/115/173 are satisfied by all application Lambdas (DLQ, reserved concurrency,
+    # CMK-encrypted env — asserted in cdk/tests/test_stack.py). These findings come only from the
+    # CDK-managed helper Lambdas (the migrate custom-resource provider and the Cognito
+    # client-secret reader), which CloudFormation invokes during stack ops, never on the request path.
+    - rule_id: CKV_AWS_116
+      path: '**/cdk.out/TadsStack.template.json'
+      reason: CDK-managed deploy-time helper Lambdas. App Lambdas have DLQs (asserted in tests).
+      expiration: "2027-01-04"
+    - rule_id: CKV_AWS_115
+      path: '**/cdk.out/TadsStack.template.json'
+      reason: CDK-managed deploy-time helper Lambdas. App Lambdas set reserved concurrency (asserted in tests).
+      expiration: "2027-01-04"
+    - rule_id: CKV_AWS_173
+      path: '**/cdk.out/TadsStack.template.json'
+      reason: CDK-managed deploy-time helper Lambdas. App Lambdas use CMK env encryption (asserted in tests).
+      expiration: "2027-01-04"
+
+    - rule_id: CKV_DOCKER_2
+      path: Dockerfile.lambda
+      reason: >-
+        Build-only image. The builder stage compiles the binaries and the final stage is FROM
+        scratch; nothing is deployed from this image, so a HEALTHCHECK is meaningless.
+      expiration: "2027-01-04"
+    - rule_id: CKV_DOCKER_3
+      path: Dockerfile.lambda
+      reason: >-
+        Build-only image discarded after artifact extraction; running the cargo-lambda build as
+        root in the ephemeral builder is standard and the output is a bare binary, not a runtime.
+      expiration: "2027-01-04"

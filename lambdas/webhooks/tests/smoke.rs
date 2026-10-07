@@ -1,33 +1,24 @@
-//! End-to-end smoke test for the webhooks Lambda router.
+//! End-to-end smoke test for the webhooks Lambda router against a real Postgres.
 //!
-//! Verifies that creating a webhook returns 201 and that the write-only `api_key_value` is
-//! accepted but never echoed back in the `WebhookGet` response.
+//! Gated on `TADS_TEST_DB`; skips when unset. Verifies that creating a webhook returns 201 and
+//! that the write-only `api_key_value` is accepted but never echoed back in the response.
 
-use aws_sdk_dynamodb::operation::put_item::PutItemOutput;
-use aws_sdk_sqs::operation::send_message::SendMessageOutput;
-use aws_smithy_mocks::{RuleMode, mock, mock_client};
+use aws_config::BehaviorVersion;
 use axum::body::Body;
 use http::Request;
 use tads_http::AppState;
-use tads_http::config::{AppConfig, ServiceInfo, Tables};
+use tads_http::config::{AppConfig, DatabaseSettings, ServiceInfo};
 use tower::ServiceExt;
 
-fn test_state() -> AppState {
-    let put_rule =
-        mock!(aws_sdk_dynamodb::Client::put_item).then_output(|| PutItemOutput::builder().build());
-    let dynamo = mock_client!(aws_sdk_dynamodb, RuleMode::MatchAny, [&put_rule]);
-
-    let sqs_rule = mock!(aws_sdk_sqs::Client::send_message)
-        .then_output(|| SendMessageOutput::builder().build());
-    let sqs = mock_client!(aws_sdk_sqs, RuleMode::MatchAny, [&sqs_rule]);
-
-    let config = AppConfig {
-        tables: Tables {
-            schemas: "tads-schemas".into(),
-            tracks: "tads-tracks".into(),
-            events: "tads-events".into(),
-            webhooks: "tads-webhooks".into(),
-            delete_requests: "tads-delete-requests".into(),
+fn test_config() -> AppConfig {
+    AppConfig {
+        database: DatabaseSettings {
+            proxy_endpoint: String::new(),
+            port: 5432,
+            db_name: "tads".into(),
+            username: "tads".into(),
+            secret_arn: String::new(),
+            max_connections: 5,
         },
         delete_queue_url: "https://sqs.local/queue".into(),
         max_payload_bytes: 360 * 1024,
@@ -37,14 +28,33 @@ fn test_state() -> AppState {
             api_version: "0.1".into(),
             service_version: None,
         },
-    };
-    let store = config.store_config();
-    AppState::from_parts(config, store, dynamo, sqs)
+    }
+}
+
+async fn harness() -> Option<AppState> {
+    let url = std::env::var("TADS_TEST_DB").ok()?;
+    let pool = sqlx::PgPool::connect(&url)
+        .await
+        .expect("connect TADS_TEST_DB");
+    tads_store::migrate(&pool).await.expect("run migrations");
+    sqlx::query(
+        "TRUNCATE payload_schema, track, track_event, webhook, track_delete_request, outbox",
+    )
+    .execute(&pool)
+    .await
+    .expect("reset tables");
+    let aws = aws_config::load_defaults(BehaviorVersion::latest()).await;
+    let sqs = aws_sdk_sqs::Client::new(&aws);
+    Some(AppState::from_parts(test_config(), pool, sqs))
 }
 
 #[tokio::test]
 async fn create_webhook_does_not_echo_api_key_value() {
-    let app = tads_lambda_webhooks::router(test_state());
+    let Some(state) = harness().await else {
+        eprintln!("skipping: set TADS_TEST_DB to a Postgres URL");
+        return;
+    };
+    let app = tads_lambda_webhooks::router(state);
 
     let body = serde_json::json!({
         "url": "https://subscriber.example/hook",

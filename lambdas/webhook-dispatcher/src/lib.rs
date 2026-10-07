@@ -1,46 +1,16 @@
-//! Webhook-dispatcher library (DynamoDB-Streams-triggered).
+//! Webhook-dispatcher library (transactional-outbox-driven).
 //!
-//! Maps a DynamoDB Streams change record to a TADS webhook event, matches it against each
-//! registered subscription's filters, and POSTs the callback body to the subscriber `url` with
-//! the `api_key_name` header. Pure mapping/matching lives in free functions (unit-tested);
-//! delivery + status updates are on [`Dispatcher`].
+//! Maps an outbox row (written in the same transaction as a resource mutation) to a TADS webhook
+//! event, matches it against each registered subscription's filters, and POSTs the callback body
+//! to the subscriber `url` with the `api_key_name` header. Pure mapping/matching lives in free
+//! functions (unit-tested); delivery + status updates are on [`Dispatcher`].
 
 use chrono::Utc;
 use reqwest::Client as HttpClient;
 use serde_json::{Value, json};
 use tads_domain::tags::TagValue;
 use tads_domain::{Tags, WebhookEvent, WebhookGet, WebhookStatus};
-use tads_store::{StoredWebhook, WebhookRepo};
-
-/// Which TADS aggregate a Streams table belongs to (resolved from configured table names).
-#[derive(Clone, Copy, PartialEq, Eq, Debug)]
-pub enum Resource {
-    Schema,
-    Track,
-    Event,
-}
-
-/// Maps DynamoDB table names to their TADS role.
-#[derive(Clone, Debug)]
-pub struct TableRoles {
-    pub schemas: String,
-    pub tracks: String,
-    pub events: String,
-}
-
-impl TableRoles {
-    pub fn role(&self, table: &str) -> Option<Resource> {
-        if table == self.schemas {
-            Some(Resource::Schema)
-        } else if table == self.tracks {
-            Some(Resource::Track)
-        } else if table == self.events {
-            Some(Resource::Event)
-        } else {
-            None
-        }
-    }
-}
+use tads_store::{OutboxRow, StoredWebhook, WebhookRepo};
 
 /// A derived webhook event plus the fields needed to apply subscription filters.
 #[derive(Clone, Debug)]
@@ -55,146 +25,137 @@ pub struct Change {
     pub event: Value,
 }
 
-fn table_from_arn(arn: &str) -> Option<&str> {
-    // arn:aws:dynamodb:<region>:<acct>:table/<name>/stream/<ts>
-    arn.split("table/").nth(1).and_then(|s| s.split('/').next())
-}
-
-/// Parse the `doc` JSON string out of a DynamoDB Streams image (`{"doc":{"S":"..."}}`).
-fn image_doc(image: &Value) -> Option<Value> {
-    let s = image.get("doc")?.get("S")?.as_str()?;
-    serde_json::from_str(s).ok()
-}
-
-fn attr_s(image: &Value, name: &str) -> Option<String> {
-    image.get(name)?.get("S")?.as_str().map(str::to_string)
-}
-
 fn parse_tags(doc: &Value) -> Option<Tags> {
     doc.get("tags")
         .and_then(|t| serde_json::from_value(t.clone()).ok())
 }
 
-/// Derive the webhook event from a Streams record, or `None` if it is not a change we publish.
-pub fn derive_change(record: &Value, roles: &TableRoles) -> Option<Change> {
-    use Resource::*;
+fn key_str(key_fields: &Value, name: &str) -> Option<String> {
+    key_fields
+        .get(name)
+        .and_then(Value::as_str)
+        .map(str::to_string)
+}
+
+/// Derive the webhook event from an outbox row, or `None` if it is not a change we publish.
+/// `row.doc` is the new document (for insert/modify); `row.key_fields` carries the ids needed for
+/// removes. `row.aggregate_id` is the track id for events, else the resource id.
+pub fn from_outbox(row: &OutboxRow) -> Option<Change> {
     use WebhookEvent::*;
+    let created = row.op == tads_store::outbox::OP_INSERT;
 
-    let event_name = record.get("eventName")?.as_str()?;
-    let table = table_from_arn(record.get("eventSourceARN")?.as_str()?)?;
-    let resource = roles.role(table)?;
-    let ddb = record.get("dynamodb")?;
-    let new_image = ddb.get("NewImage");
-    let old_image = ddb.get("OldImage");
-    let keys = ddb.get("Keys");
-
-    match (resource, event_name) {
-        (Schema, "INSERT") | (Schema, "MODIFY") => {
-            let doc = image_doc(new_image?)?;
-            Some(Change {
-                event_type: if event_name == "INSERT" {
-                    SchemasCreated
-                } else {
-                    SchemasUpdated
-                },
-                track_id: None,
-                schema_id: doc.get("id").and_then(Value::as_str).map(str::to_string),
-                entity_id: None,
-                editable_events: None,
-                tags: parse_tags(&doc),
-                event: json!({ "schema": doc }),
-            })
-        }
-        (Schema, "REMOVE") => {
-            let id = attr_s(old_image.or(keys)?, "schema_id")?;
-            Some(Change {
-                event_type: SchemasDeleted,
-                track_id: None,
-                schema_id: Some(id.clone()),
-                entity_id: None,
-                editable_events: None,
-                tags: None,
-                event: json!({ "schema_id": id }),
-            })
-        }
-        (Track, "INSERT") | (Track, "MODIFY") => {
-            let doc = image_doc(new_image?)?;
-            Some(Change {
-                event_type: if event_name == "INSERT" {
-                    TracksCreated
-                } else {
-                    TracksUpdated
-                },
-                track_id: doc.get("id").and_then(Value::as_str).map(str::to_string),
-                schema_id: doc
-                    .get("schema_id")
-                    .and_then(Value::as_str)
-                    .map(str::to_string),
-                entity_id: doc
-                    .get("timeline_reference")
-                    .and_then(|t| t.get("entity_id"))
-                    .and_then(Value::as_str)
-                    .map(str::to_string),
-                editable_events: doc.get("editable_events").and_then(Value::as_bool),
-                tags: parse_tags(&doc),
-                event: json!({ "track": doc }),
-            })
-        }
-        (Track, "REMOVE") => {
-            let id = attr_s(old_image.or(keys)?, "track_id")?;
-            Some(Change {
-                event_type: TracksDeleted,
-                track_id: Some(id.clone()),
-                schema_id: None,
-                entity_id: None,
-                editable_events: None,
-                tags: None,
-                event: json!({ "track_id": id }),
-            })
-        }
-        (Event, "INSERT") | (Event, "MODIFY") => {
-            let image = new_image?;
-            let doc = image_doc(image)?;
-            let track_id = attr_s(image, "track_id");
-            Some(Change {
-                event_type: if event_name == "INSERT" {
-                    TracksEventsAdded
-                } else {
-                    TracksEventsUpdated
-                },
-                track_id: track_id.clone(),
-                schema_id: None,
-                entity_id: None,
-                editable_events: None,
-                tags: None,
-                event: json!({ "track_id": track_id, "track_events": [doc] }),
-            })
-        }
-        (Event, "REMOVE") => {
-            let image = old_image.or(keys)?;
-            let track_id = attr_s(image, "track_id");
-            let event_id = image_doc(image)
-                .and_then(|d| d.get("id").and_then(Value::as_str).map(str::to_string))
-                .or_else(|| attr_s(image, "event_id"));
-            Some(Change {
-                event_type: TracksEventsDeleted,
-                track_id: track_id.clone(),
-                schema_id: None,
-                entity_id: None,
-                editable_events: None,
-                tags: None,
-                event: json!({ "track_id": track_id, "track_event_ids": event_id.into_iter().collect::<Vec<_>>() }),
-            })
+    match row.resource.as_str() {
+        "schema" => match row.op.as_str() {
+            "insert" | "modify" => {
+                let doc = row.doc.clone()?;
+                Some(Change {
+                    event_type: if created {
+                        SchemasCreated
+                    } else {
+                        SchemasUpdated
+                    },
+                    track_id: None,
+                    schema_id: doc.get("id").and_then(Value::as_str).map(str::to_string),
+                    entity_id: None,
+                    editable_events: None,
+                    tags: parse_tags(&doc),
+                    event: json!({ "schema": doc }),
+                })
+            }
+            "remove" => {
+                let id = key_str(&row.key_fields, "schema_id")?;
+                Some(Change {
+                    event_type: SchemasDeleted,
+                    track_id: None,
+                    schema_id: Some(id.clone()),
+                    entity_id: None,
+                    editable_events: None,
+                    tags: None,
+                    event: json!({ "schema_id": id }),
+                })
+            }
+            _ => None,
+        },
+        "track" => match row.op.as_str() {
+            "insert" | "modify" => {
+                let doc = row.doc.clone()?;
+                Some(Change {
+                    event_type: if created {
+                        TracksCreated
+                    } else {
+                        TracksUpdated
+                    },
+                    track_id: doc.get("id").and_then(Value::as_str).map(str::to_string),
+                    schema_id: doc
+                        .get("schema_id")
+                        .and_then(Value::as_str)
+                        .map(str::to_string),
+                    entity_id: doc
+                        .get("timeline_reference")
+                        .and_then(|t| t.get("entity_id"))
+                        .and_then(Value::as_str)
+                        .map(str::to_string),
+                    editable_events: doc.get("editable_events").and_then(Value::as_bool),
+                    tags: parse_tags(&doc),
+                    event: json!({ "track": doc }),
+                })
+            }
+            "remove" => {
+                let id = key_str(&row.key_fields, "track_id")?;
+                Some(Change {
+                    event_type: TracksDeleted,
+                    track_id: Some(id.clone()),
+                    schema_id: None,
+                    entity_id: None,
+                    editable_events: None,
+                    tags: None,
+                    event: json!({ "track_id": id }),
+                })
+            }
+            _ => None,
+        },
+        "event" => {
+            let track_id =
+                key_str(&row.key_fields, "track_id").or_else(|| Some(row.aggregate_id.clone()));
+            match row.op.as_str() {
+                "insert" | "modify" => {
+                    let doc = row.doc.clone()?;
+                    Some(Change {
+                        event_type: if created {
+                            TracksEventsAdded
+                        } else {
+                            TracksEventsUpdated
+                        },
+                        track_id: track_id.clone(),
+                        schema_id: None,
+                        entity_id: None,
+                        editable_events: None,
+                        tags: None,
+                        event: json!({ "track_id": track_id, "track_events": [doc] }),
+                    })
+                }
+                "remove" => {
+                    let event_id = key_str(&row.key_fields, "event_id");
+                    Some(Change {
+                        event_type: TracksEventsDeleted,
+                        track_id: track_id.clone(),
+                        schema_id: None,
+                        entity_id: None,
+                        editable_events: None,
+                        tags: None,
+                        event: json!({ "track_id": track_id, "track_event_ids": event_id.into_iter().collect::<Vec<_>>() }),
+                    })
+                }
+                _ => None,
+            }
         }
         _ => None,
     }
 }
 
 /// Does `webhook` subscribe to this change (event type + filters)? Filters are only applied when
-/// the corresponding fact is known for the change (e.g. an Event record carries no schema_id, so
-/// a `schema_ids` filter does not reject it here).
+/// the corresponding fact is known for the change.
 pub fn webhook_matches(webhook: &WebhookGet, change: &Change) -> bool {
-    // Only active subscriptions receive deliveries.
     if !matches!(
         webhook.status,
         WebhookStatus::Created | WebhookStatus::Started
@@ -259,29 +220,27 @@ pub fn callback_body(change: &Change) -> Value {
 #[derive(Clone)]
 pub struct Dispatcher {
     repo: WebhookRepo,
-    roles: TableRoles,
     http: HttpClient,
     max_attempts: u32,
 }
 
 impl Dispatcher {
-    pub fn new(repo: WebhookRepo, roles: TableRoles, http: HttpClient) -> Self {
+    pub fn new(repo: WebhookRepo, http: HttpClient) -> Self {
         Self {
             repo,
-            roles,
             http,
             max_attempts: 3,
         }
     }
 
-    /// Process a batch of Streams records: load subscriptions once, then fan out matches.
-    pub async fn dispatch(&self, records: &[Value]) -> anyhow::Result<()> {
+    /// Process a batch of outbox rows: load subscriptions once, then fan out matches.
+    pub async fn dispatch(&self, rows: &[OutboxRow]) -> anyhow::Result<()> {
         let webhooks = self.repo.list_all().await?;
         if webhooks.is_empty() {
             return Ok(());
         }
-        for record in records {
-            let Some(change) = derive_change(record, &self.roles) else {
+        for row in rows {
+            let Some(change) = from_outbox(row) else {
                 continue;
             };
             let body = callback_body(&change);
@@ -336,16 +295,9 @@ impl Dispatcher {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use serde_json::json;
 
-    fn roles() -> TableRoles {
-        TableRoles {
-            schemas: "tads-schemas".into(),
-            tracks: "tads-tracks".into(),
-            events: "tads-events".into(),
-        }
-    }
-
-    fn track_insert_record() -> Value {
+    fn track_insert_row() -> OutboxRow {
         let track = json!({
             "id": "2d1f2b3c-4a5b-4c6d-8e9f-0a1b2c3d4e5f",
             "schema_id": "3e2f3c4d-5b6c-4d7e-9faf-1b2c3d4e5f60",
@@ -353,16 +305,19 @@ mod tests {
             "editable_events": true,
             "tags": { "team": "news" }
         });
-        json!({
-            "eventName": "INSERT",
-            "eventSourceARN": "arn:aws:dynamodb:eu-west-1:123:table/tads-tracks/stream/2026",
-            "dynamodb": { "NewImage": { "doc": { "S": track.to_string() } } }
-        })
+        OutboxRow {
+            id: 1,
+            op: "insert".into(),
+            resource: "track".into(),
+            aggregate_id: "2d1f2b3c-4a5b-4c6d-8e9f-0a1b2c3d4e5f".into(),
+            doc: Some(track),
+            key_fields: json!({ "track_id": "2d1f2b3c-4a5b-4c6d-8e9f-0a1b2c3d4e5f" }),
+        }
     }
 
     #[test]
     fn derives_track_created_with_filter_fields() {
-        let change = derive_change(&track_insert_record(), &roles()).unwrap();
+        let change = from_outbox(&track_insert_row()).unwrap();
         assert_eq!(change.event_type, WebhookEvent::TracksCreated);
         assert_eq!(change.entity_id.as_deref(), Some("tams://flow/abc"));
         assert_eq!(change.editable_events, Some(true));
@@ -372,31 +327,37 @@ mod tests {
     #[test]
     fn derives_event_added() {
         let ev = json!({ "id": "2d1f2b3c-4a5b-4c6d-8e9f-0a1b2c3d4e5f", "timerange": "[0:0_1:0)", "payload": {} });
-        let record = json!({
-            "eventName": "INSERT",
-            "eventSourceARN": "arn:aws:dynamodb:eu-west-1:123:table/tads-events/stream/2026",
-            "dynamodb": { "NewImage": { "doc": { "S": ev.to_string() }, "track_id": { "S": "track-1" } } }
-        });
-        let change = derive_change(&record, &roles()).unwrap();
+        let row = OutboxRow {
+            id: 2,
+            op: "insert".into(),
+            resource: "event".into(),
+            aggregate_id: "track-1".into(),
+            doc: Some(ev),
+            key_fields: json!({ "track_id": "track-1", "event_id": "2d1f2b3c-4a5b-4c6d-8e9f-0a1b2c3d4e5f" }),
+        };
+        let change = from_outbox(&row).unwrap();
         assert_eq!(change.event_type, WebhookEvent::TracksEventsAdded);
         assert_eq!(change.track_id.as_deref(), Some("track-1"));
         assert_eq!(change.event["track_events"].as_array().unwrap().len(), 1);
     }
 
     #[test]
-    fn unknown_table_is_ignored() {
-        let record = json!({
-            "eventName": "INSERT",
-            "eventSourceARN": "arn:aws:dynamodb:eu-west-1:123:table/other/stream/2026",
-            "dynamodb": { "NewImage": {} }
-        });
-        assert!(derive_change(&record, &roles()).is_none());
+    fn unknown_resource_is_ignored() {
+        let row = OutboxRow {
+            id: 3,
+            op: "insert".into(),
+            resource: "other".into(),
+            aggregate_id: "x".into(),
+            doc: Some(json!({})),
+            key_fields: json!({}),
+        };
+        assert!(from_outbox(&row).is_none());
     }
 
     #[test]
     fn matches_requires_subscribed_event_and_active_status() {
         use tads_domain::{TadsId, Webhook};
-        let change = derive_change(&track_insert_record(), &roles()).unwrap();
+        let change = from_outbox(&track_insert_row()).unwrap();
 
         let base = Webhook {
             url: "https://x".into(),
@@ -416,17 +377,14 @@ mod tests {
         };
         assert!(webhook_matches(&active, &change));
 
-        // Not subscribed to the event type.
         let mut other = active.clone();
         other.webhook.events = vec![WebhookEvent::SchemasCreated];
         assert!(!webhook_matches(&other, &change));
 
-        // Disabled webhooks never receive.
         let mut disabled = active.clone();
         disabled.status = WebhookStatus::Disabled;
         assert!(!webhook_matches(&disabled, &change));
 
-        // editable_events filter mismatch rejects.
         let mut filtered = active.clone();
         filtered.webhook.editable_events = Some(false);
         assert!(!webhook_matches(&filtered, &change));

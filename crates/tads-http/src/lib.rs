@@ -22,7 +22,7 @@ pub use auth::Principal;
 pub use config::AppConfig;
 pub use error::{ApiResult, AppError};
 pub use paging::PagingHeaders;
-pub use state::AppState;
+pub use state::{AppState, connect_pool};
 
 // Re-export the store list primitives handlers need, so Lambda crates depend only on tads-http.
 pub use tads_store::{Page, PageParams};
