@@ -372,6 +372,15 @@ class TadsStack(Stack):
             "HttpApi",
             api_name=f"{self.prefix}-api",
             create_default_stage=True,
+            # Allow browser SPAs (e.g. a TADS Explorer UI) to call the API cross-origin. Every
+            # route still requires a bearer token; CORS only governs which browser origins may
+            # read responses. Preflight OPTIONS is answered by API Gateway (not the authorizer).
+            cors_preflight=apigw.CorsPreflightOptions(
+                allow_origins=["*"],
+                allow_methods=[apigw.CorsHttpMethod.ANY],
+                allow_headers=["authorization", "content-type"],
+                max_age=Duration.days(1),
+            ),
         )
 
         self.key.add_to_resource_policy(
@@ -430,10 +439,20 @@ class TadsStack(Stack):
             results_cache_ttl=Duration.minutes(5),
         )
 
+        # Explicit methods (not ANY) so OPTIONS is NOT routed to the authorizer — API Gateway then
+        # answers the CORS preflight itself (204 + headers), which browsers require.
+        methods = [
+            apigw.HttpMethod.GET,
+            apigw.HttpMethod.HEAD,
+            apigw.HttpMethod.PUT,
+            apigw.HttpMethod.POST,
+            apigw.HttpMethod.DELETE,
+        ]
+
         def route(path: str, fn: lambda_.Function, integ_id: str) -> None:
             self.http_api.add_routes(
                 path=path,
-                methods=[apigw.HttpMethod.ANY],
+                methods=methods,
                 integration=apigw_integ.HttpLambdaIntegration(integ_id, fn),
                 authorizer=authorizer,
             )
