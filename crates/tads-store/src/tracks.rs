@@ -3,6 +3,7 @@
 //! Row layout: `track_id` (PK), `schema_id`/`entity_id`/`label`/`editable_events` projected for
 //! filtering, `tags` jsonb (GIN-indexed), and the authoritative `doc` jsonb (the full `Track`).
 
+use chrono::{DateTime, Utc};
 use serde_json::{Value, json};
 use sqlx::{PgPool, QueryBuilder, Row};
 use tads_domain::{TimeRange, Track};
@@ -51,13 +52,13 @@ impl TrackRepo {
         let mut tx = self.pool.begin().await?;
         let inserted: bool = sqlx::query(
             "INSERT INTO track (track_id, schema_id, entity_id, label, editable_events, \
-                read_only, allow_overlaps, tags, doc) \
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) \
+                read_only, allow_overlaps, created, tags, doc) \
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) \
              ON CONFLICT (track_id) DO UPDATE SET \
                 schema_id = EXCLUDED.schema_id, entity_id = EXCLUDED.entity_id, \
                 label = EXCLUDED.label, editable_events = EXCLUDED.editable_events, \
                 read_only = EXCLUDED.read_only, allow_overlaps = EXCLUDED.allow_overlaps, \
-                tags = EXCLUDED.tags, doc = EXCLUDED.doc \
+                created = EXCLUDED.created, tags = EXCLUDED.tags, doc = EXCLUDED.doc \
              RETURNING (xmax = 0) AS inserted",
         )
         .bind(track.id.as_uuid())
@@ -67,6 +68,7 @@ impl TrackRepo {
         .bind(track.editable_events)
         .bind(track.read_only)
         .bind(track.allow_overlaps)
+        .bind(track.created)
         .bind(&tags)
         .bind(&doc)
         .fetch_one(&mut *tx)
@@ -130,7 +132,7 @@ impl TrackRepo {
         let cursor = page.cursor()?;
 
         let mut qb: QueryBuilder<sqlx::Postgres> =
-            QueryBuilder::new("SELECT track_id, doc FROM track WHERE true");
+            QueryBuilder::new("SELECT track_id, created, doc FROM track WHERE true");
         if let Some(sid) = &query.schema_id {
             qb.push(" AND schema_id = ").push_bind(parse_uuid(sid)?);
         }
@@ -166,24 +168,35 @@ impl TrackRepo {
         for k in &query.tag_exists {
             qb.push(" AND tags ? ").push_bind(k.clone());
         }
+        // Keyset on (created, track_id) descending — newest first.
         if let Some(c) = &cursor {
-            qb.push(" AND track_id > ")
-                .push_bind(parse_uuid(&cursor_str(c, "track_id")?)?);
+            qb.push(" AND (created, track_id) < (")
+                .push_bind(parse_created(&cursor_str(c, "created")?)?)
+                .push(", ")
+                .push_bind(parse_uuid(&cursor_str(c, "track_id")?)?)
+                .push(")");
         }
-        qb.push(" ORDER BY track_id ASC LIMIT ")
+        qb.push(" ORDER BY created DESC NULLS LAST, track_id DESC LIMIT ")
             .push_bind(i64::from(limit) + 1);
 
         let rows = qb.build().fetch_all(&self.pool).await?;
         let has_more = rows.len() > limit as usize;
         let mut tracks = Vec::with_capacity(rows.len().min(limit as usize));
-        let mut last: Option<Uuid> = None;
+        let mut last: Option<(Option<DateTime<Utc>>, Uuid)> = None;
         for row in rows.into_iter().take(limit as usize) {
-            last = Some(row.get("track_id"));
+            last = Some((row.get("created"), row.get("track_id")));
             tracks.push(from_doc(row.get("doc"))?);
         }
-        let next_key = has_more
-            .then(|| last.map(|id| encode_cursor(&json!({ "track_id": id.to_string() }))))
-            .flatten();
+        let next_key = if has_more {
+            last.map(|(created, id)| {
+                encode_cursor(&json!({
+                    "created": created.map(|t| t.to_rfc3339()),
+                    "track_id": id.to_string(),
+                }))
+            })
+        } else {
+            None
+        };
 
         Ok(Page {
             items: tracks,
@@ -200,4 +213,10 @@ fn from_doc(doc: Value) -> Result<Track, StoreError> {
 fn parse_uuid(s: &str) -> Result<Uuid, StoreError> {
     s.parse()
         .map_err(|_| StoreError::Malformed(format!("invalid uuid `{s}`")))
+}
+
+fn parse_created(s: &str) -> Result<DateTime<Utc>, StoreError> {
+    DateTime::parse_from_rfc3339(s)
+        .map(|d| d.with_timezone(&Utc))
+        .map_err(|e| StoreError::Cursor(format!("invalid cursor `created`: {e}")))
 }

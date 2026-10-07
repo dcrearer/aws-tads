@@ -3,6 +3,7 @@
 //! Row layout: `schema_id` (PK), optional unique `external_id`, optional `label`, `tags` jsonb,
 //! and the authoritative `doc` jsonb (the full `PayloadSchema`).
 
+use chrono::{DateTime, Utc};
 use serde_json::{Value, json};
 use sqlx::{PgPool, QueryBuilder, Row};
 use tads_domain::PayloadSchema;
@@ -47,16 +48,17 @@ impl SchemaRepo {
 
         let mut tx = self.pool.begin().await?;
         let inserted: bool = sqlx::query(
-            "INSERT INTO payload_schema (schema_id, external_id, label, tags, doc) \
-             VALUES ($1, $2, $3, $4, $5) \
+            "INSERT INTO payload_schema (schema_id, external_id, label, created, tags, doc) \
+             VALUES ($1, $2, $3, $4, $5, $6) \
              ON CONFLICT (schema_id) DO UPDATE SET \
                 external_id = EXCLUDED.external_id, label = EXCLUDED.label, \
-                tags = EXCLUDED.tags, doc = EXCLUDED.doc \
+                created = EXCLUDED.created, tags = EXCLUDED.tags, doc = EXCLUDED.doc \
              RETURNING (xmax = 0) AS inserted",
         )
         .bind(schema.id.as_uuid())
         .bind(schema.external_id.as_deref())
         .bind(schema.label.as_deref())
+        .bind(schema.created)
         .bind(&tags)
         .bind(&doc)
         .fetch_one(&mut *tx)
@@ -111,7 +113,7 @@ impl SchemaRepo {
         let cursor = page.cursor()?;
 
         let mut qb: QueryBuilder<sqlx::Postgres> =
-            QueryBuilder::new("SELECT schema_id, doc FROM payload_schema WHERE true");
+            QueryBuilder::new("SELECT schema_id, created, doc FROM payload_schema WHERE true");
         if let Some(ext) = &query.external_id {
             qb.push(" AND external_id = ").push_bind(ext.clone());
         }
@@ -132,24 +134,35 @@ impl SchemaRepo {
         for k in &query.tag_exists {
             qb.push(" AND tags ? ").push_bind(k.clone());
         }
+        // Keyset on (created, schema_id) descending — newest first.
         if let Some(c) = &cursor {
-            qb.push(" AND schema_id > ")
-                .push_bind(parse_uuid(&cursor_str(c, "schema_id")?)?);
+            qb.push(" AND (created, schema_id) < (")
+                .push_bind(parse_created(&cursor_str(c, "created")?)?)
+                .push(", ")
+                .push_bind(parse_uuid(&cursor_str(c, "schema_id")?)?)
+                .push(")");
         }
-        qb.push(" ORDER BY schema_id ASC LIMIT ")
+        qb.push(" ORDER BY created DESC NULLS LAST, schema_id DESC LIMIT ")
             .push_bind(i64::from(limit) + 1);
 
         let rows = qb.build().fetch_all(&self.pool).await?;
         let has_more = rows.len() > limit as usize;
         let mut schemas = Vec::with_capacity(rows.len().min(limit as usize));
-        let mut last: Option<Uuid> = None;
+        let mut last: Option<(Option<DateTime<Utc>>, Uuid)> = None;
         for row in rows.into_iter().take(limit as usize) {
-            last = Some(row.get("schema_id"));
+            last = Some((row.get("created"), row.get("schema_id")));
             schemas.push(from_doc(row.get("doc"))?);
         }
-        let next_key = has_more
-            .then(|| last.map(|id| encode_cursor(&json!({ "schema_id": id.to_string() }))))
-            .flatten();
+        let next_key = if has_more {
+            last.map(|(created, id)| {
+                encode_cursor(&json!({
+                    "created": created.map(|t| t.to_rfc3339()),
+                    "schema_id": id.to_string(),
+                }))
+            })
+        } else {
+            None
+        };
 
         Ok(Page {
             items: schemas,
@@ -166,4 +179,10 @@ fn from_doc(doc: Value) -> Result<PayloadSchema, StoreError> {
 fn parse_uuid(s: &str) -> Result<Uuid, StoreError> {
     s.parse()
         .map_err(|_| StoreError::Malformed(format!("invalid uuid `{s}`")))
+}
+
+fn parse_created(s: &str) -> Result<DateTime<Utc>, StoreError> {
+    DateTime::parse_from_rfc3339(s)
+        .map(|d| d.with_timezone(&Utc))
+        .map_err(|e| StoreError::Cursor(format!("invalid cursor `created`: {e}")))
 }

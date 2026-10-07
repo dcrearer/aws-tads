@@ -51,6 +51,19 @@ DB_NAME = "tads"
 DB_USER = "tads"
 
 
+def _migrations_hash() -> str:
+    """SHA-256 over the sorted migration files, so the migrate custom resource re-runs whenever
+    the migration set changes."""
+    import hashlib
+
+    migrations = sorted((REPO_ROOT / "crates" / "tads-store" / "migrations").glob("*.sql"))
+    h = hashlib.sha256()
+    for f in migrations:
+        h.update(f.name.encode())
+        h.update(f.read_bytes())
+    return h.hexdigest()[:16]
+
+
 def lambda_code(name: str) -> lambda_.Code:
     """Resolve a Lambda's code asset, falling back to a placeholder only when explicitly allowed."""
     real = REPO_ROOT / "target" / "lambda" / name
@@ -131,7 +144,9 @@ class TadsStack(Stack):
             self,
             "Db",
             engine=rds.DatabaseClusterEngine.aurora_postgres(
-                version=rds.AuroraPostgresEngineVersion.VER_16_4
+                # 16.15 is offered in us-east-1 (16.4 is not). `.of()` avoids depending on a
+                # specific CDK enum that may lag the available engine versions.
+                version=rds.AuroraPostgresEngineVersion.of("16.15", "16")
             ),
             credentials=rds.Credentials.from_generated_secret(DB_USER, encryption_key=self.key),
             writer=rds.ClusterInstance.serverless_v2("writer"),
@@ -344,8 +359,9 @@ class TadsStack(Stack):
             self,
             "RunMigrations",
             service_token=provider.service_token,
-            # Re-run when the migration bundle changes (bump this to force a re-run).
-            properties={"migration_version": "0001"},
+            # Keyed to the migrations-dir hash so the resource re-fires whenever a migration is
+            # added/changed (sqlx skips already-applied migrations, so re-running is safe).
+            properties={"migrations_hash": _migrations_hash()},
         )
         resource.node.add_dependency(self.proxy)
 
