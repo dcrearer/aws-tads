@@ -35,69 +35,11 @@ from aws_cdk import aws_kms as kms
 from aws_cdk import aws_lambda as lambda_
 from aws_cdk import aws_lambda_event_sources as sources
 from aws_cdk import aws_logs as logs
-from aws_cdk import aws_secretsmanager as secretsmanager
 from aws_cdk import aws_sqs as sqs
-from aws_cdk import custom_resources as cr
 from constructs import Construct
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 PLACEHOLDER = REPO_ROOT / "cdk" / "placeholder"
-
-# Inline source for the default-user custom-resource Lambda. Generates a password that satisfies
-# the Cognito default policy, creates the user, sets a permanent password, and stores
-# {username, password} in Secrets Manager. The password is never returned to CloudFormation.
-_DEFAULT_USER_FN_CODE = '''
-import json
-import os
-import secrets
-import string
-
-import boto3
-
-cognito = boto3.client("cognito-idp")
-sm = boto3.client("secretsmanager")
-
-
-def _generate_password() -> str:
-    # 24 chars with at least one lower/upper/digit/symbol from a shell-safe symbol set.
-    symbols = "!@#%^*-_=+"
-    pools = [string.ascii_lowercase, string.ascii_uppercase, string.digits, symbols]
-    chars = [secrets.choice(p) for p in pools]
-    alphabet = "".join(pools)
-    chars += [secrets.choice(alphabet) for _ in range(20)]
-    secrets.SystemRandom().shuffle(chars)
-    return "".join(chars)
-
-
-def handler(event, context):
-    request_type = event["RequestType"]
-    pool_id = os.environ["POOL_ID"]
-    secret_arn = os.environ["SECRET_ARN"]
-    username = event["ResourceProperties"]["Username"]
-    physical_id = pool_id + ":" + username
-
-    if request_type == "Delete":
-        try:
-            cognito.admin_delete_user(UserPoolId=pool_id, Username=username)
-        except cognito.exceptions.UserNotFoundException:
-            pass
-        return {"PhysicalResourceId": physical_id}
-
-    password = _generate_password()
-    try:
-        cognito.admin_create_user(UserPoolId=pool_id, Username=username, MessageAction="SUPPRESS")
-    except cognito.exceptions.UsernameExistsException:
-        pass
-    cognito.admin_set_user_password(
-        UserPoolId=pool_id, Username=username, Password=password, Permanent=True
-    )
-    sm.put_secret_value(
-        SecretId=secret_arn,
-        SecretString=json.dumps({"username": username, "password": password}),
-    )
-    # Only the username is returned to CloudFormation; the password stays in Secrets Manager.
-    return {"PhysicalResourceId": physical_id, "Data": {"Username": username}}
-'''
 
 
 def lambda_code(name: str) -> lambda_.Code:
@@ -254,6 +196,11 @@ class TadsStack(Stack):
 
     # -- Cognito ------------------------------------------------------------------------------
     def _build_auth(self) -> None:
+        """Machine-to-machine auth: a Cognito resource server defines API scopes, a hosted domain
+        exposes the OAuth2 token endpoint, and an app client (with secret) uses the
+        ``client_credentials`` grant. Clients fetch a bearer access token from the token endpoint;
+        the API Gateway JWT authorizer validates it. No interactive users are involved.
+        """
         self.user_pool = cognito.UserPool(
             self,
             "UserPool",
@@ -261,66 +208,44 @@ class TadsStack(Stack):
             self_sign_up_enabled=False,
             removal_policy=RemovalPolicy.DESTROY,  # dev
         )
+
+        # Hosted domain -> https://<prefix>.auth.<region>.amazoncognito.com/oauth2/token
+        domain_prefix = self.node.try_get_context("cognito_domain_prefix") or f"{self.prefix}-{self.account}"
+        self.user_pool_domain = self.user_pool.add_domain(
+            "Domain",
+            cognito_domain=cognito.CognitoDomainOptions(domain_prefix=domain_prefix),
+        )
+        self.token_url = (
+            f"https://{domain_prefix}.auth.{self.region}.amazoncognito.com/oauth2/token"
+        )
+
+        # Resource server defines the API's custom scopes (tads-api/read|write|delete).
+        scope_read = cognito.ResourceServerScope(scope_name="read", scope_description="Read access")
+        scope_write = cognito.ResourceServerScope(scope_name="write", scope_description="Write access")
+        scope_delete = cognito.ResourceServerScope(
+            scope_name="delete", scope_description="Delete access"
+        )
+        resource_server = self.user_pool.add_resource_server(
+            "ResourceServer",
+            identifier="tads-api",
+            scopes=[scope_read, scope_write, scope_delete],
+        )
+
+        # Machine-to-machine client: client_credentials grant, all three scopes.
         self.user_pool_client = self.user_pool.add_client(
             "ApiClient",
             user_pool_client_name=f"{self.prefix}-api-client",
-            generate_secret=False,
-            auth_flows=cognito.AuthFlow(user_password=True, user_srp=True),
-        )
-
-        # Convenience default user so the deployed stack is immediately callable. Gated by
-        # context so it can be disabled for non-dev deploys: `-c create_default_user=false`.
-        self.default_username = None
-        self.user_secret = None
-        if str(self.node.try_get_context("create_default_user")).lower() != "false":
-            self._build_default_user()
-
-    def _build_default_user(self) -> None:
-        """Create a Cognito user whose password is generated at deploy time and stored in Secrets
-        Manager (never placed in the CloudFormation template or stack outputs). A Lambda-backed
-        custom resource performs the admin calls; CloudFormation invokes it only during stack ops.
-        """
-        self.default_username = self.node.try_get_context("default_username") or "tads-admin"
-
-        self.user_secret = secretsmanager.Secret(
-            self,
-            "DefaultUserSecret",
-            secret_name=f"{self.prefix}-default-user",
-            description=f"{self.prefix} default API user credentials (username + password)",
-            encryption_key=self.key,
-            removal_policy=RemovalPolicy.DESTROY,  # dev
-        )
-
-        on_event = lambda_.Function(
-            self,
-            "DefaultUserFn",
-            function_name=f"{self.prefix}-default-user-cr",
-            runtime=lambda_.Runtime.PYTHON_3_12,
-            handler="index.handler",
-            timeout=Duration.seconds(60),
-            code=lambda_.Code.from_inline(_DEFAULT_USER_FN_CODE),
-            environment={"POOL_ID": self.user_pool.user_pool_id, "SECRET_ARN": self.user_secret.secret_arn},
-        )
-        on_event.add_to_role_policy(
-            iam.PolicyStatement(
-                actions=[
-                    "cognito-idp:AdminCreateUser",
-                    "cognito-idp:AdminSetUserPassword",
-                    "cognito-idp:AdminDeleteUser",
+            generate_secret=True,
+            o_auth=cognito.OAuthSettings(
+                flows=cognito.OAuthFlows(client_credentials=True),
+                scopes=[
+                    cognito.OAuthScope.resource_server(resource_server, scope_read),
+                    cognito.OAuthScope.resource_server(resource_server, scope_write),
+                    cognito.OAuthScope.resource_server(resource_server, scope_delete),
                 ],
-                resources=[self.user_pool.user_pool_arn],
-            )
+            ),
         )
-        self.user_secret.grant_write(on_event)
-
-        provider = cr.Provider(self, "DefaultUserProvider", on_event_handler=on_event)
-        resource = cdk.CustomResource(
-            self,
-            "DefaultUser",
-            service_token=provider.service_token,
-            properties={"Username": self.default_username},
-        )
-        resource.node.add_dependency(self.user_secret)
+        self.user_pool_client.node.add_dependency(resource_server)
 
     # -- Lambda functions ---------------------------------------------------------------------
     def _common_env(self) -> dict:
@@ -535,36 +460,41 @@ class TadsStack(Stack):
         route("/track-delete-requests/{proxy+}", self.fn_delete_requests, "DeleteReqProxyInteg")
 
     def _outputs(self) -> None:
+        client_id = self.user_pool_client.user_pool_client_id
         cdk.CfnOutput(self, "ApiEndpoint", value=self.http_api.api_endpoint)
         cdk.CfnOutput(self, "UserPoolId", value=self.user_pool.user_pool_id)
-        cdk.CfnOutput(self, "UserPoolClientId", value=self.user_pool_client.user_pool_client_id)
+        cdk.CfnOutput(self, "UserPoolClientId", value=client_id)
         # JWT issuer the HTTP API authorizer validates against (OIDC discovery lives under it).
         cdk.CfnOutput(
             self,
             "JwtIssuer",
             value=f"https://cognito-idp.{self.region}.amazonaws.com/{self.user_pool.user_pool_id}",
         )
-
-        if self.user_secret is None:
-            return
-
-        cdk.CfnOutput(self, "DefaultUsername", value=self.default_username)
+        # OAuth2 client_credentials token endpoint + scopes (for Insomnia / curl).
+        cdk.CfnOutput(self, "TokenUrl", value=self.token_url)
+        cdk.CfnOutput(self, "OAuthScopes", value="tads-api/read tads-api/write tads-api/delete")
+        # The app client secret is generated by Cognito; fetch it with this command.
         cdk.CfnOutput(
             self,
-            "DefaultUserSecretArn",
-            value=self.user_secret.secret_arn,
-            description="Secrets Manager secret holding {username, password} for the default user",
+            "GetClientSecretCommand",
+            value=(
+                f"aws cognito-idp describe-user-pool-client "
+                f"--user-pool-id {self.user_pool.user_pool_id} --client-id {client_id} "
+                f"--query UserPoolClient.ClientSecret --output text"
+            ),
         )
-        # Copy-paste: fetch the password from Secrets Manager and print a bearer JWT (IdToken).
+        # Copy-paste: fetch the client secret and exchange it for a bearer access token.
         cdk.CfnOutput(
             self,
             "GetTokenCommand",
             value=(
-                f"PW=$(aws secretsmanager get-secret-value --secret-id {self.user_secret.secret_name} "
-                f"--query SecretString --output text | python3 -c 'import json,sys;print(json.load(sys.stdin)[\"password\"])'); "
-                f"aws cognito-idp initiate-auth --auth-flow USER_PASSWORD_AUTH "
-                f"--client-id {self.user_pool_client.user_pool_client_id} "
-                f'--auth-parameters USERNAME={self.default_username},PASSWORD="$PW" '
-                f"--query AuthenticationResult.IdToken --output text"
+                f"SECRET=$(aws cognito-idp describe-user-pool-client "
+                f"--user-pool-id {self.user_pool.user_pool_id} --client-id {client_id} "
+                f"--query UserPoolClient.ClientSecret --output text); "
+                f"curl -s -X POST {self.token_url} "
+                f"-H 'Content-Type: application/x-www-form-urlencoded' -u {client_id}:$SECRET "
+                f"--data-urlencode grant_type=client_credentials "
+                f"--data-urlencode 'scope=tads-api/read tads-api/write tads-api/delete' "
+                f"| python3 -c 'import json,sys;print(json.load(sys.stdin)[\"access_token\"])'"
             ),
         )

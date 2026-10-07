@@ -99,12 +99,25 @@ def test_http_api_stage_has_access_logging():
     )
 
 
-def test_default_user_created_with_secret():
+def test_machine_to_machine_oauth_client():
     t = _template()
-    # Credentials live in a Secrets Manager secret (not in the template/outputs).
-    t.resource_count_is("AWS::SecretsManager::Secret", 1)
-    # A custom resource provisions the Cognito user.
-    t.resource_count_is("Custom::AWS", 0)  # not using AwsCustomResource
-    t.has_output("DefaultUsername", {})
-    t.has_output("DefaultUserSecretArn", {})
+    # Resource server defines the API scopes.
+    t.has_resource_properties(
+        "AWS::Cognito::UserPoolResourceServer",
+        {"Identifier": "tads-api"},
+    )
+    # Hosted domain exposes the OAuth2 token endpoint.
+    t.resource_count_is("AWS::Cognito::UserPoolDomain", 1)
+    # App client uses the client_credentials grant and has a secret.
+    t.has_resource_properties(
+        "AWS::Cognito::UserPoolClient",
+        {
+            "AllowedOAuthFlows": ["client_credentials"],
+            "GenerateSecret": True,
+            "AllowedOAuthScopes": assertions.Match.any_value(),
+        },
+    )
+    # No interactive-user credentials / secrets are provisioned.
+    t.resource_count_is("AWS::SecretsManager::Secret", 0)
+    t.has_output("TokenUrl", {})
     t.has_output("GetTokenCommand", {})

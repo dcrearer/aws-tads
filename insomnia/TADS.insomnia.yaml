@@ -2,17 +2,17 @@ type: collection.insomnia.rest/5.0
 schema_version: '5.1'
 name: TADS
 meta:
-  id: wrk_8a092528f53b0e509272e3271b3122b6
+  id: wrk_73c43204c8e0d017f37c6a472570db6b
   created: 1790400000000
   modified: 1790400000000
-  description: 'BBC TADS (Time-Addressable Data Store) API v0.1 — Rust/Lambda reference. Auth: Cognito
-    JWT bearer. Set the `jwt_token` environment variable to a Cognito IdToken (from the stack''s GetTokenCommand
-    output): fetch the default user''s password from Secrets Manager, call cognito-idp initiate-auth (USER_PASSWORD_AUTH),
-    and paste the AuthenticationResult.IdToken.'
+  description: 'BBC TADS (Time-Addressable Data Store) API v0.1 — Rust/Lambda reference. Auth: OAuth2
+    client_credentials (Cognito). Set the environment''s token_url, client_id and client_secret (from
+    the stack''s TokenUrl / UserPoolClientId / GetClientSecretCommand outputs); Insomnia fetches and refreshes
+    the bearer access token automatically. Scopes: tads-api/read tads-api/write tads-api/delete.'
 collection:
 - name: Service
   meta:
-    id: fld_eeaffda01d6f147ce09e716df81b36a8
+    id: fld_8c457e5a1368554dbccebc7e51ade010
     created: 1790400000003
     modified: 1790400000003
     sortKey: -1790400000003
@@ -21,7 +21,7 @@ collection:
   - url: '{{ _.base_url }}/'
     name: List Root Endpoints
     meta:
-      id: req_2b73c23d3aec72e3978591ebfee94b52
+      id: req_233d7db4bb3a9c5b60f3af8c0708ecd5
       created: 1790400000001
       modified: 1790400000001
       isPrivate: false
@@ -32,8 +32,12 @@ collection:
     - name: Accept
       value: application/json
     authentication:
-      type: bearer
-      token: '{{ _.jwt_token }}'
+      type: oauth2
+      grantType: client_credentials
+      accessTokenUrl: '{{ _.token_url }}'
+      clientId: '{{ _.client_id }}'
+      clientSecret: '{{ _.client_secret }}'
+      scope: tads-api/read tads-api/write tads-api/delete
     settings:
       renderRequestBody: true
       encodeUrl: true
@@ -45,7 +49,7 @@ collection:
   - url: '{{ _.base_url }}/service'
     name: Get Service Information
     meta:
-      id: req_76d46787f0dce9628f292979a8ea2f7e
+      id: req_462559be2dff9e7ef2296b0154229400
       created: 1790400000002
       modified: 1790400000002
       isPrivate: false
@@ -56,8 +60,12 @@ collection:
     - name: Accept
       value: application/json
     authentication:
-      type: bearer
-      token: '{{ _.jwt_token }}'
+      type: oauth2
+      grantType: client_credentials
+      accessTokenUrl: '{{ _.token_url }}'
+      clientId: '{{ _.client_id }}'
+      clientSecret: '{{ _.client_secret }}'
+      scope: tads-api/read tads-api/write tads-api/delete
     settings:
       renderRequestBody: true
       encodeUrl: true
@@ -68,7 +76,7 @@ collection:
       rebuildPath: true
 - name: Schemas
   meta:
-    id: fld_cd895f4c4ef2335fc8dddae1b378ea7c
+    id: fld_89e7e7f09a1ec13111716e4b1cd5adcc
     created: 1790400000022
     modified: 1790400000022
     sortKey: -1790400000022
@@ -77,7 +85,7 @@ collection:
   - url: '{{ _.base_url }}/schemas?limit=100'
     name: List Schemas
     meta:
-      id: req_32653c1ed6b056eb3783a905aa18d30d
+      id: req_676b471b16ef63f62b7e6b8af2887f4c
       created: 1790400000004
       modified: 1790400000004
       isPrivate: false
@@ -89,8 +97,12 @@ collection:
     - name: Accept
       value: application/json
     authentication:
-      type: bearer
-      token: '{{ _.jwt_token }}'
+      type: oauth2
+      grantType: client_credentials
+      accessTokenUrl: '{{ _.token_url }}'
+      clientId: '{{ _.client_id }}'
+      clientSecret: '{{ _.client_secret }}'
+      scope: tads-api/read tads-api/write tads-api/delete
     settings:
       renderRequestBody: true
       encodeUrl: true
@@ -102,7 +114,7 @@ collection:
   - url: '{{ _.base_url }}/schemas/{{ _.schema_id }}'
     name: Create or Replace Schema
     meta:
-      id: req_ce7c4de2da6c4509a9e67820b59d3d0b
+      id: req_4940a1f736146abc964c22fa0aec549c
       created: 1790400000005
       modified: 1790400000005
       isPrivate: false
@@ -124,8 +136,12 @@ collection:
     - name: Accept
       value: application/json
     authentication:
-      type: bearer
-      token: '{{ _.jwt_token }}'
+      type: oauth2
+      grantType: client_credentials
+      accessTokenUrl: '{{ _.token_url }}'
+      clientId: '{{ _.client_id }}'
+      clientSecret: '{{ _.client_secret }}'
+      scope: tads-api/read tads-api/write tads-api/delete
     settings:
       renderRequestBody: true
       encodeUrl: true
@@ -137,7 +153,7 @@ collection:
   - url: '{{ _.base_url }}/schemas/{{ _.schema_id }}'
     name: Get Schema
     meta:
-      id: req_cd5f58f67ffac6ba73bb364960470ed1
+      id: req_e225eeb63e9e041da4ce1a54c227b299
       created: 1790400000006
       modified: 1790400000006
       isPrivate: false
@@ -148,8 +164,12 @@ collection:
     - name: Accept
       value: application/json
     authentication:
-      type: bearer
-      token: '{{ _.jwt_token }}'
+      type: oauth2
+      grantType: client_credentials
+      accessTokenUrl: '{{ _.token_url }}'
+      clientId: '{{ _.client_id }}'
+      clientSecret: '{{ _.client_secret }}'
+      scope: tads-api/read tads-api/write tads-api/delete
     settings:
       renderRequestBody: true
       encodeUrl: true
@@ -161,7 +181,7 @@ collection:
   - url: '{{ _.base_url }}/schemas/{{ _.schema_id }}'
     name: Delete Schema
     meta:
-      id: req_bbbe4c14c4a5b16ab0c2a89e625db6db
+      id: req_914f4ad89265c039876d4421f0194b80
       created: 1790400000007
       modified: 1790400000007
       isPrivate: false
@@ -169,8 +189,12 @@ collection:
       sortKey: -1790400000007
     method: DELETE
     authentication:
-      type: bearer
-      token: '{{ _.jwt_token }}'
+      type: oauth2
+      grantType: client_credentials
+      accessTokenUrl: '{{ _.token_url }}'
+      clientId: '{{ _.client_id }}'
+      clientSecret: '{{ _.client_secret }}'
+      scope: tads-api/read tads-api/write tads-api/delete
     settings:
       renderRequestBody: true
       encodeUrl: true
@@ -182,7 +206,7 @@ collection:
   - url: '{{ _.base_url }}/schemas/{{ _.schema_id }}/schema'
     name: Get Schema Body (JSON Schema)
     meta:
-      id: req_0dc37a3bf1d16fe60e5a7953497bf6bc
+      id: req_8a45d64c4342110f110343876eaf5e19
       created: 1790400000008
       modified: 1790400000008
       isPrivate: false
@@ -193,8 +217,12 @@ collection:
     - name: Accept
       value: application/json
     authentication:
-      type: bearer
-      token: '{{ _.jwt_token }}'
+      type: oauth2
+      grantType: client_credentials
+      accessTokenUrl: '{{ _.token_url }}'
+      clientId: '{{ _.client_id }}'
+      clientSecret: '{{ _.client_secret }}'
+      scope: tads-api/read tads-api/write tads-api/delete
     settings:
       renderRequestBody: true
       encodeUrl: true
@@ -206,7 +234,7 @@ collection:
   - url: '{{ _.base_url }}/schemas/{{ _.schema_id }}/tags'
     name: List Schema Tags
     meta:
-      id: req_f69d1b092f20f9681c4046af876cf114
+      id: req_e9197559b0625aa8eee0b40720abfd80
       created: 1790400000009
       modified: 1790400000009
       isPrivate: false
@@ -217,8 +245,12 @@ collection:
     - name: Accept
       value: application/json
     authentication:
-      type: bearer
-      token: '{{ _.jwt_token }}'
+      type: oauth2
+      grantType: client_credentials
+      accessTokenUrl: '{{ _.token_url }}'
+      clientId: '{{ _.client_id }}'
+      clientSecret: '{{ _.client_secret }}'
+      scope: tads-api/read tads-api/write tads-api/delete
     settings:
       renderRequestBody: true
       encodeUrl: true
@@ -230,7 +262,7 @@ collection:
   - url: '{{ _.base_url }}/schemas/{{ _.schema_id }}/tags/my_tag'
     name: Get Schema Tag
     meta:
-      id: req_957c8905e7df2b0cc0ada0bdcd0a1395
+      id: req_2bb8eff7a110bb30efb8084bdd0a5dba
       created: 1790400000010
       modified: 1790400000010
       isPrivate: false
@@ -241,8 +273,12 @@ collection:
     - name: Accept
       value: application/json
     authentication:
-      type: bearer
-      token: '{{ _.jwt_token }}'
+      type: oauth2
+      grantType: client_credentials
+      accessTokenUrl: '{{ _.token_url }}'
+      clientId: '{{ _.client_id }}'
+      clientSecret: '{{ _.client_secret }}'
+      scope: tads-api/read tads-api/write tads-api/delete
     settings:
       renderRequestBody: true
       encodeUrl: true
@@ -254,7 +290,7 @@ collection:
   - url: '{{ _.base_url }}/schemas/{{ _.schema_id }}/tags/my_tag'
     name: Create or Update Schema Tag
     meta:
-      id: req_954dcd3553529d092a88aa77376035dd
+      id: req_8a894fe346c40c77dab94a3c56214ee1
       created: 1790400000011
       modified: 1790400000011
       isPrivate: false
@@ -268,8 +304,12 @@ collection:
     - name: Content-Type
       value: application/json
     authentication:
-      type: bearer
-      token: '{{ _.jwt_token }}'
+      type: oauth2
+      grantType: client_credentials
+      accessTokenUrl: '{{ _.token_url }}'
+      clientId: '{{ _.client_id }}'
+      clientSecret: '{{ _.client_secret }}'
+      scope: tads-api/read tads-api/write tads-api/delete
     settings:
       renderRequestBody: true
       encodeUrl: true
@@ -281,7 +321,7 @@ collection:
   - url: '{{ _.base_url }}/schemas/{{ _.schema_id }}/tags/my_tag'
     name: Delete Schema Tag
     meta:
-      id: req_ca62641237704199de4ed870fcdae17c
+      id: req_8a88a47a3bd9e8ac4c6b8f0d6637312a
       created: 1790400000012
       modified: 1790400000012
       isPrivate: false
@@ -289,8 +329,12 @@ collection:
       sortKey: -1790400000012
     method: DELETE
     authentication:
-      type: bearer
-      token: '{{ _.jwt_token }}'
+      type: oauth2
+      grantType: client_credentials
+      accessTokenUrl: '{{ _.token_url }}'
+      clientId: '{{ _.client_id }}'
+      clientSecret: '{{ _.client_secret }}'
+      scope: tads-api/read tads-api/write tads-api/delete
     settings:
       renderRequestBody: true
       encodeUrl: true
@@ -302,7 +346,7 @@ collection:
   - url: '{{ _.base_url }}/schemas/{{ _.schema_id }}/description'
     name: Get Schema Description
     meta:
-      id: req_436138b032255e770fc27b205dbd888a
+      id: req_b2864775e61af1596d76683311133bf6
       created: 1790400000013
       modified: 1790400000013
       isPrivate: false
@@ -313,8 +357,12 @@ collection:
     - name: Accept
       value: application/json
     authentication:
-      type: bearer
-      token: '{{ _.jwt_token }}'
+      type: oauth2
+      grantType: client_credentials
+      accessTokenUrl: '{{ _.token_url }}'
+      clientId: '{{ _.client_id }}'
+      clientSecret: '{{ _.client_secret }}'
+      scope: tads-api/read tads-api/write tads-api/delete
     settings:
       renderRequestBody: true
       encodeUrl: true
@@ -326,7 +374,7 @@ collection:
   - url: '{{ _.base_url }}/schemas/{{ _.schema_id }}/description'
     name: Create or Update Schema Description
     meta:
-      id: req_a86a05befa716a1e8585b21daeb57b11
+      id: req_18f747ebec28a30cce81e86b76ebbac6
       created: 1790400000014
       modified: 1790400000014
       isPrivate: false
@@ -340,8 +388,12 @@ collection:
     - name: Content-Type
       value: application/json
     authentication:
-      type: bearer
-      token: '{{ _.jwt_token }}'
+      type: oauth2
+      grantType: client_credentials
+      accessTokenUrl: '{{ _.token_url }}'
+      clientId: '{{ _.client_id }}'
+      clientSecret: '{{ _.client_secret }}'
+      scope: tads-api/read tads-api/write tads-api/delete
     settings:
       renderRequestBody: true
       encodeUrl: true
@@ -353,7 +405,7 @@ collection:
   - url: '{{ _.base_url }}/schemas/{{ _.schema_id }}/description'
     name: Delete Schema Description
     meta:
-      id: req_92bc8f88a6b1f30ec3b68f4131433193
+      id: req_a46fd7a6733020cbca34a1990f439111
       created: 1790400000015
       modified: 1790400000015
       isPrivate: false
@@ -361,8 +413,12 @@ collection:
       sortKey: -1790400000015
     method: DELETE
     authentication:
-      type: bearer
-      token: '{{ _.jwt_token }}'
+      type: oauth2
+      grantType: client_credentials
+      accessTokenUrl: '{{ _.token_url }}'
+      clientId: '{{ _.client_id }}'
+      clientSecret: '{{ _.client_secret }}'
+      scope: tads-api/read tads-api/write tads-api/delete
     settings:
       renderRequestBody: true
       encodeUrl: true
@@ -374,7 +430,7 @@ collection:
   - url: '{{ _.base_url }}/schemas/{{ _.schema_id }}/label'
     name: Get Schema Label
     meta:
-      id: req_6fe739195374b4333556f578d717d66a
+      id: req_2e8ec6887ce4db9571bb7de85e84bda7
       created: 1790400000016
       modified: 1790400000016
       isPrivate: false
@@ -385,8 +441,12 @@ collection:
     - name: Accept
       value: application/json
     authentication:
-      type: bearer
-      token: '{{ _.jwt_token }}'
+      type: oauth2
+      grantType: client_credentials
+      accessTokenUrl: '{{ _.token_url }}'
+      clientId: '{{ _.client_id }}'
+      clientSecret: '{{ _.client_secret }}'
+      scope: tads-api/read tads-api/write tads-api/delete
     settings:
       renderRequestBody: true
       encodeUrl: true
@@ -398,7 +458,7 @@ collection:
   - url: '{{ _.base_url }}/schemas/{{ _.schema_id }}/label'
     name: Create or Update Schema Label
     meta:
-      id: req_517d342cb2185840ffe2c44b2ade70f0
+      id: req_dab6130238525d5e65c829ce4db80a1f
       created: 1790400000017
       modified: 1790400000017
       isPrivate: false
@@ -412,8 +472,12 @@ collection:
     - name: Content-Type
       value: application/json
     authentication:
-      type: bearer
-      token: '{{ _.jwt_token }}'
+      type: oauth2
+      grantType: client_credentials
+      accessTokenUrl: '{{ _.token_url }}'
+      clientId: '{{ _.client_id }}'
+      clientSecret: '{{ _.client_secret }}'
+      scope: tads-api/read tads-api/write tads-api/delete
     settings:
       renderRequestBody: true
       encodeUrl: true
@@ -425,7 +489,7 @@ collection:
   - url: '{{ _.base_url }}/schemas/{{ _.schema_id }}/label'
     name: Delete Schema Label
     meta:
-      id: req_57f7252b7cfd623d0e588519e738f36b
+      id: req_d8feef8983f93ee5212ee1c46f82c166
       created: 1790400000018
       modified: 1790400000018
       isPrivate: false
@@ -433,8 +497,12 @@ collection:
       sortKey: -1790400000018
     method: DELETE
     authentication:
-      type: bearer
-      token: '{{ _.jwt_token }}'
+      type: oauth2
+      grantType: client_credentials
+      accessTokenUrl: '{{ _.token_url }}'
+      clientId: '{{ _.client_id }}'
+      clientSecret: '{{ _.client_secret }}'
+      scope: tads-api/read tads-api/write tads-api/delete
     settings:
       renderRequestBody: true
       encodeUrl: true
@@ -446,7 +514,7 @@ collection:
   - url: '{{ _.base_url }}/schemas/{{ _.schema_id }}/external_id'
     name: Get Schema External ID
     meta:
-      id: req_6f04d15082e25317559c707f88a77a55
+      id: req_0f08214b215de1154b002a60034e72b1
       created: 1790400000019
       modified: 1790400000019
       isPrivate: false
@@ -457,8 +525,12 @@ collection:
     - name: Accept
       value: application/json
     authentication:
-      type: bearer
-      token: '{{ _.jwt_token }}'
+      type: oauth2
+      grantType: client_credentials
+      accessTokenUrl: '{{ _.token_url }}'
+      clientId: '{{ _.client_id }}'
+      clientSecret: '{{ _.client_secret }}'
+      scope: tads-api/read tads-api/write tads-api/delete
     settings:
       renderRequestBody: true
       encodeUrl: true
@@ -470,7 +542,7 @@ collection:
   - url: '{{ _.base_url }}/schemas/{{ _.schema_id }}/external_id'
     name: Create or Update Schema External ID
     meta:
-      id: req_1f0a6175e5a5595c8d23c8237964c375
+      id: req_a5106ff56a31a49001d422fc4c32686f
       created: 1790400000020
       modified: 1790400000020
       isPrivate: false
@@ -484,8 +556,12 @@ collection:
     - name: Content-Type
       value: application/json
     authentication:
-      type: bearer
-      token: '{{ _.jwt_token }}'
+      type: oauth2
+      grantType: client_credentials
+      accessTokenUrl: '{{ _.token_url }}'
+      clientId: '{{ _.client_id }}'
+      clientSecret: '{{ _.client_secret }}'
+      scope: tads-api/read tads-api/write tads-api/delete
     settings:
       renderRequestBody: true
       encodeUrl: true
@@ -497,7 +573,7 @@ collection:
   - url: '{{ _.base_url }}/schemas/{{ _.schema_id }}/external_id'
     name: Delete Schema External ID
     meta:
-      id: req_9f37861cd6f706cd9c070163dcd9e26a
+      id: req_6a22f7d1ef20abbf4c83c1b8573aa1a9
       created: 1790400000021
       modified: 1790400000021
       isPrivate: false
@@ -505,8 +581,12 @@ collection:
       sortKey: -1790400000021
     method: DELETE
     authentication:
-      type: bearer
-      token: '{{ _.jwt_token }}'
+      type: oauth2
+      grantType: client_credentials
+      accessTokenUrl: '{{ _.token_url }}'
+      clientId: '{{ _.client_id }}'
+      clientSecret: '{{ _.client_secret }}'
+      scope: tads-api/read tads-api/write tads-api/delete
     settings:
       renderRequestBody: true
       encodeUrl: true
@@ -517,7 +597,7 @@ collection:
       rebuildPath: true
 - name: Tracks
   meta:
-    id: fld_124912882760ce784907182fabf8ae48
+    id: fld_f01ccb4086ee962ac915cd402a87f704
     created: 1790400000043
     modified: 1790400000043
     sortKey: -1790400000043
@@ -526,7 +606,7 @@ collection:
   - url: '{{ _.base_url }}/tracks?limit=100'
     name: List Tracks
     meta:
-      id: req_0135a08a22e8f05e354798acb76f66f4
+      id: req_58bec307a9b1d4a583267d10cef42055
       created: 1790400000023
       modified: 1790400000023
       isPrivate: false
@@ -538,8 +618,12 @@ collection:
     - name: Accept
       value: application/json
     authentication:
-      type: bearer
-      token: '{{ _.jwt_token }}'
+      type: oauth2
+      grantType: client_credentials
+      accessTokenUrl: '{{ _.token_url }}'
+      clientId: '{{ _.client_id }}'
+      clientSecret: '{{ _.client_secret }}'
+      scope: tads-api/read tads-api/write tads-api/delete
     settings:
       renderRequestBody: true
       encodeUrl: true
@@ -551,7 +635,7 @@ collection:
   - url: '{{ _.base_url }}/tracks/{{ _.track_id }}'
     name: Create or Replace Track
     meta:
-      id: req_bf5535891c8636678034394f9b3b7ee9
+      id: req_3802a701d87527da3749826c1925cdf7
       created: 1790400000024
       modified: 1790400000024
       isPrivate: false
@@ -570,8 +654,12 @@ collection:
     - name: Accept
       value: application/json
     authentication:
-      type: bearer
-      token: '{{ _.jwt_token }}'
+      type: oauth2
+      grantType: client_credentials
+      accessTokenUrl: '{{ _.token_url }}'
+      clientId: '{{ _.client_id }}'
+      clientSecret: '{{ _.client_secret }}'
+      scope: tads-api/read tads-api/write tads-api/delete
     settings:
       renderRequestBody: true
       encodeUrl: true
@@ -583,7 +671,7 @@ collection:
   - url: '{{ _.base_url }}/tracks/{{ _.track_id }}'
     name: Get Track
     meta:
-      id: req_e87b6fdd37eb7f13a55cbe98c5a52db1
+      id: req_1639b8626c12ecaac763557c0efc2442
       created: 1790400000025
       modified: 1790400000025
       isPrivate: false
@@ -594,8 +682,12 @@ collection:
     - name: Accept
       value: application/json
     authentication:
-      type: bearer
-      token: '{{ _.jwt_token }}'
+      type: oauth2
+      grantType: client_credentials
+      accessTokenUrl: '{{ _.token_url }}'
+      clientId: '{{ _.client_id }}'
+      clientSecret: '{{ _.client_secret }}'
+      scope: tads-api/read tads-api/write tads-api/delete
     settings:
       renderRequestBody: true
       encodeUrl: true
@@ -607,7 +699,7 @@ collection:
   - url: '{{ _.base_url }}/tracks/{{ _.track_id }}'
     name: Delete Track
     meta:
-      id: req_5447e923f6735f49bbd5087c9f5233b1
+      id: req_5bc3da1f2b458c049fcbbb20e32273d7
       created: 1790400000026
       modified: 1790400000026
       isPrivate: false
@@ -615,8 +707,12 @@ collection:
       sortKey: -1790400000026
     method: DELETE
     authentication:
-      type: bearer
-      token: '{{ _.jwt_token }}'
+      type: oauth2
+      grantType: client_credentials
+      accessTokenUrl: '{{ _.token_url }}'
+      clientId: '{{ _.client_id }}'
+      clientSecret: '{{ _.client_secret }}'
+      scope: tads-api/read tads-api/write tads-api/delete
     settings:
       renderRequestBody: true
       encodeUrl: true
@@ -628,7 +724,7 @@ collection:
   - url: '{{ _.base_url }}/tracks/{{ _.track_id }}/tags'
     name: List Track Tags
     meta:
-      id: req_9ae5571a281faf90027fef3e06139fa3
+      id: req_1bfffe56a266f954978e295a989d345d
       created: 1790400000027
       modified: 1790400000027
       isPrivate: false
@@ -639,8 +735,12 @@ collection:
     - name: Accept
       value: application/json
     authentication:
-      type: bearer
-      token: '{{ _.jwt_token }}'
+      type: oauth2
+      grantType: client_credentials
+      accessTokenUrl: '{{ _.token_url }}'
+      clientId: '{{ _.client_id }}'
+      clientSecret: '{{ _.client_secret }}'
+      scope: tads-api/read tads-api/write tads-api/delete
     settings:
       renderRequestBody: true
       encodeUrl: true
@@ -652,7 +752,7 @@ collection:
   - url: '{{ _.base_url }}/tracks/{{ _.track_id }}/tags/my_tag'
     name: Get Track Tag
     meta:
-      id: req_156dbef96d5b2f40d9a8fe605509c666
+      id: req_574776c2566cd06aa57b077d9842ee8b
       created: 1790400000028
       modified: 1790400000028
       isPrivate: false
@@ -663,8 +763,12 @@ collection:
     - name: Accept
       value: application/json
     authentication:
-      type: bearer
-      token: '{{ _.jwt_token }}'
+      type: oauth2
+      grantType: client_credentials
+      accessTokenUrl: '{{ _.token_url }}'
+      clientId: '{{ _.client_id }}'
+      clientSecret: '{{ _.client_secret }}'
+      scope: tads-api/read tads-api/write tads-api/delete
     settings:
       renderRequestBody: true
       encodeUrl: true
@@ -676,7 +780,7 @@ collection:
   - url: '{{ _.base_url }}/tracks/{{ _.track_id }}/tags/my_tag'
     name: Create or Update Track Tag
     meta:
-      id: req_053a598faf03f1a839761fc9456a5e61
+      id: req_5c7fecb4d863f7b560ebdfd9bf35277f
       created: 1790400000029
       modified: 1790400000029
       isPrivate: false
@@ -690,8 +794,12 @@ collection:
     - name: Content-Type
       value: application/json
     authentication:
-      type: bearer
-      token: '{{ _.jwt_token }}'
+      type: oauth2
+      grantType: client_credentials
+      accessTokenUrl: '{{ _.token_url }}'
+      clientId: '{{ _.client_id }}'
+      clientSecret: '{{ _.client_secret }}'
+      scope: tads-api/read tads-api/write tads-api/delete
     settings:
       renderRequestBody: true
       encodeUrl: true
@@ -703,7 +811,7 @@ collection:
   - url: '{{ _.base_url }}/tracks/{{ _.track_id }}/tags/my_tag'
     name: Delete Track Tag
     meta:
-      id: req_d5c64389a5ddf3ed4fb09568628c6bba
+      id: req_5c8bd162e833dff4181771d8a0f5afd8
       created: 1790400000030
       modified: 1790400000030
       isPrivate: false
@@ -711,8 +819,12 @@ collection:
       sortKey: -1790400000030
     method: DELETE
     authentication:
-      type: bearer
-      token: '{{ _.jwt_token }}'
+      type: oauth2
+      grantType: client_credentials
+      accessTokenUrl: '{{ _.token_url }}'
+      clientId: '{{ _.client_id }}'
+      clientSecret: '{{ _.client_secret }}'
+      scope: tads-api/read tads-api/write tads-api/delete
     settings:
       renderRequestBody: true
       encodeUrl: true
@@ -724,7 +836,7 @@ collection:
   - url: '{{ _.base_url }}/tracks/{{ _.track_id }}/description'
     name: Get Track Description
     meta:
-      id: req_022cc4df93c988a11a3b41103bc96cc7
+      id: req_86cd71c968104a46476ca2a0cf6b89f3
       created: 1790400000031
       modified: 1790400000031
       isPrivate: false
@@ -735,8 +847,12 @@ collection:
     - name: Accept
       value: application/json
     authentication:
-      type: bearer
-      token: '{{ _.jwt_token }}'
+      type: oauth2
+      grantType: client_credentials
+      accessTokenUrl: '{{ _.token_url }}'
+      clientId: '{{ _.client_id }}'
+      clientSecret: '{{ _.client_secret }}'
+      scope: tads-api/read tads-api/write tads-api/delete
     settings:
       renderRequestBody: true
       encodeUrl: true
@@ -748,7 +864,7 @@ collection:
   - url: '{{ _.base_url }}/tracks/{{ _.track_id }}/description'
     name: Create or Update Track Description
     meta:
-      id: req_9d7a87ea96778966c1c567bed33246f8
+      id: req_808aea9112abda6849d9030899fcb61e
       created: 1790400000032
       modified: 1790400000032
       isPrivate: false
@@ -762,8 +878,12 @@ collection:
     - name: Content-Type
       value: application/json
     authentication:
-      type: bearer
-      token: '{{ _.jwt_token }}'
+      type: oauth2
+      grantType: client_credentials
+      accessTokenUrl: '{{ _.token_url }}'
+      clientId: '{{ _.client_id }}'
+      clientSecret: '{{ _.client_secret }}'
+      scope: tads-api/read tads-api/write tads-api/delete
     settings:
       renderRequestBody: true
       encodeUrl: true
@@ -775,7 +895,7 @@ collection:
   - url: '{{ _.base_url }}/tracks/{{ _.track_id }}/description'
     name: Delete Track Description
     meta:
-      id: req_bcf1375b2f716673029fdcd7e4eb96b7
+      id: req_0e1b126dfaef0a2cd9243571546bf9bf
       created: 1790400000033
       modified: 1790400000033
       isPrivate: false
@@ -783,8 +903,12 @@ collection:
       sortKey: -1790400000033
     method: DELETE
     authentication:
-      type: bearer
-      token: '{{ _.jwt_token }}'
+      type: oauth2
+      grantType: client_credentials
+      accessTokenUrl: '{{ _.token_url }}'
+      clientId: '{{ _.client_id }}'
+      clientSecret: '{{ _.client_secret }}'
+      scope: tads-api/read tads-api/write tads-api/delete
     settings:
       renderRequestBody: true
       encodeUrl: true
@@ -796,7 +920,7 @@ collection:
   - url: '{{ _.base_url }}/tracks/{{ _.track_id }}/label'
     name: Get Track Label
     meta:
-      id: req_79ef35c3aa104bbecc68d36065bacf9b
+      id: req_4b12ad88ce52656ddf81d74c85a2c1d9
       created: 1790400000034
       modified: 1790400000034
       isPrivate: false
@@ -807,8 +931,12 @@ collection:
     - name: Accept
       value: application/json
     authentication:
-      type: bearer
-      token: '{{ _.jwt_token }}'
+      type: oauth2
+      grantType: client_credentials
+      accessTokenUrl: '{{ _.token_url }}'
+      clientId: '{{ _.client_id }}'
+      clientSecret: '{{ _.client_secret }}'
+      scope: tads-api/read tads-api/write tads-api/delete
     settings:
       renderRequestBody: true
       encodeUrl: true
@@ -820,7 +948,7 @@ collection:
   - url: '{{ _.base_url }}/tracks/{{ _.track_id }}/label'
     name: Create or Update Track Label
     meta:
-      id: req_23a17fb6be1ca5605af48a171902380e
+      id: req_eab07557aa5191cefdd7a00f31b58b79
       created: 1790400000035
       modified: 1790400000035
       isPrivate: false
@@ -834,8 +962,12 @@ collection:
     - name: Content-Type
       value: application/json
     authentication:
-      type: bearer
-      token: '{{ _.jwt_token }}'
+      type: oauth2
+      grantType: client_credentials
+      accessTokenUrl: '{{ _.token_url }}'
+      clientId: '{{ _.client_id }}'
+      clientSecret: '{{ _.client_secret }}'
+      scope: tads-api/read tads-api/write tads-api/delete
     settings:
       renderRequestBody: true
       encodeUrl: true
@@ -847,7 +979,7 @@ collection:
   - url: '{{ _.base_url }}/tracks/{{ _.track_id }}/label'
     name: Delete Track Label
     meta:
-      id: req_4e34b05d9e14368a031fdd78d43584f8
+      id: req_64b50d5da6524fca80a02c5c6488c8c9
       created: 1790400000036
       modified: 1790400000036
       isPrivate: false
@@ -855,8 +987,12 @@ collection:
       sortKey: -1790400000036
     method: DELETE
     authentication:
-      type: bearer
-      token: '{{ _.jwt_token }}'
+      type: oauth2
+      grantType: client_credentials
+      accessTokenUrl: '{{ _.token_url }}'
+      clientId: '{{ _.client_id }}'
+      clientSecret: '{{ _.client_secret }}'
+      scope: tads-api/read tads-api/write tads-api/delete
     settings:
       renderRequestBody: true
       encodeUrl: true
@@ -868,7 +1004,7 @@ collection:
   - url: '{{ _.base_url }}/tracks/{{ _.track_id }}/read_only'
     name: Get Track Read-Only
     meta:
-      id: req_ae130be522da21c8c6c04660d72c6144
+      id: req_7db2c0e4871ba7d6b3fd9074432787c0
       created: 1790400000037
       modified: 1790400000037
       isPrivate: false
@@ -879,8 +1015,12 @@ collection:
     - name: Accept
       value: application/json
     authentication:
-      type: bearer
-      token: '{{ _.jwt_token }}'
+      type: oauth2
+      grantType: client_credentials
+      accessTokenUrl: '{{ _.token_url }}'
+      clientId: '{{ _.client_id }}'
+      clientSecret: '{{ _.client_secret }}'
+      scope: tads-api/read tads-api/write tads-api/delete
     settings:
       renderRequestBody: true
       encodeUrl: true
@@ -892,7 +1032,7 @@ collection:
   - url: '{{ _.base_url }}/tracks/{{ _.track_id }}/read_only'
     name: Set Track Read-Only
     meta:
-      id: req_297d34f300cd8754b480849479475935
+      id: req_e513f647dd8007be909678f593d7af46
       created: 1790400000038
       modified: 1790400000038
       isPrivate: false
@@ -906,8 +1046,12 @@ collection:
     - name: Content-Type
       value: application/json
     authentication:
-      type: bearer
-      token: '{{ _.jwt_token }}'
+      type: oauth2
+      grantType: client_credentials
+      accessTokenUrl: '{{ _.token_url }}'
+      clientId: '{{ _.client_id }}'
+      clientSecret: '{{ _.client_secret }}'
+      scope: tads-api/read tads-api/write tads-api/delete
     settings:
       renderRequestBody: true
       encodeUrl: true
@@ -919,7 +1063,7 @@ collection:
   - url: '{{ _.base_url }}/tracks/{{ _.track_id }}/allow_overlaps'
     name: Get Track Allow-Overlaps
     meta:
-      id: req_039b7ed4b2717141a4313271a713ab24
+      id: req_a9273eeccce0af6f4010a6703e775fcb
       created: 1790400000039
       modified: 1790400000039
       isPrivate: false
@@ -930,8 +1074,12 @@ collection:
     - name: Accept
       value: application/json
     authentication:
-      type: bearer
-      token: '{{ _.jwt_token }}'
+      type: oauth2
+      grantType: client_credentials
+      accessTokenUrl: '{{ _.token_url }}'
+      clientId: '{{ _.client_id }}'
+      clientSecret: '{{ _.client_secret }}'
+      scope: tads-api/read tads-api/write tads-api/delete
     settings:
       renderRequestBody: true
       encodeUrl: true
@@ -943,7 +1091,7 @@ collection:
   - url: '{{ _.base_url }}/tracks/{{ _.track_id }}/allow_overlaps'
     name: Set Track Allow-Overlaps
     meta:
-      id: req_a76f8a696573ea1e104548f33497994b
+      id: req_e1fbbd3aa0dedaa38ce32d9b199f9499
       created: 1790400000040
       modified: 1790400000040
       isPrivate: false
@@ -957,8 +1105,12 @@ collection:
     - name: Content-Type
       value: application/json
     authentication:
-      type: bearer
-      token: '{{ _.jwt_token }}'
+      type: oauth2
+      grantType: client_credentials
+      accessTokenUrl: '{{ _.token_url }}'
+      clientId: '{{ _.client_id }}'
+      clientSecret: '{{ _.client_secret }}'
+      scope: tads-api/read tads-api/write tads-api/delete
     settings:
       renderRequestBody: true
       encodeUrl: true
@@ -970,7 +1122,7 @@ collection:
   - url: '{{ _.base_url }}/tracks/{{ _.track_id }}/editable_events'
     name: Get Track Editable-Events
     meta:
-      id: req_29edb48853f2cec1bc94727bb823eb40
+      id: req_121da90b6f167fbef320560dd85bf616
       created: 1790400000041
       modified: 1790400000041
       isPrivate: false
@@ -981,8 +1133,12 @@ collection:
     - name: Accept
       value: application/json
     authentication:
-      type: bearer
-      token: '{{ _.jwt_token }}'
+      type: oauth2
+      grantType: client_credentials
+      accessTokenUrl: '{{ _.token_url }}'
+      clientId: '{{ _.client_id }}'
+      clientSecret: '{{ _.client_secret }}'
+      scope: tads-api/read tads-api/write tads-api/delete
     settings:
       renderRequestBody: true
       encodeUrl: true
@@ -994,7 +1150,7 @@ collection:
   - url: '{{ _.base_url }}/tracks/{{ _.track_id }}/editable_events'
     name: Set Track Editable-Events
     meta:
-      id: req_cd74ac65f4f8b78c7bbdbc285686f3c4
+      id: req_a2a677724a0287380267a3c029167fdb
       created: 1790400000042
       modified: 1790400000042
       isPrivate: false
@@ -1008,8 +1164,12 @@ collection:
     - name: Content-Type
       value: application/json
     authentication:
-      type: bearer
-      token: '{{ _.jwt_token }}'
+      type: oauth2
+      grantType: client_credentials
+      accessTokenUrl: '{{ _.token_url }}'
+      clientId: '{{ _.client_id }}'
+      clientSecret: '{{ _.client_secret }}'
+      scope: tads-api/read tads-api/write tads-api/delete
     settings:
       renderRequestBody: true
       encodeUrl: true
@@ -1020,7 +1180,7 @@ collection:
       rebuildPath: true
 - name: Events
   meta:
-    id: fld_cdbc8e193641bbe08cf1acb499196a11
+    id: fld_09a53f0e38412eb66cb10520397d41d8
     created: 1790400000048
     modified: 1790400000048
     sortKey: -1790400000048
@@ -1029,7 +1189,7 @@ collection:
   - url: '{{ _.base_url }}/tracks/{{ _.track_id }}/events'
     name: Create Event
     meta:
-      id: req_a037bcd285b6f44e89a21ed3edd0b52d
+      id: req_8824f20aa7a0ed8ab844f503ab28f625
       created: 1790400000044
       modified: 1790400000044
       isPrivate: false
@@ -1046,8 +1206,12 @@ collection:
     - name: Accept
       value: application/json
     authentication:
-      type: bearer
-      token: '{{ _.jwt_token }}'
+      type: oauth2
+      grantType: client_credentials
+      accessTokenUrl: '{{ _.token_url }}'
+      clientId: '{{ _.client_id }}'
+      clientSecret: '{{ _.client_secret }}'
+      scope: tads-api/read tads-api/write tads-api/delete
     settings:
       renderRequestBody: true
       encodeUrl: true
@@ -1059,7 +1223,7 @@ collection:
   - url: '{{ _.base_url }}/tracks/{{ _.track_id }}/events'
     name: Create Events (Bulk)
     meta:
-      id: req_79d651c63be583bbac79a8783b6fa452
+      id: req_6487ffbb1eba26c6343fb5523e8f44dc
       created: 1790400000045
       modified: 1790400000045
       isPrivate: false
@@ -1077,8 +1241,12 @@ collection:
     - name: Accept
       value: application/json
     authentication:
-      type: bearer
-      token: '{{ _.jwt_token }}'
+      type: oauth2
+      grantType: client_credentials
+      accessTokenUrl: '{{ _.token_url }}'
+      clientId: '{{ _.client_id }}'
+      clientSecret: '{{ _.client_secret }}'
+      scope: tads-api/read tads-api/write tads-api/delete
     settings:
       renderRequestBody: true
       encodeUrl: true
@@ -1090,7 +1258,7 @@ collection:
   - url: '{{ _.base_url }}/tracks/{{ _.track_id }}/events?timerange=[0:0_60:0)&reverse_order=false&limit=100'
     name: List Events
     meta:
-      id: req_dab6f357d0e682c7ddd85b8e6fd9bb8f
+      id: req_1bd7e33ed758da5497a83ff84147717c
       created: 1790400000046
       modified: 1790400000046
       isPrivate: false
@@ -1102,8 +1270,12 @@ collection:
     - name: Accept
       value: application/json
     authentication:
-      type: bearer
-      token: '{{ _.jwt_token }}'
+      type: oauth2
+      grantType: client_credentials
+      accessTokenUrl: '{{ _.token_url }}'
+      clientId: '{{ _.client_id }}'
+      clientSecret: '{{ _.client_secret }}'
+      scope: tads-api/read tads-api/write tads-api/delete
     settings:
       renderRequestBody: true
       encodeUrl: true
@@ -1115,7 +1287,7 @@ collection:
   - url: '{{ _.base_url }}/tracks/{{ _.track_id }}/events?timerange=[0:0_60:0)'
     name: Delete Events (Bulk)
     meta:
-      id: req_2529ad629db71279822596ad65e5384a
+      id: req_12897a087c6c37f96b441316b3987c94
       created: 1790400000047
       modified: 1790400000047
       isPrivate: false
@@ -1123,8 +1295,12 @@ collection:
       sortKey: -1790400000047
     method: DELETE
     authentication:
-      type: bearer
-      token: '{{ _.jwt_token }}'
+      type: oauth2
+      grantType: client_credentials
+      accessTokenUrl: '{{ _.token_url }}'
+      clientId: '{{ _.client_id }}'
+      clientSecret: '{{ _.client_secret }}'
+      scope: tads-api/read tads-api/write tads-api/delete
     settings:
       renderRequestBody: true
       encodeUrl: true
@@ -1135,7 +1311,7 @@ collection:
       rebuildPath: true
 - name: Webhooks
   meta:
-    id: fld_99469424fee7ebd815e6db60b519968c
+    id: fld_56a29842ebbc4fbc2eedb55ef2acf07d
     created: 1790400000054
     modified: 1790400000054
     sortKey: -1790400000054
@@ -1144,7 +1320,7 @@ collection:
   - url: '{{ _.base_url }}/service/webhooks'
     name: Register Webhook
     meta:
-      id: req_f01f1f6de0d4c5716da0fc8099fc323c
+      id: req_878ffe39ee8923234f232a6a1608857a
       created: 1790400000049
       modified: 1790400000049
       isPrivate: false
@@ -1164,8 +1340,12 @@ collection:
     - name: Accept
       value: application/json
     authentication:
-      type: bearer
-      token: '{{ _.jwt_token }}'
+      type: oauth2
+      grantType: client_credentials
+      accessTokenUrl: '{{ _.token_url }}'
+      clientId: '{{ _.client_id }}'
+      clientSecret: '{{ _.client_secret }}'
+      scope: tads-api/read tads-api/write tads-api/delete
     settings:
       renderRequestBody: true
       encodeUrl: true
@@ -1177,7 +1357,7 @@ collection:
   - url: '{{ _.base_url }}/service/webhooks'
     name: List Webhooks
     meta:
-      id: req_63402d997944e4c365c5127add8f7003
+      id: req_bef228b1f6a425ef77ee399a45e8e26e
       created: 1790400000050
       modified: 1790400000050
       isPrivate: false
@@ -1188,8 +1368,12 @@ collection:
     - name: Accept
       value: application/json
     authentication:
-      type: bearer
-      token: '{{ _.jwt_token }}'
+      type: oauth2
+      grantType: client_credentials
+      accessTokenUrl: '{{ _.token_url }}'
+      clientId: '{{ _.client_id }}'
+      clientSecret: '{{ _.client_secret }}'
+      scope: tads-api/read tads-api/write tads-api/delete
     settings:
       renderRequestBody: true
       encodeUrl: true
@@ -1201,7 +1385,7 @@ collection:
   - url: '{{ _.base_url }}/service/webhooks/{{ _.webhook_id }}'
     name: Get Webhook Details
     meta:
-      id: req_2403c81d31ca01d2ed7d5760f6c95ae3
+      id: req_cbc76be99077b10f948a48b4a579a393
       created: 1790400000051
       modified: 1790400000051
       isPrivate: false
@@ -1212,8 +1396,12 @@ collection:
     - name: Accept
       value: application/json
     authentication:
-      type: bearer
-      token: '{{ _.jwt_token }}'
+      type: oauth2
+      grantType: client_credentials
+      accessTokenUrl: '{{ _.token_url }}'
+      clientId: '{{ _.client_id }}'
+      clientSecret: '{{ _.client_secret }}'
+      scope: tads-api/read tads-api/write tads-api/delete
     settings:
       renderRequestBody: true
       encodeUrl: true
@@ -1225,7 +1413,7 @@ collection:
   - url: '{{ _.base_url }}/service/webhooks/{{ _.webhook_id }}'
     name: Update Webhook
     meta:
-      id: req_22c7d24ab49b26f8037f5cbf6a46005a
+      id: req_bacb422bedaf330c171ec7c3519503ae
       created: 1790400000052
       modified: 1790400000052
       isPrivate: false
@@ -1244,8 +1432,12 @@ collection:
     - name: Accept
       value: application/json
     authentication:
-      type: bearer
-      token: '{{ _.jwt_token }}'
+      type: oauth2
+      grantType: client_credentials
+      accessTokenUrl: '{{ _.token_url }}'
+      clientId: '{{ _.client_id }}'
+      clientSecret: '{{ _.client_secret }}'
+      scope: tads-api/read tads-api/write tads-api/delete
     settings:
       renderRequestBody: true
       encodeUrl: true
@@ -1257,7 +1449,7 @@ collection:
   - url: '{{ _.base_url }}/service/webhooks/{{ _.webhook_id }}'
     name: Delete Webhook
     meta:
-      id: req_07f6d1be9f116bbf4a7ba827d236e0d7
+      id: req_9e4222b2f4d0caf7611bc5bed2b90f57
       created: 1790400000053
       modified: 1790400000053
       isPrivate: false
@@ -1265,8 +1457,12 @@ collection:
       sortKey: -1790400000053
     method: DELETE
     authentication:
-      type: bearer
-      token: '{{ _.jwt_token }}'
+      type: oauth2
+      grantType: client_credentials
+      accessTokenUrl: '{{ _.token_url }}'
+      clientId: '{{ _.client_id }}'
+      clientSecret: '{{ _.client_secret }}'
+      scope: tads-api/read tads-api/write tads-api/delete
     settings:
       renderRequestBody: true
       encodeUrl: true
@@ -1277,7 +1473,7 @@ collection:
       rebuildPath: true
 - name: Track Delete Requests
   meta:
-    id: fld_0a35a1f99b045087693e8db2d2c92296
+    id: fld_ead8b8b85226aa263b17c0ffd0d42ff9
     created: 1790400000057
     modified: 1790400000057
     sortKey: -1790400000057
@@ -1286,7 +1482,7 @@ collection:
   - url: '{{ _.base_url }}/track-delete-requests?sort_by=created&reverse_order=false'
     name: List Track Delete Requests
     meta:
-      id: req_5a4e31fff70a81d9394fcf6a8d26a7f1
+      id: req_f958a201c9546155f54fea04b604ca92
       created: 1790400000055
       modified: 1790400000055
       isPrivate: false
@@ -1297,8 +1493,12 @@ collection:
     - name: Accept
       value: application/json
     authentication:
-      type: bearer
-      token: '{{ _.jwt_token }}'
+      type: oauth2
+      grantType: client_credentials
+      accessTokenUrl: '{{ _.token_url }}'
+      clientId: '{{ _.client_id }}'
+      clientSecret: '{{ _.client_secret }}'
+      scope: tads-api/read tads-api/write tads-api/delete
     settings:
       renderRequestBody: true
       encodeUrl: true
@@ -1310,7 +1510,7 @@ collection:
   - url: '{{ _.base_url }}/track-delete-requests/{{ _.request_id }}'
     name: Get Track Delete Request Details
     meta:
-      id: req_480e0d7a9d7b2f770186b56a129697d2
+      id: req_082f0eec6f870314bd9be05ebcf48d4a
       created: 1790400000056
       modified: 1790400000056
       isPrivate: false
@@ -1321,8 +1521,12 @@ collection:
     - name: Accept
       value: application/json
     authentication:
-      type: bearer
-      token: '{{ _.jwt_token }}'
+      type: oauth2
+      grantType: client_credentials
+      accessTokenUrl: '{{ _.token_url }}'
+      clientId: '{{ _.client_id }}'
+      clientSecret: '{{ _.client_secret }}'
+      scope: tads-api/read tads-api/write tads-api/delete
     settings:
       renderRequestBody: true
       encodeUrl: true
@@ -1334,20 +1538,22 @@ collection:
 cookieJar:
   name: Default Jar
   meta:
-    id: jar_b803fea927568635950c98fe21eda221
+    id: jar_dcb1a7031332302ffa0e0251cafc38de
     created: 1790400000000
     modified: 1790400000000
   cookies: []
 environments:
   name: Base Environment
   meta:
-    id: env_a28aad082ccf15afd49448a007a0d213
+    id: env_73a931de30c7f9b1f68c2cb2a9946043
     created: 1790400000000
     modified: 1790400000000
     isPrivate: false
   data:
     base_url: https://nzu5drr4z5.execute-api.us-east-1.amazonaws.com
-    jwt_token: ''
+    token_url: https://<cognito-domain>.auth.us-east-1.amazoncognito.com/oauth2/token
+    client_id: <client id (UserPoolClientId output)>
+    client_secret: ''
     schema_id: 7392a63c-91be-5a71-8672-f587a142056a
     track_id: 52b442fc-0a9d-516a-82b5-e4cfe1ac2193
     entity_id: https://mxl-tams.phrame.live/flows/34e6ddd5-696a-45bb-9193-ebf8a1d18838
@@ -1356,14 +1562,16 @@ environments:
   subEnvironments:
   - name: AWS TADS dev
     meta:
-      id: env_14d4d2aa8bb6a975b4b763c4f236574f
+      id: env_ea851ca00f9a5dc78dd66a2f69ac7291
       created: 1790400000000
       modified: 1790400000000
       isPrivate: false
       sortKey: 1790400000000
     data:
       base_url: https://nzu5drr4z5.execute-api.us-east-1.amazonaws.com
-      jwt_token: ''
+      token_url: https://<cognito-domain>.auth.us-east-1.amazoncognito.com/oauth2/token
+      client_id: <client id (UserPoolClientId output)>
+      client_secret: ''
       schema_id: 7392a63c-91be-5a71-8672-f587a142056a
       track_id: 52b442fc-0a9d-516a-82b5-e4cfe1ac2193
       entity_id: https://mxl-tams.phrame.live/flows/34e6ddd5-696a-45bb-9193-ebf8a1d18838

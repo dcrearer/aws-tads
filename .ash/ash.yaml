@@ -17,21 +17,6 @@ global_settings:
         asserts the webhook api_key_value is NOT echoed back in responses.
       expiration: "2027-01-04"
 
-    # Generated CDK build artifacts under cdk.out/ (template, metadata, assets) contain many
-    # high-entropy base64/hex strings — asset content hashes, bootstrap qualifiers, logical ids —
-    # which the entropy heuristics flag as "secrets". These are build output, not source, and
-    # carry no credentials (the default user's password is generated at runtime and stored in
-    # Secrets Manager, never synthesized into the template). Keyword-based secret rules are NOT
-    # suppressed, so a real inlined secret would still be caught.
-    - rule_id: SECRET-BASE64-HIGH-ENTROPY-STRING
-      path: '**/cdk.out/**'
-      reason: High-entropy strings in generated CDK artifacts (asset hashes/ids), not secrets.
-      expiration: "2027-01-04"
-    - rule_id: SECRET-HEX-HIGH-ENTROPY-STRING
-      path: '**/cdk.out/**'
-      reason: High-entropy strings in generated CDK artifacts (asset hashes/ids), not secrets.
-      expiration: "2027-01-04"
-
     # -- Transitive dependency advisories (AWS SDK), not exploitable in our usage --------------
     # All four come from the AWS SDK's bundled rustls 0.21 / aws-smithy-json and are NOT flagged
     # by `cargo audit` (RustSec), the project's gating dependency auditor. The real fix is an
@@ -74,28 +59,6 @@ global_settings:
         security gain for this serverless metadata API.
       expiration: "2027-01-04"
 
-    # CKV_AWS_116/115/173 are satisfied by all 8 application Lambdas (DLQ, reserved concurrency,
-    # CMK-encrypted env — asserted in cdk/tests/test_stack.py). These findings come only from the
-    # CDK-managed custom-resource / provider helper Lambdas backing the default-user resource,
-    # which CloudFormation invokes during stack operations and are never on the request path.
-    - rule_id: CKV_AWS_116
-      path: '**/cdk.out/TadsStack.template.json'
-      reason: >-
-        CDK custom-resource/provider helper Lambdas (default-user bootstrap). Deploy-time only,
-        invoked by CloudFormation, not request-facing. App Lambdas have DLQs (asserted in tests).
-      expiration: "2027-01-04"
-    - rule_id: CKV_AWS_115
-      path: '**/cdk.out/TadsStack.template.json'
-      reason: >-
-        CDK custom-resource/provider helper Lambdas (default-user bootstrap). Deploy-time only.
-        App Lambdas set reserved concurrency (asserted in tests).
-      expiration: "2027-01-04"
-    - rule_id: CKV_AWS_173
-      path: '**/cdk.out/TadsStack.template.json'
-      reason: >-
-        CDK custom-resource/provider helper Lambdas (default-user bootstrap). Deploy-time only;
-        no sensitive env config. App Lambdas use CMK env encryption (asserted in tests).
-      expiration: "2027-01-04"
     - rule_id: CKV_DOCKER_2
       path: Dockerfile.lambda
       reason: >-
