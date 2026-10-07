@@ -35,11 +35,69 @@ from aws_cdk import aws_kms as kms
 from aws_cdk import aws_lambda as lambda_
 from aws_cdk import aws_lambda_event_sources as sources
 from aws_cdk import aws_logs as logs
+from aws_cdk import aws_secretsmanager as secretsmanager
 from aws_cdk import aws_sqs as sqs
+from aws_cdk import custom_resources as cr
 from constructs import Construct
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 PLACEHOLDER = REPO_ROOT / "cdk" / "placeholder"
+
+# Inline source for the default-user custom-resource Lambda. Generates a password that satisfies
+# the Cognito default policy, creates the user, sets a permanent password, and stores
+# {username, password} in Secrets Manager. The password is never returned to CloudFormation.
+_DEFAULT_USER_FN_CODE = '''
+import json
+import os
+import secrets
+import string
+
+import boto3
+
+cognito = boto3.client("cognito-idp")
+sm = boto3.client("secretsmanager")
+
+
+def _generate_password() -> str:
+    # 24 chars with at least one lower/upper/digit/symbol from a shell-safe symbol set.
+    symbols = "!@#%^*-_=+"
+    pools = [string.ascii_lowercase, string.ascii_uppercase, string.digits, symbols]
+    chars = [secrets.choice(p) for p in pools]
+    alphabet = "".join(pools)
+    chars += [secrets.choice(alphabet) for _ in range(20)]
+    secrets.SystemRandom().shuffle(chars)
+    return "".join(chars)
+
+
+def handler(event, context):
+    request_type = event["RequestType"]
+    pool_id = os.environ["POOL_ID"]
+    secret_arn = os.environ["SECRET_ARN"]
+    username = event["ResourceProperties"]["Username"]
+    physical_id = pool_id + ":" + username
+
+    if request_type == "Delete":
+        try:
+            cognito.admin_delete_user(UserPoolId=pool_id, Username=username)
+        except cognito.exceptions.UserNotFoundException:
+            pass
+        return {"PhysicalResourceId": physical_id}
+
+    password = _generate_password()
+    try:
+        cognito.admin_create_user(UserPoolId=pool_id, Username=username, MessageAction="SUPPRESS")
+    except cognito.exceptions.UsernameExistsException:
+        pass
+    cognito.admin_set_user_password(
+        UserPoolId=pool_id, Username=username, Password=password, Permanent=True
+    )
+    sm.put_secret_value(
+        SecretId=secret_arn,
+        SecretString=json.dumps({"username": username, "password": password}),
+    )
+    # Only the username is returned to CloudFormation; the password stays in Secrets Manager.
+    return {"PhysicalResourceId": physical_id, "Data": {"Username": username}}
+'''
 
 
 def lambda_code(name: str) -> lambda_.Code:
@@ -209,6 +267,60 @@ class TadsStack(Stack):
             generate_secret=False,
             auth_flows=cognito.AuthFlow(user_password=True, user_srp=True),
         )
+
+        # Convenience default user so the deployed stack is immediately callable. Gated by
+        # context so it can be disabled for non-dev deploys: `-c create_default_user=false`.
+        self.default_username = None
+        self.user_secret = None
+        if str(self.node.try_get_context("create_default_user")).lower() != "false":
+            self._build_default_user()
+
+    def _build_default_user(self) -> None:
+        """Create a Cognito user whose password is generated at deploy time and stored in Secrets
+        Manager (never placed in the CloudFormation template or stack outputs). A Lambda-backed
+        custom resource performs the admin calls; CloudFormation invokes it only during stack ops.
+        """
+        self.default_username = self.node.try_get_context("default_username") or "tads-admin"
+
+        self.user_secret = secretsmanager.Secret(
+            self,
+            "DefaultUserSecret",
+            secret_name=f"{self.prefix}-default-user",
+            description=f"{self.prefix} default API user credentials (username + password)",
+            encryption_key=self.key,
+            removal_policy=RemovalPolicy.DESTROY,  # dev
+        )
+
+        on_event = lambda_.Function(
+            self,
+            "DefaultUserFn",
+            function_name=f"{self.prefix}-default-user-cr",
+            runtime=lambda_.Runtime.PYTHON_3_12,
+            handler="index.handler",
+            timeout=Duration.seconds(60),
+            code=lambda_.Code.from_inline(_DEFAULT_USER_FN_CODE),
+            environment={"POOL_ID": self.user_pool.user_pool_id, "SECRET_ARN": self.user_secret.secret_arn},
+        )
+        on_event.add_to_role_policy(
+            iam.PolicyStatement(
+                actions=[
+                    "cognito-idp:AdminCreateUser",
+                    "cognito-idp:AdminSetUserPassword",
+                    "cognito-idp:AdminDeleteUser",
+                ],
+                resources=[self.user_pool.user_pool_arn],
+            )
+        )
+        self.user_secret.grant_write(on_event)
+
+        provider = cr.Provider(self, "DefaultUserProvider", on_event_handler=on_event)
+        resource = cdk.CustomResource(
+            self,
+            "DefaultUser",
+            service_token=provider.service_token,
+            properties={"Username": self.default_username},
+        )
+        resource.node.add_dependency(self.user_secret)
 
     # -- Lambda functions ---------------------------------------------------------------------
     def _common_env(self) -> dict:
@@ -426,3 +538,33 @@ class TadsStack(Stack):
         cdk.CfnOutput(self, "ApiEndpoint", value=self.http_api.api_endpoint)
         cdk.CfnOutput(self, "UserPoolId", value=self.user_pool.user_pool_id)
         cdk.CfnOutput(self, "UserPoolClientId", value=self.user_pool_client.user_pool_client_id)
+        # JWT issuer the HTTP API authorizer validates against (OIDC discovery lives under it).
+        cdk.CfnOutput(
+            self,
+            "JwtIssuer",
+            value=f"https://cognito-idp.{self.region}.amazonaws.com/{self.user_pool.user_pool_id}",
+        )
+
+        if self.user_secret is None:
+            return
+
+        cdk.CfnOutput(self, "DefaultUsername", value=self.default_username)
+        cdk.CfnOutput(
+            self,
+            "DefaultUserSecretArn",
+            value=self.user_secret.secret_arn,
+            description="Secrets Manager secret holding {username, password} for the default user",
+        )
+        # Copy-paste: fetch the password from Secrets Manager and print a bearer JWT (IdToken).
+        cdk.CfnOutput(
+            self,
+            "GetTokenCommand",
+            value=(
+                f"PW=$(aws secretsmanager get-secret-value --secret-id {self.user_secret.secret_name} "
+                f"--query SecretString --output text | python3 -c 'import json,sys;print(json.load(sys.stdin)[\"password\"])'); "
+                f"aws cognito-idp initiate-auth --auth-flow USER_PASSWORD_AUTH "
+                f"--client-id {self.user_pool_client.user_pool_client_id} "
+                f'--auth-parameters USERNAME={self.default_username},PASSWORD="$PW" '
+                f"--query AuthenticationResult.IdToken --output text"
+            ),
+        )

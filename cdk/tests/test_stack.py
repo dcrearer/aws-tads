@@ -19,9 +19,12 @@ def _template() -> Template:
 def test_core_resource_counts():
     t = _template()
     t.resource_count_is("AWS::DynamoDB::Table", 5)
-    # 8 of the 9 workspace Lambdas are deployed; search-indexer is parked while OpenSearch
-    # (the separable search index) is deferred.
-    t.resource_count_is("AWS::Lambda::Function", 8)
+    # 8 of the 9 workspace Lambdas are deployed (search-indexer is parked while OpenSearch is
+    # deferred). Count the Rust app functions by runtime so CDK-managed custom-resource/provider
+    # helper Lambdas (Python) don't skew the assertion.
+    t.resource_properties_count_is(
+        "AWS::Lambda::Function", {"Runtime": "provided.al2023"}, 8
+    )
     t.resource_count_is("AWS::SQS::Queue", 3)  # delete queue + delete DLQ + shared Lambda DLQ
     t.resource_count_is("AWS::OpenSearchServerless::Collection", 0)
     t.resource_count_is("AWS::Cognito::UserPool", 1)
@@ -94,3 +97,14 @@ def test_http_api_stage_has_access_logging():
         "AWS::ApiGatewayV2::Stage",
         {"AccessLogSettings": {"DestinationArn": assertions.Match.any_value()}},
     )
+
+
+def test_default_user_created_with_secret():
+    t = _template()
+    # Credentials live in a Secrets Manager secret (not in the template/outputs).
+    t.resource_count_is("AWS::SecretsManager::Secret", 1)
+    # A custom resource provisions the Cognito user.
+    t.resource_count_is("Custom::AWS", 0)  # not using AwsCustomResource
+    t.has_output("DefaultUsername", {})
+    t.has_output("DefaultUserSecretArn", {})
+    t.has_output("GetTokenCommand", {})
