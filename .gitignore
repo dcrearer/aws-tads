@@ -16,3 +16,6 @@ cdk/.pytest_cache/
 
 # macOS
 .DS_Store
+
+# Insomnia collection (local workspace export; env-specific edits not tracked)
+/insomnia/TADS.insomnia.yaml
