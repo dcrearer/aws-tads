@@ -9,6 +9,7 @@
 # CDK (Python / uv)
 cdk/.venv/
 cdk/cdk.out/
+/cdk.out/            # stray synth output if cdk is run from the repo root
 cdk/__pycache__/
 cdk/**/__pycache__/
 cdk/.pytest_cache/
