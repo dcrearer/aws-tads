@@ -13,6 +13,11 @@
 #
 # Re-review and remove entries as the AWS SDK bumps these transitives. Direct-dependency
 # advisories must NOT be added here — fix them instead.
+#   RUSTSEC-2023-0071  rsa 0.9          -- Marvin RSA timing sidechannel; NO fix available.
+#                                          Transitive via sqlx-mysql (sqlx `macros` feature, used by
+#                                          migrate!) and jsonwebtoken (rust_crypto). Not reachable:
+#                                          MySQL is never used, and JWT RS256 is public-key
+#                                          VERIFICATION (Marvin targets private-key decryption).
 [advisories]
 ignore = [
     "RUSTSEC-2026-0258",
@@ -20,4 +25,5 @@ ignore = [
     "RUSTSEC-2026-0098",
     "RUSTSEC-2026-0099",
     "RUSTSEC-2025-0134",
+    "RUSTSEC-2023-0071",
 ]

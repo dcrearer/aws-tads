@@ -14,6 +14,13 @@ global_settings:
         Test fixture, not a real secret. The literal "super-secret" is the input to a test that
         asserts the webhook api_key_value is NOT echoed back in responses.
       expiration: "2027-01-04"
+    - rule_id: SECRET-BASIC-AUTH-CREDENTIALS
+      path: README.md
+      reason: >-
+        Documentation example — a throwaway LOCAL Postgres URL
+        (postgres://postgres:postgres@localhost) for running the TADS_TEST_DB-gated tests against a
+        local container. Not a real credential.
+      expiration: "2027-01-04"
 
     # -- Transitive dependency advisories (AWS SDK), not exploitable in our usage --------------
     # All four come from the AWS SDK's bundled rustls 0.21 / aws-smithy-json and are NOT flagged
