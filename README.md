@@ -170,6 +170,11 @@ against), `DefaultUsername`, `DefaultUserSecretArn`, `UserPoolId`, `UserPoolClie
 ready-to-run `GetTokenCommand`. Disable the default user for non-dev deploys with
 `-c create_default_user=false` (override the name with `-c default_username=<name>`).
 
+An **Insomnia collection** covering every endpoint lives at
+[`insomnia/TADS.insomnia.yaml`](insomnia/TADS.insomnia.yaml). Import it, set the environment's
+`base_url` to the `ApiEndpoint` output and `jwt_token` to a token from `GetTokenCommand`, and the
+requests authenticate as `Authorization: Bearer`.
+
 ### Building the Lambdas on macOS
 
 Step 1 above (`cargo lambda build --release --arm64`) works on Linux (and in CI), but **fails on
