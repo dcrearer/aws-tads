@@ -1,0 +1,7 @@
+target
+cdk/.venv
+cdk/cdk.out
+.git
+**/__pycache__
+.pytest_cache
+.ash/ash_output

@@ -101,6 +101,21 @@ route, and the X-Ray trace id (`_X_AMZN_TRACE_ID`) for cross-Lambda correlation;
 CloudWatch Metrics. The OTLP → ADOT-layer → X-Ray *span export* is enabled when the ADOT Lambda
 layer is provisioned (infra task); the trace-id correlation already works without it.
 
+## Build, test, lint
+
+Build/test/lint for the Rust workspace:
+
+```sh
+cargo build --release          # release profile is Lambda-tuned (size + cold start)
+cargo test                     # unit tests + the events/webhooks end-to-end smoke tests
+cargo clippy --all-targets -- -D warnings
+cargo fmt --all --check
+cargo audit                    # advisory check against Cargo.lock
+```
+
+AWS service mocking in tests uses `aws-smithy-mocks` at the SDK-client level (see
+`lambdas/events/tests/smoke.rs`).
+
 ## Deployment
 
 Infrastructure is defined as **AWS CDK (Python, uv-managed)** in [`cdk/`](cdk/). It provisions
@@ -121,20 +136,25 @@ uv run cdk synth                    # requires the binaries from step 1
 uv run cdk deploy                   # creates real AWS resources
 ```
 
+### Building the Lambdas on macOS
+
+Step 1 above (`cargo lambda build --release --arm64`) works on Linux (and in CI), but **fails on
+macOS**: cross-compiling to Linux uses `zig` as the linker, which cannot link the native crypto
+crates `aws-lc-sys`/`ring` pulled in by the AWS SDK (symptoms: `undefined symbol: aws_lc_*` /
+`ring_core_*`, or `unsupported linker arg: --fix-cortex-a53-843419`). Build the Linux artifacts
+natively inside a container instead:
+
+```sh
+# Replaces step 1 only; steps 2 (cd cdk; uv sync; …) are unchanged.
+./scripts/build-lambdas.sh          # builds in the cargo-lambda container, extracts to target/lambda/<name>/
+```
+
+Requires a running container engine (`podman machine start`). The script compiles every bin in the
+official `cargo-lambda` Linux image and copies each `bootstrap` to `target/lambda/<name>/` where CDK
+reads it. Give the podman VM ≥8 GiB (`podman machine set --memory 8192`) — release+LTO builds
+OOM-kill `rustc` on the 4 GiB default. On a Linux host, skip the script and run step 1 directly.
+
 Each Lambda receives its table/queue/endpoint names as `TADS__*` env vars (the `config` crate's
 env overrides), so no YAML is bundled into the images. To synth without building the binaries
 (CI/validation), set `CDK_PLACEHOLDER=1`. An ADOT layer for OTLP→X-Ray span export is wired when
 `-c adot_layer_arn=<arn>` is supplied.
-
-Build/test/lint for the Rust workspace:
-
-```sh
-cargo build --release          # release profile is Lambda-tuned (size + cold start)
-cargo test                     # unit tests + the events/webhooks end-to-end smoke tests
-cargo clippy --all-targets -- -D warnings
-cargo fmt --all --check
-cargo audit                    # advisory check against Cargo.lock
-```
-
-AWS service mocking in tests uses `aws-smithy-mocks` at the SDK-client level (see
-`lambdas/events/tests/smoke.rs`).
