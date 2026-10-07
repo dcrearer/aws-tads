@@ -11,42 +11,47 @@ timeline, validated against the Track's managed Payload Schema.
 
 ## Architecture
 
-Each top-level resource is its own Lambda (independent scaling + isolation), all sharing a set
-of library crates. Event payloads are stored **inline** in DynamoDB and returned directly in
-listings. TADS holds small metadata, so an Event larger than the configured limit is rejected
-with `413` rather than offloaded — large data belongs in TAMS, not TADS.
+Each top-level resource is its own Lambda (independent scaling + isolation), all sharing a set of
+library crates. The system-of-record is **Aurora PostgreSQL Serverless v2** (reached through RDS
+Proxy); Event payloads are stored inline in a `jsonb` column and returned directly in listings.
+TADS holds small metadata, so an Event larger than the configured limit is rejected with `413`
+rather than offloaded — large data belongs in TAMS, not TADS.
 
-A separable search index ("search by the data itself", fed asynchronously from DynamoDB Streams
-into OpenSearch Serverless) is **designed and coded but not currently deployed** — the query
-surface is undecided. See [Deferred: search](#deferred-search).
+"Search by the data itself" is served **natively** by Postgres — timerange overlap via an
+`int8range` GiST index (`tr && window`) and payload/tag/entity filtering via SQL/JSONB — so no
+separate search system is needed. Change notifications (webhooks) ride a **transactional outbox**:
+each mutation writes an outbox row in the same transaction, and a scheduled `webhook-dispatcher`
+drains it (replacing the DynamoDB-Streams design).
 
 ```
-                       API Gateway HTTP API
+                        API Gateway HTTP API  ── Lambda authorizer (Cognito access token)
    service   schemas   tracks   events   webhooks   delete-requests     (request Lambdas)
-      └─────────┴─────────┴── tads-store (DynamoDB repos) ──┴─────────┘
-                         │                     │
-                     DynamoDB                  SQS ─▶ delete-worker
-                         │
-                    DynamoDB Streams ──▶ webhook-dispatcher ─▶ subscriber URLs
-                         (└─▶ search-indexer ─▶ OpenSearch — deferred, not deployed)
+      └─────────┴─────────┴── tads-store (sqlx/Postgres repos) ──┴────────┘
+                         │                         │              │
+              Aurora PG (via RDS Proxy)            SQS ─▶ delete-worker
+                         │  (writes also append an `outbox` row, in-tx)
+                   outbox table ──(EventBridge schedule)──▶ webhook-dispatcher ─▶ subscriber URLs
 ```
+
+Everything DB-touching runs inside an isolated VPC (no NAT) with interface endpoints; the
+authorizer stays outside the VPC (it only needs Cognito JWKS over the internet).
 
 ### Workspace crates
 
 | Crate | Role |
 |-------|------|
 | `tads-domain` | Pure models, the TAI `TimeRange` grammar, JSON-Schema payload validation. No I/O. |
-| `tads-store` | DynamoDB repositories, opaque cursor pagination, Event size-limit enforcement, SQS enqueue. |
+| `tads-store` | sqlx/Postgres repositories, `TimeRange`↔`int8range` mapping, keyset cursor pagination, Event size-limit enforcement, the transactional outbox, SQS enqueue. |
 | `tads-telemetry` | `tracing` JSON logs + X-Ray trace-id capture + EMF metrics. |
-| `tads-http` | Central `AppError` → `IntoResponse`, auth extractor, paging headers, config/state, observability middleware, Lambda bootstrap. |
+| `tads-http` | Central `AppError` → `IntoResponse`, auth extractor, paging headers, config/state (builds the Postgres pool from the Secrets Manager secret), observability middleware, Lambda bootstrap. |
 
 ### Lambdas (`lambdas/*`)
 
 Request handlers: `service`, `schemas`, `tracks`, `events`, `webhooks`, `delete-requests`.
-Async workers (event-driven): `delete-worker` (SQS), `webhook-dispatcher` (DynamoDB Streams).
-`authorizer` is the HTTP API's custom Lambda authorizer (verifies the Cognito access token).
-The `search-indexer` crate (also Streams-driven) is built but not deployed — see
-[Deferred: search](#deferred-search). Each binary is named `bootstrap` for the Lambda custom runtime.
+Async workers: `delete-worker` (SQS-triggered) and `webhook-dispatcher` (EventBridge-scheduled;
+drains the outbox). `authorizer` is the HTTP API's custom Lambda authorizer (verifies the Cognito
+access token). `migrate` runs the sqlx migrations via a CloudFormation custom resource on deploy.
+Each binary is named `bootstrap` for the Lambda custom runtime.
 
 ## Status
 
@@ -54,51 +59,53 @@ The `search-indexer` crate (also Streams-driven) is built but not deployed — s
 upsert (single/batch, per-event schema validation) + list + async delete, service endpoints,
 cursor pagination with `X-Paging-*`/`Link` headers, central error handling, observability.
 
-**Phase 2 (in progress):**
-- **`delete-worker` — implemented.** SQS-triggered; advances delete requests
-  `created→started→done|error`, deletes Events wholly within `timerange_to_delete` (eternity ⇒
-  all Events on the track) via batched `BatchWriteItem`, deletes the Track if `delete_track`.
-  Idempotent on SQS redelivery.
-- **`webhooks` CRUD — implemented.** `POST/GET/PUT/DELETE /service/webhooks[/{id}]` with tag
-  filters + pagination. `api_key_value` is write-only (accepted, stored out-of-band, never
-  returned).
-- **`webhook-dispatcher` — implemented.** DynamoDB-Streams-triggered; maps each change to a
-  webhook event, matches subscription filters (`events`, `track_ids`, `schema_ids`,
-  `editable_events`, `timeline_reference.entity_id`, `tags`), POSTs the callback to the
-  subscriber `url` with the `api_key_name` header (reqwest), retries, and drives the webhook to
-  `error` on persistent failure.
-- **`search-indexer` — implemented, deployment deferred.** DynamoDB-Streams-triggered; maps
-  INSERT/MODIFY→upsert and REMOVE→delete into per-resource OpenSearch indices (events enriched
-  with `track_id`/`start_ns`/`end_ns` for range search), writing via a SigV4-signed OpenSearch
-  (Serverless, `aoss`) client. Reads `TADS_OPENSEARCH_ENDPOINT`. **Not provisioned by the CDK
-  stack** — see [Deferred: search](#deferred-search).
-- **Granular property sub-resources — implemented.** `/tags`, `/tags/{name}`, `/description`,
-  `/label` (and `/external_id` for schemas; `/read_only`, `/allow_overlaps`, `/editable_events`
-  for tracks) GET/PUT/DELETE. Track mutations respect `read_only` (except the `read_only` toggle).
+**Phase 2 (implemented):**
+- **`delete-worker`.** SQS-triggered; advances delete requests `created→started→done|error`,
+  deletes Events wholly within `timerange_to_delete` (`DELETE … WHERE tr <@ window`; eternity ⇒ all
+  Events on the track), deletes the Track if `delete_track`. Idempotent on SQS redelivery.
+- **`webhooks` CRUD.** `POST/GET/PUT/DELETE /service/webhooks[/{id}]` with tag filters +
+  pagination. `api_key_value` is write-only (accepted, stored out-of-band, never returned).
+- **`webhook-dispatcher`.** Outbox-driven, EventBridge-scheduled: claims undispatched outbox rows
+  (`FOR UPDATE SKIP LOCKED`), maps each to a webhook event, matches subscription filters (`events`,
+  `track_ids`, `schema_ids`, `editable_events`, `timeline_reference.entity_id`, `tags`), POSTs the
+  callback with the `api_key_name` header (reqwest), retries, and drives the webhook to `error` on
+  persistent failure.
+- **Granular property sub-resources.** `/tags`, `/tags/{name}`, `/description`, `/label` (and
+  `/external_id` for schemas; `/read_only`, `/allow_overlaps`, `/editable_events` for tracks)
+  GET/PUT/DELETE. Track mutations respect `read_only` (except the `read_only` toggle).
 
-**Phase 2 is feature-complete.** Remaining: the **CDK infra stack** (deployment) and two noted
-refinements — an event-id GSI so moving an Event's timerange doesn't orphan the old key, and the
-`allow_overlaps=true` overlap-conflict check.
+**Deployed and validated end-to-end on AWS.** One refinement remains: the `allow_overlaps=true`
+overlap-conflict check. (The old "event-id GSI for moved timeranges" refinement is resolved — the
+`track_event` primary key is `(track_id, event_id)`, so re-posting at a new timerange updates in
+place.)
 
-## Persistent store (DynamoDB)
+## Persistent store (PostgreSQL)
 
-One table per aggregate; all with Streams enabled (`NEW_AND_OLD_IMAGES`).
+Aurora PostgreSQL (via RDS Proxy). The authoritative column on every table is `doc jsonb` (the
+serialized domain object); scalar/`int8range` columns are projected for keys, filters, and the
+overlap index. Migrations live in [`crates/tads-store/migrations`](crates/tads-store/migrations).
 
-| Table | PK | SK | Notes |
-|-------|----|----|-------|
-| `tads-schemas` | `schema_id` | — | GSI `external_id-index`. |
-| `tads-tracks` | `track_id` | — | GSI `schema_id-index`, `entity_id-index`. |
-| `tads-events` | `track_id` | `<sortable(start_ns)>#<event_id>` | `start_ns`/`end_ns` numbers for timerange+overlap queries; Events over `max_payload_bytes` are rejected (413). |
-| `tads-webhooks` | `webhook_id` | — | |
-| `tads-delete-requests` | `request_id` | — | TTL on `expiry`. |
+| Table | Key | Notes |
+|-------|-----|-------|
+| `payload_schema` | `schema_id` | unique `external_id`; `tags` jsonb |
+| `track` | `track_id` | `schema_id`/`entity_id` indexed; `tags` GIN-indexed |
+| `track_event` | `(track_id, event_id)` | `tr int8range` with a **GiST** `(track_id, tr)` overlap index; `start_ns`/`end_ns`; Events over `max_payload_bytes` → 413 |
+| `webhook` | `webhook_id` | write-only `api_key_value` column |
+| `track_delete_request` | `request_id` | `expiry` swept by the delete-worker |
+| `outbox` | `id` | change-capture rows drained by the dispatcher |
 
-Timerange query returns every Event overlapping `[a, b)` via `sk < encode(b)` + `end_ns > a`.
+Timerange query returns every Event overlapping `[a, b)` with a single GiST index scan:
+`WHERE track_id = $1 AND tr && int8range($lo, $hi, '[)')`. Listings keyset-paginate on
+`(start_ns, event_id)` (events) or the id (other resources).
 
 ## Configuration
 
 `config/default.yaml` holds defaults; every value is overridable by env var
 `TADS__<SECTION>__<KEY>` (double-underscore nesting), which is how each Lambda receives its
-table/queue/bucket names at runtime. Example: `TADS__TABLES__EVENTS=prod-tads-events`.
+runtime settings. The database block is set per-environment by the CDK stack:
+`TADS__DATABASE__PROXY_ENDPOINT`, `TADS__DATABASE__DB_NAME`, `TADS__DATABASE__SECRET_ARN`
+(the DB password is fetched from that Secrets Manager secret at cold start), plus
+`TADS__DELETE_QUEUE_URL`.
 
 ## Observability
 
@@ -113,28 +120,37 @@ Build/test/lint for the Rust workspace:
 
 ```sh
 cargo build --release          # release profile is Lambda-tuned (size + cold start)
-cargo test                     # unit tests + the events/webhooks end-to-end smoke tests
+cargo test                     # unit tests always; DB smoke tests skip without TADS_TEST_DB
 cargo clippy --all-targets -- -D warnings
 cargo fmt --all --check
 cargo audit                    # advisory check against Cargo.lock
 ```
 
-AWS service mocking in tests uses `aws-smithy-mocks` at the SDK-client level (see
-`lambdas/events/tests/smoke.rs`).
+Unit tests (TimeRange↔`int8range`, keyset cursor, outbox adapter) run anywhere. The end-to-end
+smoke tests (`lambdas/{events,webhooks}/tests/smoke.rs`) run the real router against a Postgres and
+are **gated on `TADS_TEST_DB`** (a Postgres connection string) — they skip when it is unset. Spin a
+local one and point the tests at it:
+
+```sh
+podman run -d --name tads-pg -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=tads -p 55432:5432 postgres:16
+TADS_TEST_DB="postgres://postgres:postgres@localhost:55432/tads" cargo test
+```
 
 ## Deployment
 
-Infrastructure is defined as **AWS CDK (Python, uv-managed)** in [`cdk/`](cdk/). It provisions
-the 5 DynamoDB tables (Streams on), the SQS queue + DLQ + shared Lambda async-DLQ, the 9 deployed
-Lambdas (arm64 `provided.al2023`, X-Ray active tracing — 6 HTTP handlers, 2 workers, 1 authorizer),
-an HTTP API Gateway behind a **custom Lambda authorizer** (verifies the Cognito access token), a
-Cognito **resource server + hosted domain + machine-to-machine OAuth2 client** (`client_credentials`),
-a customer-managed KMS CMK encrypting all data at rest, least-privilege IAM, and the Streams/SQS
-event-source mappings. OpenSearch Serverless is **not** provisioned yet —
-see [Deferred: search](#deferred-search).
+Infrastructure is defined as **AWS CDK (Python, uv-managed)** in [`cdk/`](cdk/). It provisions an
+**isolated VPC** (no NAT) with interface endpoints (Secrets Manager, SQS, KMS, STS); **Aurora
+PostgreSQL Serverless v2** (CMK-encrypted) behind **RDS Proxy** (TLS); the SQS queue + DLQ + shared
+Lambda async-DLQ; 10 Rust Lambdas (arm64 `provided.al2023`, X-Ray active tracing — 6 HTTP handlers,
+`delete-worker`, `webhook-dispatcher`, `authorizer`, `migrate`); an HTTP API Gateway behind the
+**custom Lambda authorizer**; a Cognito **resource server + hosted domain + machine-to-machine
+OAuth2 client** (`client_credentials`); a customer-managed KMS CMK; least-privilege IAM; an
+EventBridge schedule driving the dispatcher; and a custom resource that runs the DB migrations. The
+DB-touching Lambdas run in the VPC; the authorizer stays outside it. (Aurora **16.4 is not offered
+in us-east-1** — the stack pins **16.15**.)
 
 ```sh
-# 1. Build the Lambda binaries (one `bootstrap` per function under target/lambda/<name>/)
+# 1. Build the Lambda binaries (see "Building the Lambdas on macOS" below for the container build)
 cargo lambda build --release --arm64
 
 # 2. Synthesize / test / deploy the stack
@@ -142,7 +158,7 @@ cd cdk
 uv sync
 uv run pytest                       # stack assertions
 uv run cdk synth                    # requires the binaries from step 1
-uv run cdk deploy                   # creates real AWS resources
+uv run cdk deploy                   # creates real AWS resources (Aurora + Proxy ~15-20 min)
 ```
 
 ### Calling the deployed API
@@ -195,22 +211,16 @@ official `cargo-lambda` Linux image and copies each `bootstrap` to `target/lambd
 reads it. Give the podman VM ≥8 GiB (`podman machine set --memory 8192`) — release+LTO builds
 OOM-kill `rustc` on the 4 GiB default. On a Linux host, skip the script and run step 1 directly.
 
-Each Lambda receives its table/queue/endpoint names as `TADS__*` env vars (the `config` crate's
-env overrides), so no YAML is bundled into the images. To synth without building the binaries
-(CI/validation), set `CDK_PLACEHOLDER=1`. An ADOT layer for OTLP→X-Ray span export is wired when
-`-c adot_layer_arn=<arn>` is supplied.
+Each Lambda receives its runtime settings as `TADS__*` env vars (the `config` crate's env
+overrides), so no YAML is bundled into the images; the DB password is fetched from Secrets Manager
+at cold start. To synth without building the binaries (CI/validation), set `CDK_PLACEHOLDER=1`. An
+ADOT layer for OTLP→X-Ray span export is wired when `-c adot_layer_arn=<arn>` is supplied.
+Override the Aurora idle floor by editing `serverless_v2_min_capacity` (set to 0 to auto-pause).
 
-## Deferred: search
+## Search
 
-The TADS "search by the data itself" pillar is designed as a **separable** OpenSearch Serverless
-index fed from DynamoDB Streams by the `search-indexer` Lambda. The indexer and its index
-projections are implemented in Rust, but the collection and the indexer Lambda are **not
-provisioned by the CDK stack** — because the *query* side is undecided: TADS v0.1 defines no
-search endpoint, and nothing in the API reads from the index yet. The open decision is whether
-clients query through a new TADS API endpoint (Cognito-authed, OpenSearch stays private) or
-directly against OpenSearch/Dashboards (IAM/SigV4, suits ops/analysts, not a browser UI).
-
-Nothing is lost by deferring: DynamoDB remains the system-of-record and serves all key-based and
-timerange reads. Re-enabling search is a CDK-only change — restore `_build_search`, the
-`search-indexer` Lambda, and its Streams event-source wiring in `cdk/tads_infra/stack.py` (the
-Streams are already enabled on every table), then pick and build the query surface.
+"Search by the data itself" is served natively by Postgres — no separate search system. Timerange
+overlap is a single GiST index scan (`tr && window`); listings filter on `tags` (JSONB `@>` / `?`),
+`timeline_reference.entity_id`, `schema_id`, and `label` directly in SQL. (An earlier design used a
+separable OpenSearch index fed from DynamoDB Streams; it was retired when the store moved to
+PostgreSQL, which covers the same pillar in one strongly-consistent store.)
