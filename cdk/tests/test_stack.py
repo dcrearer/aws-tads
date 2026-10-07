@@ -1,4 +1,4 @@
-"""Synthesis assertions for the TADS infrastructure stack."""
+"""Synthesis assertions for the TADS infrastructure stack (Aurora PostgreSQL backend)."""
 
 import os
 
@@ -18,27 +18,34 @@ def _template() -> Template:
 
 def test_core_resource_counts():
     t = _template()
-    t.resource_count_is("AWS::DynamoDB::Table", 5)
-    # 9 Rust Lambdas deployed: 6 HTTP handlers + 2 workers + the custom authorizer (search-indexer
-    # is parked while OpenSearch is deferred). Count by runtime so CDK-managed helper Lambdas
-    # (Python/Node) don't skew the assertion.
-    t.resource_properties_count_is(
-        "AWS::Lambda::Function", {"Runtime": "provided.al2023"}, 9
-    )
+    # No DynamoDB — Aurora PostgreSQL is the system of record now.
+    t.resource_count_is("AWS::DynamoDB::Table", 0)
+    # 10 Rust Lambdas: 6 HTTP handlers + delete-worker + webhook-dispatcher + authorizer + migrate.
+    # Count by runtime so CDK-managed helper Lambdas (Python/Node) don't skew the assertion.
+    t.resource_properties_count_is("AWS::Lambda::Function", {"Runtime": "provided.al2023"}, 10)
     t.resource_count_is("AWS::SQS::Queue", 3)  # delete queue + delete DLQ + shared Lambda DLQ
-    t.resource_count_is("AWS::OpenSearchServerless::Collection", 0)
     t.resource_count_is("AWS::Cognito::UserPool", 1)
     t.resource_count_is("AWS::KMS::Key", 1)  # shared data-at-rest CMK
 
 
-def test_data_stores_encrypted_with_cmk():
+def test_aurora_cluster_with_proxy_in_vpc():
     t = _template()
-    # DynamoDB tables reference a KMS key for SSE.
+    t.resource_count_is("AWS::EC2::VPC", 1)
+    t.resource_count_is("AWS::RDS::DBProxy", 1)
+    # Aurora Serverless v2 (provisioned engine + ServerlessV2 scaling config).
     t.has_resource_properties(
-        "AWS::DynamoDB::Table",
-        {"SSESpecification": {"SSEEnabled": True, "SSEType": "KMS"}},
+        "AWS::RDS::DBCluster",
+        {
+            "Engine": "aurora-postgresql",
+            "ServerlessV2ScalingConfiguration": assertions.Match.any_value(),
+        },
     )
-    # SQS queues are KMS-encrypted (KmsMasterKeyId present).
+    # The RDS-generated credentials live in a Secrets Manager secret.
+    t.resource_count_is("AWS::SecretsManager::Secret", 1)
+
+
+def test_sqs_encrypted_with_cmk():
+    t = _template()
     t.has_resource_properties(
         "AWS::SQS::Queue",
         {"KmsMasterKeyId": assertions.Match.any_value()},
@@ -57,19 +64,13 @@ def test_lambdas_have_dlq_env_encryption_and_concurrency():
     )
 
 
-def test_tables_have_streams_enabled():
+def test_app_lambdas_run_in_vpc():
     t = _template()
+    # The DB-touching functions carry a VpcConfig (the authorizer does not — asserted implicitly
+    # by it being the one provided.al2023 function without one).
     t.has_resource_properties(
-        "AWS::DynamoDB::Table",
-        {"StreamSpecification": {"StreamViewType": "NEW_AND_OLD_IMAGES"}},
-    )
-
-
-def test_delete_requests_table_has_ttl():
-    t = _template()
-    t.has_resource_properties(
-        "AWS::DynamoDB::Table",
-        {"TimeToLiveSpecification": {"AttributeName": "expiry", "Enabled": True}},
+        "AWS::Lambda::Function",
+        {"VpcConfig": assertions.Match.any_value()},
     )
 
 
@@ -83,6 +84,11 @@ def test_lambdas_use_arm64_provided_runtime_with_tracing():
             "TracingConfig": {"Mode": "Active"},
         },
     )
+
+
+def test_migrations_run_via_custom_resource():
+    t = _template()
+    t.resource_count_is("AWS::CloudFormation::CustomResource", 1)
 
 
 def test_http_api_present():
@@ -101,14 +107,11 @@ def test_http_api_stage_has_access_logging():
 
 def test_machine_to_machine_oauth_client():
     t = _template()
-    # Resource server defines the API scopes.
     t.has_resource_properties(
         "AWS::Cognito::UserPoolResourceServer",
         {"Identifier": "tads-api"},
     )
-    # Hosted domain exposes the OAuth2 token endpoint.
     t.resource_count_is("AWS::Cognito::UserPoolDomain", 1)
-    # App client uses the client_credentials grant and has a secret.
     t.has_resource_properties(
         "AWS::Cognito::UserPoolClient",
         {
@@ -117,8 +120,6 @@ def test_machine_to_machine_oauth_client():
             "AllowedOAuthScopes": assertions.Match.any_value(),
         },
     )
-    # No interactive-user credentials / secrets are provisioned.
-    t.resource_count_is("AWS::SecretsManager::Secret", 0)
     t.has_output("TokenUrl", {})
     t.has_output("ClientSecret", {})
     t.has_output("GetTokenCommand", {})

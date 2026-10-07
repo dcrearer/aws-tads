@@ -1,0 +1,19 @@
+[package]
+name = "tads-lambda-migrate"
+edition.workspace = true
+version.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+[[bin]]
+name = "migrate"
+path = "src/main.rs"
+
+[dependencies]
+tads-telemetry.workspace = true
+tads-http.workspace = true
+tads-store.workspace = true
+lambda_runtime.workspace = true
+tokio.workspace = true
+tracing.workspace = true
+serde_json.workspace = true

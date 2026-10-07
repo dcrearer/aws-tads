@@ -3682,6 +3682,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "tads-lambda-migrate"
+version = "0.1.0"
+dependencies = [
+ "lambda_runtime 0.14.4",
+ "serde_json",
+ "tads-http",
+ "tads-store",
+ "tads-telemetry",
+ "tokio",
+ "tracing",
+]
+
+[[package]]
 name = "tads-lambda-schemas"
 version = "0.1.0"
 dependencies = [

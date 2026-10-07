@@ -10,8 +10,6 @@ global_settings:
     # -- False positives -----------------------------------------------------------------------
     - rule_id: SECRET-SECRET-KEYWORD
       path: lambdas/webhooks/tests/smoke.rs
-      line_start: 52
-      line_end: 53
       reason: >-
         Test fixture, not a real secret. The literal "super-secret" is the input to a test that
         asserts the webhook api_key_value is NOT echoed back in responses.
@@ -51,29 +49,31 @@ global_settings:
       expiration: "2027-01-04"
 
     # -- Accepted architectural decisions ------------------------------------------------------
+    # The DB-touching app Lambdas now run in the VPC. CKV_AWS_117 fires only for the authorizer
+    # (deliberately OUT of the VPC — it needs public egress to Cognito JWKS and touches no DB) and
+    # the CDK-managed helper Lambdas (migrate provider + Cognito client-secret reader).
     - rule_id: CKV_AWS_117
       path: '**/cdk.out/TadsStack.template.json'
       reason: >-
-        Lambdas are intentionally not placed in a VPC. They reach DynamoDB and SQS over the AWS
-        network; a VPC would add NAT/interface-endpoint cost and cold-start latency with no
-        security gain for this serverless metadata API.
+        Authorizer is intentionally not in the VPC (needs public egress to Cognito JWKS, no DB);
+        the remaining hits are CDK-managed deploy-time helper Lambdas.
       expiration: "2027-01-04"
 
-    # CKV_AWS_116/115 are satisfied by all application Lambdas (DLQ, reserved concurrency —
-    # asserted in cdk/tests/test_stack.py). These findings come only from the CDK-managed helper
-    # Lambda that reads the Cognito app-client secret for the ClientSecret output; it is invoked
-    # by CloudFormation during stack ops and is never on the request path.
+    # CKV_AWS_116/115/173 are satisfied by all application Lambdas (DLQ, reserved concurrency,
+    # CMK-encrypted env — asserted in cdk/tests/test_stack.py). These findings come only from the
+    # CDK-managed helper Lambdas (the migrate custom-resource provider and the Cognito
+    # client-secret reader), which CloudFormation invokes during stack ops, never on the request path.
     - rule_id: CKV_AWS_116
       path: '**/cdk.out/TadsStack.template.json'
-      reason: >-
-        CDK helper Lambda (reads the Cognito client secret for the ClientSecret output).
-        Deploy-time only. App Lambdas have DLQs (asserted in tests).
+      reason: CDK-managed deploy-time helper Lambdas. App Lambdas have DLQs (asserted in tests).
       expiration: "2027-01-04"
     - rule_id: CKV_AWS_115
       path: '**/cdk.out/TadsStack.template.json'
-      reason: >-
-        CDK helper Lambda (reads the Cognito client secret). Deploy-time only. App Lambdas set
-        reserved concurrency (asserted in tests).
+      reason: CDK-managed deploy-time helper Lambdas. App Lambdas set reserved concurrency (asserted in tests).
+      expiration: "2027-01-04"
+    - rule_id: CKV_AWS_173
+      path: '**/cdk.out/TadsStack.template.json'
+      reason: CDK-managed deploy-time helper Lambdas. App Lambdas use CMK env encryption (asserted in tests).
       expiration: "2027-01-04"
 
     - rule_id: CKV_DOCKER_2
