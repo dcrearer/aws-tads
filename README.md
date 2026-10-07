@@ -13,9 +13,12 @@ timeline, validated against the Track's managed Payload Schema.
 
 Each top-level resource is its own Lambda (independent scaling + isolation), all sharing a set
 of library crates. Event payloads are stored **inline** in DynamoDB and returned directly in
-listings; OpenSearch (fed asynchronously from DynamoDB Streams) provides "search by the data
-itself". TADS holds small metadata, so an Event larger than the configured limit is rejected
+listings. TADS holds small metadata, so an Event larger than the configured limit is rejected
 with `413` rather than offloaded — large data belongs in TAMS, not TADS.
+
+A separable search index ("search by the data itself", fed asynchronously from DynamoDB Streams
+into OpenSearch Serverless) is **designed and coded but not currently deployed** — the query
+surface is undecided. See [Deferred: search](#deferred-search).
 
 ```
                        API Gateway HTTP API
@@ -24,8 +27,8 @@ with `413` rather than offloaded — large data belongs in TAMS, not TADS.
                          │                     │
                      DynamoDB                  SQS ─▶ delete-worker
                          │
-                    DynamoDB Streams ─┬─▶ webhook-dispatcher ─▶ subscriber URLs
-                                      └─▶ search-indexer ─▶ OpenSearch Serverless
+                    DynamoDB Streams ──▶ webhook-dispatcher ─▶ subscriber URLs
+                         (└─▶ search-indexer ─▶ OpenSearch — deferred, not deployed)
 ```
 
 ### Workspace crates
@@ -40,8 +43,9 @@ with `413` rather than offloaded — large data belongs in TAMS, not TADS.
 ### Lambdas (`lambdas/*`)
 
 Request handlers: `service`, `schemas`, `tracks`, `events`, `webhooks`, `delete-requests`.
-Async workers (event-driven): `delete-worker` (SQS), `webhook-dispatcher` + `search-indexer`
-(DynamoDB Streams). Each binary is named `bootstrap` for the Lambda custom runtime.
+Async workers (event-driven): `delete-worker` (SQS), `webhook-dispatcher` (DynamoDB Streams).
+The `search-indexer` crate (also Streams-driven) is built but not deployed — see
+[Deferred: search](#deferred-search). Each binary is named `bootstrap` for the Lambda custom runtime.
 
 ## Status
 
@@ -62,10 +66,11 @@ cursor pagination with `X-Paging-*`/`Link` headers, central error handling, obse
   `editable_events`, `timeline_reference.entity_id`, `tags`), POSTs the callback to the
   subscriber `url` with the `api_key_name` header (reqwest), retries, and drives the webhook to
   `error` on persistent failure.
-- **`search-indexer` — implemented.** DynamoDB-Streams-triggered; maps INSERT/MODIFY→upsert and
-  REMOVE→delete into per-resource OpenSearch indices (events enriched with
-  `track_id`/`start_ns`/`end_ns` for range search), writing via a SigV4-signed OpenSearch
-  (Serverless, `aoss`) client. Reads `TADS_OPENSEARCH_ENDPOINT`.
+- **`search-indexer` — implemented, deployment deferred.** DynamoDB-Streams-triggered; maps
+  INSERT/MODIFY→upsert and REMOVE→delete into per-resource OpenSearch indices (events enriched
+  with `track_id`/`start_ns`/`end_ns` for range search), writing via a SigV4-signed OpenSearch
+  (Serverless, `aoss`) client. Reads `TADS_OPENSEARCH_ENDPOINT`. **Not provisioned by the CDK
+  stack** — see [Deferred: search](#deferred-search).
 - **Granular property sub-resources — implemented.** `/tags`, `/tags/{name}`, `/description`,
   `/label` (and `/external_id` for schemas; `/read_only`, `/allow_overlaps`, `/editable_events`
   for tracks) GET/PUT/DELETE. Track mutations respect `read_only` (except the `read_only` toggle).
@@ -119,10 +124,11 @@ AWS service mocking in tests uses `aws-smithy-mocks` at the SDK-client level (se
 ## Deployment
 
 Infrastructure is defined as **AWS CDK (Python, uv-managed)** in [`cdk/`](cdk/). It provisions
-the 5 DynamoDB tables (Streams on), the SQS queue + DLQ, the 9 Lambdas (arm64 `provided.al2023`,
-X-Ray active tracing), an HTTP API Gateway behind a **Cognito JWT authorizer**, an **OpenSearch
-Serverless** collection for the search-indexer, least-privilege IAM, and the Streams/SQS
-event-source mappings.
+the 5 DynamoDB tables (Streams on), the SQS queue + DLQ + shared Lambda async-DLQ, the 8 deployed
+Lambdas (arm64 `provided.al2023`, X-Ray active tracing), an HTTP API Gateway behind a **Cognito
+JWT authorizer**, a customer-managed KMS CMK encrypting all data at rest, least-privilege IAM, and
+the Streams/SQS event-source mappings. OpenSearch Serverless is **not** provisioned yet — see
+[Deferred: search](#deferred-search).
 
 ```sh
 # 1. Build the Lambda binaries (one `bootstrap` per function under target/lambda/<name>/)
@@ -158,3 +164,18 @@ Each Lambda receives its table/queue/endpoint names as `TADS__*` env vars (the `
 env overrides), so no YAML is bundled into the images. To synth without building the binaries
 (CI/validation), set `CDK_PLACEHOLDER=1`. An ADOT layer for OTLP→X-Ray span export is wired when
 `-c adot_layer_arn=<arn>` is supplied.
+
+## Deferred: search
+
+The TADS "search by the data itself" pillar is designed as a **separable** OpenSearch Serverless
+index fed from DynamoDB Streams by the `search-indexer` Lambda. The indexer and its index
+projections are implemented in Rust, but the collection and the indexer Lambda are **not
+provisioned by the CDK stack** — because the *query* side is undecided: TADS v0.1 defines no
+search endpoint, and nothing in the API reads from the index yet. The open decision is whether
+clients query through a new TADS API endpoint (Cognito-authed, OpenSearch stays private) or
+directly against OpenSearch/Dashboards (IAM/SigV4, suits ops/analysts, not a browser UI).
+
+Nothing is lost by deferring: DynamoDB remains the system-of-record and serves all key-based and
+timerange reads. Re-enabling search is a CDK-only change — restore `_build_search`, the
+`search-indexer` Lambda, and its Streams event-source wiring in `cdk/tads_infra/stack.py` (the
+Streams are already enabled on every table), then pick and build the query surface.

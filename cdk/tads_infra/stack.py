@@ -2,11 +2,14 @@
 
 Provisions, per the project design:
 - 5 DynamoDB tables (payloads inline), all with Streams (NEW_AND_OLD_IMAGES)
-- An SQS queue (+ DLQ) for async delete requests
-- 9 Lambda functions (Rust `provided.al2023`, arm64): 6 HTTP + 3 Streams/SQS workers
-- An HTTP API Gateway fronted by a Cognito JWT authorizer
-- An OpenSearch Serverless collection (search-indexer target)
+- An SQS delete queue (+ DLQ) and a shared Lambda async-invocation DLQ
+- 8 Lambda functions (Rust `provided.al2023`, arm64): 6 HTTP + 2 Streams/SQS workers
+- An HTTP API Gateway fronted by a Cognito JWT authorizer, with access logging
+- A customer-managed KMS CMK encrypting all data at rest (DynamoDB, SQS, Lambda env, API logs)
 - Least-privilege IAM grants + event-source mappings + X-Ray active tracing
+
+OpenSearch Serverless (the separable search index) and its `search-indexer` Lambda are
+intentionally deferred — the query surface is undecided. Re-enabling is a CDK-only change.
 
 Lambda code is read from `target/lambda/<bin>/bootstrap` (build with
 `cargo lambda build --release --arm64`). Set `CDK_PLACEHOLDER=1` to synth without the binaries.
@@ -32,7 +35,6 @@ from aws_cdk import aws_kms as kms
 from aws_cdk import aws_lambda as lambda_
 from aws_cdk import aws_lambda_event_sources as sources
 from aws_cdk import aws_logs as logs
-from aws_cdk import aws_opensearchserverless as aoss
 from aws_cdk import aws_sqs as sqs
 from constructs import Construct
 
@@ -66,7 +68,10 @@ class TadsStack(Stack):
         self._build_functions()
         self._grant_permissions()
         self._wire_event_sources()
-        self._build_search()
+        # NOTE: OpenSearch Serverless (the separable search index) is intentionally not
+        # provisioned yet — the query/access pattern is undecided. The `search-indexer` Rust
+        # crate still lives in the workspace; re-enabling search is a CDK-only change (restore
+        # `_build_search`, the indexer Lambda, and its Streams wiring).
         self._build_http_api()
         self._outputs()
 
@@ -259,7 +264,7 @@ class TadsStack(Stack):
             environment_encryption=self.key,
             # Async-invocation failures go to a shared DLQ instead of being dropped.
             dead_letter_queue=self.lambda_dlq,
-            # Cap per-function concurrency (cost / blast-radius control). Total across the 9
+            # Cap per-function concurrency (cost / blast-radius control). Total across the
             # functions must stay below the account's unreserved pool (default 1000, keeps >=100).
             reserved_concurrent_executions=reserved_concurrency,
             tracing=lambda_.Tracing.ACTIVE,
@@ -280,9 +285,7 @@ class TadsStack(Stack):
         self.fn_dispatcher = self._make_fn(
             "WebhookDispatcherFn", "webhook-dispatcher", memory=256, timeout=60
         )
-        self.fn_indexer = self._make_fn(
-            "SearchIndexerFn", "search-indexer", memory=256, timeout=60
-        )
+        # The search-indexer Lambda is not deployed while OpenSearch is deferred (see __init__).
 
     # -- IAM grants (least privilege) ---------------------------------------------------------
     def _grant_permissions(self) -> None:
@@ -310,7 +313,6 @@ class TadsStack(Stack):
         self.delete_requests.grant_read_write_data(self.fn_delete_worker)
 
         self.webhooks.grant_read_write_data(self.fn_dispatcher)  # list_all + status update
-        # fn_indexer OpenSearch access is granted in _build_search.
 
     # -- Event source mappings ----------------------------------------------------------------
     def _wire_event_sources(self) -> None:
@@ -318,103 +320,19 @@ class TadsStack(Stack):
             sources.SqsEventSource(self.delete_queue, batch_size=10)
         )
 
-        # Both the dispatcher and the indexer consume each table's stream (2 consumers/table).
+        # The webhook dispatcher consumes each table's stream. (The search-indexer would be the
+        # second consumer here once OpenSearch is re-enabled.)
         for table in (self.schemas, self.tracks, self.events):
-            for fn in (self.fn_dispatcher, self.fn_indexer):
-                fn.add_event_source(
-                    sources.DynamoEventSource(
-                        table,
-                        starting_position=lambda_.StartingPosition.LATEST,
-                        batch_size=25,
-                        retry_attempts=3,
-                        bisect_batch_on_error=True,
-                        report_batch_item_failures=True,
-                    )
+            self.fn_dispatcher.add_event_source(
+                sources.DynamoEventSource(
+                    table,
+                    starting_position=lambda_.StartingPosition.LATEST,
+                    batch_size=25,
+                    retry_attempts=3,
+                    bisect_batch_on_error=True,
+                    report_batch_item_failures=True,
                 )
-
-    # -- OpenSearch Serverless ----------------------------------------------------------------
-    def _build_search(self) -> None:
-        name = f"{self.prefix}-search"[:32]
-        collection_resource = [f"collection/{name}"]
-
-        encryption = aoss.CfnSecurityPolicy(
-            self,
-            "SearchEncryptionPolicy",
-            name=f"{name}-enc"[:32],
-            type="encryption",
-            policy=json.dumps(
-                {"Rules": [{"ResourceType": "collection", "Resource": collection_resource}], "AWSOwnedKey": True}
-            ),
-        )
-        network = aoss.CfnSecurityPolicy(
-            self,
-            "SearchNetworkPolicy",
-            name=f"{name}-net"[:32],
-            type="network",
-            policy=json.dumps(
-                [
-                    {
-                        "Rules": [
-                            {"ResourceType": "collection", "Resource": collection_resource},
-                            {"ResourceType": "dashboard", "Resource": collection_resource},
-                        ],
-                        "AllowFromPublic": True,
-                    }
-                ]
-            ),
-        )
-
-        self.collection = aoss.CfnCollection(
-            self, "SearchCollection", name=name, type="SEARCH"
-        )
-        self.collection.node.add_dependency(encryption)
-        self.collection.node.add_dependency(network)
-
-        # Data-plane access for the indexer's execution role.
-        indexer_role_arn = self.fn_indexer.role.role_arn
-        data_access = aoss.CfnAccessPolicy(
-            self,
-            "SearchDataAccessPolicy",
-            name=f"{name}-data"[:32],
-            type="data",
-            policy=json.dumps(
-                [
-                    {
-                        "Rules": [
-                            {
-                                "ResourceType": "index",
-                                "Resource": [f"index/{name}/*"],
-                                "Permission": [
-                                    "aoss:CreateIndex",
-                                    "aoss:UpdateIndex",
-                                    "aoss:DescribeIndex",
-                                    "aoss:ReadDocument",
-                                    "aoss:WriteDocument",
-                                ],
-                            },
-                            {
-                                "ResourceType": "collection",
-                                "Resource": collection_resource,
-                                "Permission": ["aoss:CreateCollectionItems", "aoss:DescribeCollectionItems"],
-                            },
-                        ],
-                        "Principal": [indexer_role_arn],
-                    }
-                ]
-            ),
-        )
-        data_access.node.add_dependency(self.collection)
-
-        # IAM allow to reach the data-plane endpoint.
-        self.fn_indexer.add_to_role_policy(
-            iam.PolicyStatement(
-                actions=["aoss:APIAccessAll"],
-                resources=[self.collection.attr_arn],
             )
-        )
-        self.fn_indexer.add_environment(
-            "TADS_OPENSEARCH_ENDPOINT", self.collection.attr_collection_endpoint
-        )
 
     # -- HTTP API -----------------------------------------------------------------------------
     def _build_http_api(self) -> None:
@@ -508,4 +426,3 @@ class TadsStack(Stack):
         cdk.CfnOutput(self, "ApiEndpoint", value=self.http_api.api_endpoint)
         cdk.CfnOutput(self, "UserPoolId", value=self.user_pool.user_pool_id)
         cdk.CfnOutput(self, "UserPoolClientId", value=self.user_pool_client.user_pool_client_id)
-        cdk.CfnOutput(self, "SearchEndpoint", value=self.collection.attr_collection_endpoint)

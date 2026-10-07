@@ -19,9 +19,11 @@ def _template() -> Template:
 def test_core_resource_counts():
     t = _template()
     t.resource_count_is("AWS::DynamoDB::Table", 5)
-    t.resource_count_is("AWS::Lambda::Function", 9)
+    # 8 of the 9 workspace Lambdas are deployed; search-indexer is parked while OpenSearch
+    # (the separable search index) is deferred.
+    t.resource_count_is("AWS::Lambda::Function", 8)
     t.resource_count_is("AWS::SQS::Queue", 3)  # delete queue + delete DLQ + shared Lambda DLQ
-    t.resource_count_is("AWS::OpenSearchServerless::Collection", 1)
+    t.resource_count_is("AWS::OpenSearchServerless::Collection", 0)
     t.resource_count_is("AWS::Cognito::UserPool", 1)
     t.resource_count_is("AWS::KMS::Key", 1)  # shared data-at-rest CMK
 
