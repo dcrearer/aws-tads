@@ -2,7 +2,7 @@ type: collection.insomnia.rest/5.0
 schema_version: '5.1'
 name: TADS
 meta:
-  id: wrk_c51315ca07832237b9c2a5134fe0e0ce
+  id: wrk_ee0efaa82275422f03f13e8c7eabc591
   created: 1790400000000
   modified: 1790400000000
   description: 'BBC TADS (Time-Addressable Data Store) API v0.1 — Rust/Lambda reference. Auth: OAuth2
@@ -12,7 +12,7 @@ meta:
 collection:
 - name: Service
   meta:
-    id: fld_e45c828d3ecea4b043d0fd5f4c37807a
+    id: fld_9320a1b4d1ce85add0a2d691607d848a
     created: 1790400000003
     modified: 1790400000003
     sortKey: -1790400000003
@@ -21,7 +21,7 @@ collection:
   - url: '{{ _.base_url }}/'
     name: List Root Endpoints
     meta:
-      id: req_6bc2e403124768cbb9477b3bb2929781
+      id: req_71c68e4b0cb9734ea3b905000e75721c
       created: 1790400000001
       modified: 1790400000001
       isPrivate: false
@@ -49,7 +49,7 @@ collection:
   - url: '{{ _.base_url }}/service'
     name: Get Service Information
     meta:
-      id: req_7a1a38c156e5421b80c992c8bc20c3dd
+      id: req_07c8b0f28e4ffe3ce23aa7d461b0b62c
       created: 1790400000002
       modified: 1790400000002
       isPrivate: false
@@ -76,7 +76,7 @@ collection:
       rebuildPath: true
 - name: Schemas
   meta:
-    id: fld_1883a3ec79f90bb45ab1b4cfcd43218f
+    id: fld_0c4fc278840636701bfa75531d43d101
     created: 1790400000022
     modified: 1790400000022
     sortKey: -1790400000022
@@ -85,7 +85,7 @@ collection:
   - url: '{{ _.base_url }}/schemas?limit=100'
     name: List Schemas
     meta:
-      id: req_055336dc88c83db4c773b5fdc5d611d6
+      id: req_c0a55191e2585e3c0b5a795259eaaab5
       created: 1790400000004
       modified: 1790400000004
       isPrivate: false
@@ -114,7 +114,7 @@ collection:
   - url: '{{ _.base_url }}/schemas/{{ _.schema_id }}'
     name: Create or Replace Schema
     meta:
-      id: req_cdb3f98a5c077d6846b54c7dbcb23f14
+      id: req_a8ed309f292a85869c4aacbf9ee76e74
       created: 1790400000005
       modified: 1790400000005
       isPrivate: false
@@ -153,7 +153,7 @@ collection:
   - url: '{{ _.base_url }}/schemas/{{ _.schema_id }}'
     name: Get Schema
     meta:
-      id: req_ef31bd3c76d391ad89947f82414c4da4
+      id: req_18917eccacd4c249485651329231fdd4
       created: 1790400000006
       modified: 1790400000006
       isPrivate: false
@@ -181,7 +181,7 @@ collection:
   - url: '{{ _.base_url }}/schemas/{{ _.schema_id }}'
     name: Delete Schema
     meta:
-      id: req_e098c8139412fb198f4137116d18862a
+      id: req_83ea2b9934e2f3e146aa6a7800bf1e30
       created: 1790400000007
       modified: 1790400000007
       isPrivate: false
@@ -206,7 +206,7 @@ collection:
   - url: '{{ _.base_url }}/schemas/{{ _.schema_id }}/schema'
     name: Get Schema Body (JSON Schema)
     meta:
-      id: req_03169bb77713995de25626bf684d2c4e
+      id: req_d467d9f947786da3be1b5cf8faf900ce
       created: 1790400000008
       modified: 1790400000008
       isPrivate: false
@@ -234,7 +234,7 @@ collection:
   - url: '{{ _.base_url }}/schemas/{{ _.schema_id }}/tags'
     name: List Schema Tags
     meta:
-      id: req_16c16cda3d335db71350938c816c454a
+      id: req_d14f16da44b3941553baf5a3830adb59
       created: 1790400000009
       modified: 1790400000009
       isPrivate: false
@@ -262,7 +262,7 @@ collection:
   - url: '{{ _.base_url }}/schemas/{{ _.schema_id }}/tags/my_tag'
     name: Get Schema Tag
     meta:
-      id: req_b19eb7ad6f4251f5b5671620dcb6a377
+      id: req_66ef356a6e23ab6bb89ee8912a22c869
       created: 1790400000010
       modified: 1790400000010
       isPrivate: false
@@ -290,7 +290,7 @@ collection:
   - url: '{{ _.base_url }}/schemas/{{ _.schema_id }}/tags/my_tag'
     name: Create or Update Schema Tag
     meta:
-      id: req_10b8171c4854f7a5197e22d1bc76c02e
+      id: req_a099939fc8e53944490a29d8c8fe0d38
       created: 1790400000011
       modified: 1790400000011
       isPrivate: false
@@ -321,7 +321,7 @@ collection:
   - url: '{{ _.base_url }}/schemas/{{ _.schema_id }}/tags/my_tag'
     name: Delete Schema Tag
     meta:
-      id: req_b13d24ce7edbe25880566d28f5abcdb9
+      id: req_1f488112f8b9f23dfb7b6d630aaf76b2
       created: 1790400000012
       modified: 1790400000012
       isPrivate: false
@@ -346,7 +346,7 @@ collection:
   - url: '{{ _.base_url }}/schemas/{{ _.schema_id }}/description'
     name: Get Schema Description
     meta:
-      id: req_c9548e2ba5189426b7470877df363b67
+      id: req_60fd8f93e933383ff1bdfea813349662
       created: 1790400000013
       modified: 1790400000013
       isPrivate: false
@@ -374,7 +374,7 @@ collection:
   - url: '{{ _.base_url }}/schemas/{{ _.schema_id }}/description'
     name: Create or Update Schema Description
     meta:
-      id: req_ce0f55b2e4d8dc64009c2a27124fc981
+      id: req_34513538e79dd05ff1d502ea313c92cc
       created: 1790400000014
       modified: 1790400000014
       isPrivate: false
@@ -405,7 +405,7 @@ collection:
   - url: '{{ _.base_url }}/schemas/{{ _.schema_id }}/description'
     name: Delete Schema Description
     meta:
-      id: req_fc1745727767be31bfa959e0dbf0e573
+      id: req_d906c82cdc6691b1c20e655f7c96ebd9
       created: 1790400000015
       modified: 1790400000015
       isPrivate: false
@@ -430,7 +430,7 @@ collection:
   - url: '{{ _.base_url }}/schemas/{{ _.schema_id }}/label'
     name: Get Schema Label
     meta:
-      id: req_516c2cf6bca24a279c266b2085771827
+      id: req_9b767c73509b9e02fc5ef992d6839bfd
       created: 1790400000016
       modified: 1790400000016
       isPrivate: false
@@ -458,7 +458,7 @@ collection:
   - url: '{{ _.base_url }}/schemas/{{ _.schema_id }}/label'
     name: Create or Update Schema Label
     meta:
-      id: req_b390dd118dfa1c11bae18439054ccf46
+      id: req_ae49e5b17bbba17426e245ca8823a0dd
       created: 1790400000017
       modified: 1790400000017
       isPrivate: false
@@ -489,7 +489,7 @@ collection:
   - url: '{{ _.base_url }}/schemas/{{ _.schema_id }}/label'
     name: Delete Schema Label
     meta:
-      id: req_846a61719c2282d06135941b7e48fdea
+      id: req_3270acfea5a8b5f8572bbcf48acef77b
       created: 1790400000018
       modified: 1790400000018
       isPrivate: false
@@ -514,7 +514,7 @@ collection:
   - url: '{{ _.base_url }}/schemas/{{ _.schema_id }}/external_id'
     name: Get Schema External ID
     meta:
-      id: req_ed97a0544980934ea6cf14a8278bdbb4
+      id: req_53c434f6c71661cf943c0edc1397d38a
       created: 1790400000019
       modified: 1790400000019
       isPrivate: false
@@ -542,7 +542,7 @@ collection:
   - url: '{{ _.base_url }}/schemas/{{ _.schema_id }}/external_id'
     name: Create or Update Schema External ID
     meta:
-      id: req_8a8d200355b1e15e7c46471c3b3691ee
+      id: req_2373ba2e96dc674d7c3b1a7a5627a7d2
       created: 1790400000020
       modified: 1790400000020
       isPrivate: false
@@ -573,7 +573,7 @@ collection:
   - url: '{{ _.base_url }}/schemas/{{ _.schema_id }}/external_id'
     name: Delete Schema External ID
     meta:
-      id: req_68a38c1cb2d5f11d77ec6f3c00fe5521
+      id: req_5796da1ca01d66d58feb621a0e565382
       created: 1790400000021
       modified: 1790400000021
       isPrivate: false
@@ -597,7 +597,7 @@ collection:
       rebuildPath: true
 - name: Tracks
   meta:
-    id: fld_db2e15c788ab94952ccf958b08cf7788
+    id: fld_a0469853555ba332dcdd7f7a49d6c0b2
     created: 1790400000043
     modified: 1790400000043
     sortKey: -1790400000043
@@ -606,7 +606,7 @@ collection:
   - url: '{{ _.base_url }}/tracks?limit=100'
     name: List Tracks
     meta:
-      id: req_03500fde85edb8127e46932c5bb710fc
+      id: req_fe6f7d5b05d730727ee8fb402257fc2a
       created: 1790400000023
       modified: 1790400000023
       isPrivate: false
@@ -635,7 +635,7 @@ collection:
   - url: '{{ _.base_url }}/tracks/{{ _.track_id }}'
     name: Create or Replace Track
     meta:
-      id: req_bf0aa17e1d55bf8e51adaf9c16bb8624
+      id: req_edc116eeff13d919696847b86dd5932c
       created: 1790400000024
       modified: 1790400000024
       isPrivate: false
@@ -646,8 +646,9 @@ collection:
       mimeType: application/json
       text: "{\n  \"id\": \"{{ _.track_id }}\",\n  \"label\": \"Monitoring status\",\n  \"description\"\
         : \"A heartbeat proving the recorder was actively watching the stream.\",\n  \"timeline_reference\"\
-        : { \"entity_id\": \"{{ _.entity_id }}\" },\n  \"schema_id\": \"{{ _.schema_id }}\",\n  \"allow_overlaps\"\
-        : false,\n  \"editable_events\": true,\n  \"tags\": {}\n}"
+        : { \"entity_id\": \"{{ _.entity_id }}\" },\n  \"schema_id\": \"{{ _.schema_id }}\",\n  \"tags\"\
+        : {},\n  \"metadata_version\": \"1\",\n  \"read_only\": false,\n  \"allow_overlaps\": false,\n\
+        \  \"editable_events\": true\n}"
     headers:
     - name: Content-Type
       value: application/json
@@ -671,7 +672,7 @@ collection:
   - url: '{{ _.base_url }}/tracks/{{ _.track_id }}'
     name: Get Track
     meta:
-      id: req_be495a9d4e4b14c53dff58e19510107e
+      id: req_1895961f25b42854980f009dd3757b8c
       created: 1790400000025
       modified: 1790400000025
       isPrivate: false
@@ -699,7 +700,7 @@ collection:
   - url: '{{ _.base_url }}/tracks/{{ _.track_id }}'
     name: Delete Track
     meta:
-      id: req_0c4a7efe36d57da2a69a82c7b1348a9a
+      id: req_2daf18b8b1097840736ea542a9680b42
       created: 1790400000026
       modified: 1790400000026
       isPrivate: false
@@ -724,7 +725,7 @@ collection:
   - url: '{{ _.base_url }}/tracks/{{ _.track_id }}/tags'
     name: List Track Tags
     meta:
-      id: req_0723420ceb72338196bc6bb245971129
+      id: req_2d6035d33570b9e1fecd13acd4a08fad
       created: 1790400000027
       modified: 1790400000027
       isPrivate: false
@@ -752,7 +753,7 @@ collection:
   - url: '{{ _.base_url }}/tracks/{{ _.track_id }}/tags/my_tag'
     name: Get Track Tag
     meta:
-      id: req_98196f8a22f2b93a9273d81145f92cac
+      id: req_a7a5b30ad17ba1696e6828b9c085f392
       created: 1790400000028
       modified: 1790400000028
       isPrivate: false
@@ -780,7 +781,7 @@ collection:
   - url: '{{ _.base_url }}/tracks/{{ _.track_id }}/tags/my_tag'
     name: Create or Update Track Tag
     meta:
-      id: req_98e17d592c78e2551663d02ef7a25b4e
+      id: req_a129d68f79031ad005f3d639df1bb40c
       created: 1790400000029
       modified: 1790400000029
       isPrivate: false
@@ -811,7 +812,7 @@ collection:
   - url: '{{ _.base_url }}/tracks/{{ _.track_id }}/tags/my_tag'
     name: Delete Track Tag
     meta:
-      id: req_2fbe4d8baf0b0dad425106d81ca33e68
+      id: req_f31bfdaaba5e8df684c3635597fd8efb
       created: 1790400000030
       modified: 1790400000030
       isPrivate: false
@@ -836,7 +837,7 @@ collection:
   - url: '{{ _.base_url }}/tracks/{{ _.track_id }}/description'
     name: Get Track Description
     meta:
-      id: req_18cb6fa8f9cb4f7edc828530da77124e
+      id: req_986a47299df94b80ae914790462e9d94
       created: 1790400000031
       modified: 1790400000031
       isPrivate: false
@@ -864,7 +865,7 @@ collection:
   - url: '{{ _.base_url }}/tracks/{{ _.track_id }}/description'
     name: Create or Update Track Description
     meta:
-      id: req_2b51b10b43e45f55640864794f014d8e
+      id: req_022b3148ab03c2b907a87111f5fa21b9
       created: 1790400000032
       modified: 1790400000032
       isPrivate: false
@@ -895,7 +896,7 @@ collection:
   - url: '{{ _.base_url }}/tracks/{{ _.track_id }}/description'
     name: Delete Track Description
     meta:
-      id: req_3c9098b59e9996dbcece90defbdda174
+      id: req_6d7d46888da392b3a2bda58d071974ac
       created: 1790400000033
       modified: 1790400000033
       isPrivate: false
@@ -920,7 +921,7 @@ collection:
   - url: '{{ _.base_url }}/tracks/{{ _.track_id }}/label'
     name: Get Track Label
     meta:
-      id: req_4a3cb14aed1d05376ef79c251ac09b00
+      id: req_7ec27265b90657e3a229913a8e7fb333
       created: 1790400000034
       modified: 1790400000034
       isPrivate: false
@@ -948,7 +949,7 @@ collection:
   - url: '{{ _.base_url }}/tracks/{{ _.track_id }}/label'
     name: Create or Update Track Label
     meta:
-      id: req_6e683e58543dab3d6421fa870c0ec78c
+      id: req_768a2c81c56cc4f61dd18009e5eaecd3
       created: 1790400000035
       modified: 1790400000035
       isPrivate: false
@@ -979,7 +980,7 @@ collection:
   - url: '{{ _.base_url }}/tracks/{{ _.track_id }}/label'
     name: Delete Track Label
     meta:
-      id: req_906453d5d157cfdbe7e63e71b8712e07
+      id: req_df602c15755486bbd44d0da936514b93
       created: 1790400000036
       modified: 1790400000036
       isPrivate: false
@@ -1004,7 +1005,7 @@ collection:
   - url: '{{ _.base_url }}/tracks/{{ _.track_id }}/read_only'
     name: Get Track Read-Only
     meta:
-      id: req_5c553b287850838b4958092668f7cafb
+      id: req_0703db0055cb872569b7f950028d032d
       created: 1790400000037
       modified: 1790400000037
       isPrivate: false
@@ -1032,7 +1033,7 @@ collection:
   - url: '{{ _.base_url }}/tracks/{{ _.track_id }}/read_only'
     name: Set Track Read-Only
     meta:
-      id: req_6b65711ba4eb940b6de45f4a8e6c8277
+      id: req_a81fd723618a2fb872a286e36f7e2fe3
       created: 1790400000038
       modified: 1790400000038
       isPrivate: false
@@ -1063,7 +1064,7 @@ collection:
   - url: '{{ _.base_url }}/tracks/{{ _.track_id }}/allow_overlaps'
     name: Get Track Allow-Overlaps
     meta:
-      id: req_c55afec85b45775080a791d25bb955ec
+      id: req_573bb0df662a9e934d33ddecb64c31e5
       created: 1790400000039
       modified: 1790400000039
       isPrivate: false
@@ -1091,7 +1092,7 @@ collection:
   - url: '{{ _.base_url }}/tracks/{{ _.track_id }}/allow_overlaps'
     name: Set Track Allow-Overlaps
     meta:
-      id: req_ee63a57c6de5adc57d3d20a35da7763f
+      id: req_d46484145dbf91be71e59193f38fdd67
       created: 1790400000040
       modified: 1790400000040
       isPrivate: false
@@ -1122,7 +1123,7 @@ collection:
   - url: '{{ _.base_url }}/tracks/{{ _.track_id }}/editable_events'
     name: Get Track Editable-Events
     meta:
-      id: req_39214a545b3a816b6fc5f940c3256f2a
+      id: req_598bcc2c8e39f5f4a7193edcf7b426d4
       created: 1790400000041
       modified: 1790400000041
       isPrivate: false
@@ -1150,7 +1151,7 @@ collection:
   - url: '{{ _.base_url }}/tracks/{{ _.track_id }}/editable_events'
     name: Set Track Editable-Events
     meta:
-      id: req_63685e32da1643bf12b8de3048798447
+      id: req_0cb753626f179b8f02eac508685b9c00
       created: 1790400000042
       modified: 1790400000042
       isPrivate: false
@@ -1180,7 +1181,7 @@ collection:
       rebuildPath: true
 - name: Events
   meta:
-    id: fld_31ed95b92561597a5c87dafa70954499
+    id: fld_301567cc3958287044e6a2f3905d220d
     created: 1790400000048
     modified: 1790400000048
     sortKey: -1790400000048
@@ -1189,7 +1190,7 @@ collection:
   - url: '{{ _.base_url }}/tracks/{{ _.track_id }}/events'
     name: Create Event
     meta:
-      id: req_2000e52de4641e12770bc408f45acd65
+      id: req_f50cab1f7a2952d1f7eb09d3e8901a1d
       created: 1790400000044
       modified: 1790400000044
       isPrivate: false
@@ -1223,7 +1224,7 @@ collection:
   - url: '{{ _.base_url }}/tracks/{{ _.track_id }}/events'
     name: Create Events (Bulk)
     meta:
-      id: req_7183170c82de78ecca1482a086ec61a8
+      id: req_880610cb1218fa72d166fca9bd8c984a
       created: 1790400000045
       modified: 1790400000045
       isPrivate: false
@@ -1258,7 +1259,7 @@ collection:
   - url: '{{ _.base_url }}/tracks/{{ _.track_id }}/events?timerange=[0:0_60:0)&reverse_order=false&limit=100'
     name: List Events
     meta:
-      id: req_798541c812f1142d82a24a438af0d010
+      id: req_1e41df5fd897201507f128f278717670
       created: 1790400000046
       modified: 1790400000046
       isPrivate: false
@@ -1287,7 +1288,7 @@ collection:
   - url: '{{ _.base_url }}/tracks/{{ _.track_id }}/events?timerange=[0:0_60:0)'
     name: Delete Events (Bulk)
     meta:
-      id: req_fd6b9c4951e045eff034e9761b9d5f03
+      id: req_6e3ff3afdc862c338c1f7b367f288472
       created: 1790400000047
       modified: 1790400000047
       isPrivate: false
@@ -1311,7 +1312,7 @@ collection:
       rebuildPath: true
 - name: Webhooks
   meta:
-    id: fld_88667d1f883f30815c92fe4c461ef5d8
+    id: fld_8a93698f7b13629abc42d82006ebc306
     created: 1790400000054
     modified: 1790400000054
     sortKey: -1790400000054
@@ -1320,7 +1321,7 @@ collection:
   - url: '{{ _.base_url }}/service/webhooks'
     name: Register Webhook
     meta:
-      id: req_76ec18dbfc6e1b3bca229dfce179a57b
+      id: req_e3b10effbf0b7f4bb7c85d6f1889e16b
       created: 1790400000049
       modified: 1790400000049
       isPrivate: false
@@ -1357,7 +1358,7 @@ collection:
   - url: '{{ _.base_url }}/service/webhooks'
     name: List Webhooks
     meta:
-      id: req_33b7f681351c1b64f91eca0aa9ebbe46
+      id: req_6f07259d7daae77d77cf6a65ea8bd6d0
       created: 1790400000050
       modified: 1790400000050
       isPrivate: false
@@ -1385,7 +1386,7 @@ collection:
   - url: '{{ _.base_url }}/service/webhooks/{{ _.webhook_id }}'
     name: Get Webhook Details
     meta:
-      id: req_51731ef21de540f8228c662e88e7cafd
+      id: req_cc7768d73a2139ae013e1eae32625ebf
       created: 1790400000051
       modified: 1790400000051
       isPrivate: false
@@ -1413,7 +1414,7 @@ collection:
   - url: '{{ _.base_url }}/service/webhooks/{{ _.webhook_id }}'
     name: Update Webhook
     meta:
-      id: req_a30399237d06f5b7521c0e76110e4790
+      id: req_d8085c58cf76e772c21db5b8d25c95b7
       created: 1790400000052
       modified: 1790400000052
       isPrivate: false
@@ -1449,7 +1450,7 @@ collection:
   - url: '{{ _.base_url }}/service/webhooks/{{ _.webhook_id }}'
     name: Delete Webhook
     meta:
-      id: req_945fa7f9eb4a0d45a33ff88be75f84ab
+      id: req_478aa18d38c3632386b687929f9a89d4
       created: 1790400000053
       modified: 1790400000053
       isPrivate: false
@@ -1473,7 +1474,7 @@ collection:
       rebuildPath: true
 - name: Track Delete Requests
   meta:
-    id: fld_2d12d6ccf9ee8d5d517945ee7271c434
+    id: fld_ee200b591644586eaeff11223f36b688
     created: 1790400000057
     modified: 1790400000057
     sortKey: -1790400000057
@@ -1482,7 +1483,7 @@ collection:
   - url: '{{ _.base_url }}/track-delete-requests?sort_by=created&reverse_order=false'
     name: List Track Delete Requests
     meta:
-      id: req_03f173f76a92c183a26fd43c18ade7c1
+      id: req_cb2f11ea67a281d718f3a3eafe8fdf34
       created: 1790400000055
       modified: 1790400000055
       isPrivate: false
@@ -1510,7 +1511,7 @@ collection:
   - url: '{{ _.base_url }}/track-delete-requests/{{ _.request_id }}'
     name: Get Track Delete Request Details
     meta:
-      id: req_e6b304b9498ba3eb068398a3c84470fe
+      id: req_675f1d73e47c3ddb000c831b8a2e5bc2
       created: 1790400000056
       modified: 1790400000056
       isPrivate: false
@@ -1538,14 +1539,14 @@ collection:
 cookieJar:
   name: Default Jar
   meta:
-    id: jar_b3bd0e4712b4208af1449a4a339e8977
+    id: jar_303e384d6eb73d2a60d05eeb782f27ba
     created: 1790400000000
     modified: 1790400000000
   cookies: []
 environments:
   name: Base Environment
   meta:
-    id: env_1c55a0b193fb3571b18f8942240dc605
+    id: env_3622c1edaf60b207db3cc47cb97c57db
     created: 1790400000000
     modified: 1790400000000
     isPrivate: false
@@ -1562,7 +1563,7 @@ environments:
   subEnvironments:
   - name: AWS TADS dev
     meta:
-      id: env_fc7958a9c0c3078eeb54d0c38e23587c
+      id: env_df0e17b3b1066ce6c3944c4764b5f506
       created: 1790400000000
       modified: 1790400000000
       isPrivate: false
