@@ -1,14 +1,14 @@
-//! Opaque pagination cursors.
+//! Opaque keyset pagination cursors.
 //!
-//! Maps a DynamoDB `LastEvaluatedKey` to/from the base64 string that the spec surfaces as the
-//! `page` query param and `X-Paging-NextKey` header. Only `S`/`N` attribute values appear in
-//! our key schemas, so the on-the-wire form is a tiny JSON object the client never interprets.
+//! The cursor is a base64url(JSON) snapshot of the last row's ordering key — e.g.
+//! `{"start_ns":123,"event_id":"<uuid>"}` for events, or `{"id":"<uuid>"}` for the id-ordered
+//! lists. It is surfaced verbatim as the spec's `page` query param and `X-Paging-NextKey` header;
+//! clients never interpret it. Keyset (vs offset) paging keeps each page a single indexed range
+//! scan.
 
-use std::collections::HashMap;
-
-use aws_sdk_dynamodb::types::AttributeValue;
 use base64::Engine;
 use base64::engine::general_purpose::URL_SAFE_NO_PAD;
+use serde_json::Value;
 
 use crate::error::StoreError;
 
@@ -25,10 +25,8 @@ impl PageParams {
         self.limit.unwrap_or(100).clamp(1, 1000)
     }
 
-    /// Decode the inbound `page` cursor into a DynamoDB exclusive-start-key, if present.
-    pub fn exclusive_start_key(
-        &self,
-    ) -> Result<Option<HashMap<String, AttributeValue>>, StoreError> {
+    /// Decode the inbound `page` cursor into its JSON keyset object, if present.
+    pub fn cursor(&self) -> Result<Option<Value>, StoreError> {
         self.page.as_deref().map(decode_cursor).transpose()
     }
 }
@@ -41,66 +39,53 @@ pub struct Page<T> {
     pub limit: i32,
 }
 
-/// Encode a DynamoDB `LastEvaluatedKey` as an opaque cursor string.
-pub fn encode_cursor(key: &HashMap<String, AttributeValue>) -> Result<String, StoreError> {
-    let mut map = serde_json::Map::new();
-    for (k, v) in key {
-        let encoded = match v {
-            AttributeValue::S(s) => serde_json::json!({ "S": s }),
-            AttributeValue::N(n) => serde_json::json!({ "N": n }),
-            other => {
-                return Err(StoreError::Cursor(format!(
-                    "unsupported key attribute type: {other:?}"
-                )));
-            }
-        };
-        map.insert(k.clone(), encoded);
-    }
-    let bytes = serde_json::to_vec(&serde_json::Value::Object(map))
-        .map_err(|e| StoreError::Cursor(e.to_string()))?;
-    Ok(URL_SAFE_NO_PAD.encode(bytes))
+/// Encode a keyset JSON object as an opaque cursor string.
+pub fn encode_cursor(key: &Value) -> String {
+    URL_SAFE_NO_PAD.encode(key.to_string().as_bytes())
 }
 
-/// Decode an opaque cursor string back into a DynamoDB exclusive-start-key.
-pub fn decode_cursor(cursor: &str) -> Result<HashMap<String, AttributeValue>, StoreError> {
+/// Decode an opaque cursor string back into its keyset JSON object.
+pub fn decode_cursor(cursor: &str) -> Result<Value, StoreError> {
     let bytes = URL_SAFE_NO_PAD
         .decode(cursor)
         .map_err(|e| StoreError::Cursor(e.to_string()))?;
-    let value: serde_json::Value =
+    let value: Value =
         serde_json::from_slice(&bytes).map_err(|e| StoreError::Cursor(e.to_string()))?;
-    let obj = value
-        .as_object()
-        .ok_or_else(|| StoreError::Cursor("cursor is not a JSON object".into()))?;
-
-    let mut key = HashMap::new();
-    for (k, v) in obj {
-        let av = if let Some(s) = v.get("S").and_then(|x| x.as_str()) {
-            AttributeValue::S(s.to_string())
-        } else if let Some(n) = v.get("N").and_then(|x| x.as_str()) {
-            AttributeValue::N(n.to_string())
-        } else {
-            return Err(StoreError::Cursor(format!(
-                "unsupported cursor attribute `{k}`"
-            )));
-        };
-        key.insert(k.clone(), av);
+    if !value.is_object() {
+        return Err(StoreError::Cursor("cursor is not a JSON object".into()));
     }
-    Ok(key)
+    Ok(value)
+}
+
+/// Read a required string field out of a decoded cursor object.
+pub fn cursor_str(cursor: &Value, field: &str) -> Result<String, StoreError> {
+    cursor
+        .get(field)
+        .and_then(Value::as_str)
+        .map(str::to_string)
+        .ok_or_else(|| StoreError::Cursor(format!("cursor missing `{field}`")))
+}
+
+/// Read a required i64 field out of a decoded cursor object.
+pub fn cursor_i64(cursor: &Value, field: &str) -> Result<i64, StoreError> {
+    cursor
+        .get(field)
+        .and_then(Value::as_i64)
+        .ok_or_else(|| StoreError::Cursor(format!("cursor missing `{field}`")))
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use serde_json::json;
 
     #[test]
     fn cursor_round_trips() {
-        let mut key = HashMap::new();
-        key.insert("track_id".to_string(), AttributeValue::S("abc".to_string()));
-        key.insert("sk".to_string(), AttributeValue::N("12345".to_string()));
-
-        let encoded = encode_cursor(&key).unwrap();
+        let key = json!({ "start_ns": 12345, "event_id": "abc" });
+        let encoded = encode_cursor(&key);
         let decoded = decode_cursor(&encoded).unwrap();
-        assert_eq!(key, decoded);
+        assert_eq!(cursor_i64(&decoded, "start_ns").unwrap(), 12345);
+        assert_eq!(cursor_str(&decoded, "event_id").unwrap(), "abc");
     }
 
     #[test]

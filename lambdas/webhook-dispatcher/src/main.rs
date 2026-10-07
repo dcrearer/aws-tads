@@ -1,40 +1,45 @@
-//! Webhook-dispatcher binary — wires config/state to the [`Dispatcher`] and consumes the stream.
+//! Webhook-dispatcher binary — EventBridge-scheduled; drains the transactional outbox and fans
+//! each change out to matching webhook subscriptions.
 
 use lambda_runtime::{Error, LambdaEvent, service_fn};
 use serde_json::Value;
-use tads_http::{AppConfig, AppState};
-use tads_lambda_webhook_dispatcher::{Dispatcher, TableRoles};
+use tads_http::connect_pool;
+use tads_lambda_webhook_dispatcher::Dispatcher;
+use tads_store::{OutboxRepo, WebhookRepo};
+
+const BATCH: i64 = 100;
 
 #[tokio::main]
 async fn main() -> Result<(), Error> {
     tads_telemetry::init();
 
-    let config = AppConfig::load().map_err(|e| Error::from(e.to_string()))?;
-    let state = AppState::from_env()
+    let (pool, _config, _aws) = connect_pool()
         .await
         .map_err(|e| Error::from(e.to_string()))?;
-    let roles = TableRoles {
-        schemas: config.tables.schemas.clone(),
-        tracks: config.tables.tracks.clone(),
-        events: config.tables.events.clone(),
-    };
+    let outbox = OutboxRepo::new(pool.clone());
+    let repo = WebhookRepo::new(pool);
     let http = reqwest::Client::builder()
         .build()
         .map_err(|e| Error::from(e.to_string()))?;
-    let dispatcher = Dispatcher::new(state.webhooks.clone(), roles, http);
+    let dispatcher = Dispatcher::new(repo, http);
 
-    lambda_runtime::run(service_fn(move |event: LambdaEvent<Value>| {
+    lambda_runtime::run(service_fn(move |_event: LambdaEvent<Value>| {
+        let outbox = outbox.clone();
         let dispatcher = dispatcher.clone();
         async move {
-            let records = event
-                .payload
-                .get("Records")
-                .and_then(Value::as_array)
-                .cloned()
-                .unwrap_or_default();
-            tracing::info!(records = records.len(), "webhook-dispatcher batch received");
-            if let Err(e) = dispatcher.dispatch(&records).await {
-                tracing::error!(error = %e, "dispatch failed");
+            // Drain the outbox in batches until empty (one scheduled invocation).
+            loop {
+                let rows = outbox
+                    .claim_batch(BATCH)
+                    .await
+                    .map_err(|e| Error::from(e.to_string()))?;
+                if rows.is_empty() {
+                    break;
+                }
+                tracing::info!(rows = rows.len(), "dispatching outbox batch");
+                if let Err(e) = dispatcher.dispatch(&rows).await {
+                    tracing::error!(error = %e, "dispatch failed");
+                }
             }
             Ok::<(), Error>(())
         }

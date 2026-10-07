@@ -1,21 +1,25 @@
 # TADS application configuration.
 # Every value is overridable at runtime by env var `TADS__<SECTION>__<KEY>`
-# (double-underscore nesting), which is how each Lambda receives its resource names.
+# (double-underscore nesting), which is how each Lambda receives its runtime settings.
 
-tables:
-  schemas: tads-schemas
-  tracks: tads-tracks
-  events: tads-events
-  webhooks: tads-webhooks
-  delete_requests: tads-delete-requests
+# Aurora PostgreSQL via RDS Proxy. proxy_endpoint / db_name / secret_arn are set per-environment
+# by the CDK stack (TADS__DATABASE__PROXY_ENDPOINT, __DB_NAME, __SECRET_ARN). The password is
+# fetched from Secrets Manager at cold start, never configured here.
+database:
+  proxy_endpoint: ""
+  port: 5432
+  db_name: "tads"
+  username: "tads"
+  secret_arn: ""
+  max_connections: 5
 
 # SQS queue the tracks/events handlers enqueue delete-request work onto.
 # Set per-environment via TADS__DELETE_QUEUE_URL.
 delete_queue_url: ""
 
 # Maximum serialized Event size (bytes, 360 KiB). Larger Events are rejected with 413 —
-# TADS holds small inline metadata; large data belongs in TAMS. Kept under DynamoDB's 400 KB
-# item limit with headroom for the surrounding attributes.
+# TADS holds small inline metadata; large data belongs in TAMS. (Postgres has no hard row
+# limit; this stays an API contract carried over from the DynamoDB design.)
 max_payload_bytes: 368640
 
 service:

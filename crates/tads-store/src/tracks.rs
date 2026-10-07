@@ -1,20 +1,17 @@
-//! Track persistence (`tads-tracks` table).
+//! Track persistence (`track` table).
 //!
-//! Item layout: `track_id` (PK), `schema_id` (GSI PK), `entity_id` (GSI PK, from
-//! `timeline_reference.entity_id`), projected `label`/`editable_events` for filtering, and `doc`
-//! (the full `Track` as a JSON string).
+//! Row layout: `track_id` (PK), `schema_id`/`entity_id`/`label`/`editable_events` projected for
+//! filtering, `tags` jsonb (GIN-indexed), and the authoritative `doc` jsonb (the full `Track`).
 
-use std::collections::HashMap;
-
-use aws_sdk_dynamodb::Client;
-use aws_sdk_dynamodb::types::{AttributeValue, ReturnValue, Select};
+use serde_json::{Value, json};
+use sqlx::{PgPool, QueryBuilder, Row};
 use tads_domain::{TimeRange, Track};
+use uuid::Uuid;
 
-use crate::cursor::{Page, PageParams, encode_cursor};
+use crate::cursor::{Page, PageParams, cursor_str, encode_cursor};
 use crate::error::StoreError;
-
-const SCHEMA_ID_INDEX: &str = "schema_id-index";
-const ENTITY_ID_INDEX: &str = "entity_id-index";
+use crate::keys::pg_range;
+use crate::outbox;
 
 /// Filters for `GET /tracks`.
 #[derive(Debug, Clone, Default)]
@@ -30,71 +27,98 @@ pub struct TrackQuery {
 
 #[derive(Debug, Clone)]
 pub struct TrackRepo {
-    client: Client,
-    table: String,
+    pool: PgPool,
 }
 
 impl TrackRepo {
-    pub fn new(client: Client, table: impl Into<String>) -> Self {
-        Self {
-            client,
-            table: table.into(),
-        }
+    pub fn new(pool: PgPool) -> Self {
+        Self { pool }
     }
 
     pub async fn get(&self, id: &str) -> Result<Option<Track>, StoreError> {
-        let out = self
-            .client
-            .get_item()
-            .table_name(&self.table)
-            .key("track_id", AttributeValue::S(id.to_string()))
-            .send()
-            .await
-            .map_err(StoreError::dynamo)?;
-        out.item.map(|item| parse_doc(&item)).transpose()
+        let row = sqlx::query("SELECT doc FROM track WHERE track_id = $1")
+            .bind(parse_uuid(id)?)
+            .fetch_optional(&self.pool)
+            .await?;
+        row.map(|r| from_doc(r.get("doc"))).transpose()
     }
 
     /// Upsert a track. Returns `true` if it already existed (→ 204), `false` if created (→ 201).
     pub async fn put(&self, track: &Track) -> Result<bool, StoreError> {
-        let item = to_item(track)?;
-        let out = self
-            .client
-            .put_item()
-            .table_name(&self.table)
-            .set_item(Some(item))
-            .return_values(ReturnValue::AllOld)
-            .send()
-            .await
-            .map_err(StoreError::dynamo)?;
-        Ok(out.attributes.is_some())
+        let doc = serde_json::to_value(track).map_err(StoreError::serialization)?;
+        let tags = serde_json::to_value(&track.tags).map_err(StoreError::serialization)?;
+
+        let mut tx = self.pool.begin().await?;
+        let inserted: bool = sqlx::query(
+            "INSERT INTO track (track_id, schema_id, entity_id, label, editable_events, \
+                read_only, allow_overlaps, tags, doc) \
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) \
+             ON CONFLICT (track_id) DO UPDATE SET \
+                schema_id = EXCLUDED.schema_id, entity_id = EXCLUDED.entity_id, \
+                label = EXCLUDED.label, editable_events = EXCLUDED.editable_events, \
+                read_only = EXCLUDED.read_only, allow_overlaps = EXCLUDED.allow_overlaps, \
+                tags = EXCLUDED.tags, doc = EXCLUDED.doc \
+             RETURNING (xmax = 0) AS inserted",
+        )
+        .bind(track.id.as_uuid())
+        .bind(track.schema_id.as_uuid())
+        .bind(&track.timeline_reference.entity_id)
+        .bind(track.label.as_deref())
+        .bind(track.editable_events)
+        .bind(track.read_only)
+        .bind(track.allow_overlaps)
+        .bind(&tags)
+        .bind(&doc)
+        .fetch_one(&mut *tx)
+        .await?
+        .get("inserted");
+
+        outbox::write(
+            &mut tx,
+            if inserted {
+                outbox::OP_INSERT
+            } else {
+                outbox::OP_MODIFY
+            },
+            outbox::RES_TRACK,
+            &track.id.to_string(),
+            Some(&doc),
+            json!({ "track_id": track.id.to_string() }),
+        )
+        .await?;
+        tx.commit().await?;
+        Ok(!inserted)
     }
 
     pub async fn delete(&self, id: &str) -> Result<(), StoreError> {
-        self.client
-            .delete_item()
-            .table_name(&self.table)
-            .key("track_id", AttributeValue::S(id.to_string()))
-            .send()
-            .await
-            .map_err(StoreError::dynamo)?;
+        let mut tx = self.pool.begin().await?;
+        let removed = sqlx::query("DELETE FROM track WHERE track_id = $1 RETURNING track_id")
+            .bind(parse_uuid(id)?)
+            .fetch_optional(&mut *tx)
+            .await?;
+        if removed.is_some() {
+            outbox::write(
+                &mut tx,
+                outbox::OP_REMOVE,
+                outbox::RES_TRACK,
+                id,
+                None,
+                json!({ "track_id": id }),
+            )
+            .await?;
+        }
+        tx.commit().await?;
         Ok(())
     }
 
     /// Whether any track references `schema_id` — guards schema deletion (returns 400 if so).
     pub async fn references_schema(&self, schema_id: &str) -> Result<bool, StoreError> {
-        let out = self
-            .client
-            .query()
-            .table_name(&self.table)
-            .index_name(SCHEMA_ID_INDEX)
-            .key_condition_expression("schema_id = :sid")
-            .expression_attribute_values(":sid", AttributeValue::S(schema_id.to_string()))
-            .select(Select::Count)
-            .limit(1)
-            .send()
-            .await
-            .map_err(StoreError::dynamo)?;
-        Ok(out.count > 0)
+        let exists: bool =
+            sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM track WHERE schema_id = $1)")
+                .bind(parse_uuid(schema_id)?)
+                .fetch_one(&self.pool)
+                .await?;
+        Ok(exists)
     }
 
     pub async fn list(
@@ -103,53 +127,64 @@ impl TrackRepo {
         page: &PageParams,
     ) -> Result<Page<Track>, StoreError> {
         let limit = page.effective_limit();
-        let start = page.exclusive_start_key()?;
+        let cursor = page.cursor()?;
 
-        let (items, next) = if let Some(sid) = &query.schema_id {
-            let out = self
-                .client
-                .query()
-                .table_name(&self.table)
-                .index_name(SCHEMA_ID_INDEX)
-                .key_condition_expression("schema_id = :sid")
-                .expression_attribute_values(":sid", AttributeValue::S(sid.clone()))
-                .limit(limit)
-                .set_exclusive_start_key(start)
-                .send()
-                .await
-                .map_err(StoreError::dynamo)?;
-            (out.items.unwrap_or_default(), out.last_evaluated_key)
-        } else if query.entity_ids.len() == 1 {
-            let out = self
-                .client
-                .query()
-                .table_name(&self.table)
-                .index_name(ENTITY_ID_INDEX)
-                .key_condition_expression("entity_id = :eid")
-                .expression_attribute_values(":eid", AttributeValue::S(query.entity_ids[0].clone()))
-                .limit(limit)
-                .set_exclusive_start_key(start)
-                .send()
-                .await
-                .map_err(StoreError::dynamo)?;
-            (out.items.unwrap_or_default(), out.last_evaluated_key)
-        } else {
-            let out = self
-                .client
-                .scan()
-                .table_name(&self.table)
-                .limit(limit)
-                .set_exclusive_start_key(start)
-                .send()
-                .await
-                .map_err(StoreError::dynamo)?;
-            (out.items.unwrap_or_default(), out.last_evaluated_key)
-        };
+        let mut qb: QueryBuilder<sqlx::Postgres> =
+            QueryBuilder::new("SELECT track_id, doc FROM track WHERE true");
+        if let Some(sid) = &query.schema_id {
+            qb.push(" AND schema_id = ").push_bind(parse_uuid(sid)?);
+        }
+        if !query.entity_ids.is_empty() {
+            qb.push(" AND entity_id = ANY(")
+                .push_bind(query.entity_ids.clone())
+                .push(")");
+        }
+        if let Some(label) = &query.label {
+            qb.push(" AND label = ").push_bind(label.clone());
+        }
+        if let Some(ee) = query.editable_events {
+            qb.push(" AND editable_events = ").push_bind(ee);
+        }
+        if let Some(tr) = &query.timerange {
+            // A track "overlaps" the window if any of its events does (matches the reference).
+            qb.push(" AND track_id IN (SELECT track_id FROM track_event WHERE tr && ")
+                .push_bind(pg_range(tr))
+                .push(")");
+        }
+        for (k, v) in &query.tag_matches {
+            // Tag value is a string or array-of-string; match either form.
+            qb.push(" AND (tags->>")
+                .push_bind(k.clone())
+                .push(" = ")
+                .push_bind(v.clone())
+                .push(" OR tags->")
+                .push_bind(k.clone())
+                .push(" @> to_jsonb(")
+                .push_bind(v.clone())
+                .push("::text))");
+        }
+        for k in &query.tag_exists {
+            qb.push(" AND tags ? ").push_bind(k.clone());
+        }
+        if let Some(c) = &cursor {
+            qb.push(" AND track_id > ")
+                .push_bind(parse_uuid(&cursor_str(c, "track_id")?)?);
+        }
+        qb.push(" ORDER BY track_id ASC LIMIT ")
+            .push_bind(i64::from(limit) + 1);
 
-        let mut tracks: Vec<Track> = items.iter().map(parse_doc).collect::<Result<_, _>>()?;
-        apply_filters(&mut tracks, query);
+        let rows = qb.build().fetch_all(&self.pool).await?;
+        let has_more = rows.len() > limit as usize;
+        let mut tracks = Vec::with_capacity(rows.len().min(limit as usize));
+        let mut last: Option<Uuid> = None;
+        for row in rows.into_iter().take(limit as usize) {
+            last = Some(row.get("track_id"));
+            tracks.push(from_doc(row.get("doc"))?);
+        }
+        let next_key = has_more
+            .then(|| last.map(|id| encode_cursor(&json!({ "track_id": id.to_string() }))))
+            .flatten();
 
-        let next_key = next.as_ref().map(encode_cursor).transpose()?;
         Ok(Page {
             items: tracks,
             next_key,
@@ -158,69 +193,11 @@ impl TrackRepo {
     }
 }
 
-fn to_item(track: &Track) -> Result<HashMap<String, AttributeValue>, StoreError> {
-    let doc = serde_json::to_string(track).map_err(|e| StoreError::Serialization(e.to_string()))?;
-    let mut item = HashMap::new();
-    item.insert(
-        "track_id".to_string(),
-        AttributeValue::S(track.id.to_string()),
-    );
-    item.insert(
-        "schema_id".to_string(),
-        AttributeValue::S(track.schema_id.to_string()),
-    );
-    item.insert(
-        "entity_id".to_string(),
-        AttributeValue::S(track.timeline_reference.entity_id.clone()),
-    );
-    if let Some(label) = &track.label {
-        item.insert("label".to_string(), AttributeValue::S(label.clone()));
-    }
-    item.insert(
-        "editable_events".to_string(),
-        AttributeValue::Bool(track.editable_events),
-    );
-    item.insert("doc".to_string(), AttributeValue::S(doc));
-    Ok(item)
+fn from_doc(doc: Value) -> Result<Track, StoreError> {
+    serde_json::from_value(doc).map_err(|e| StoreError::Malformed(e.to_string()))
 }
 
-fn parse_doc(item: &HashMap<String, AttributeValue>) -> Result<Track, StoreError> {
-    let doc = item
-        .get("doc")
-        .and_then(|v| v.as_s().ok())
-        .ok_or_else(|| StoreError::Malformed("track item missing `doc`".into()))?;
-    serde_json::from_str(doc).map_err(|e| StoreError::Malformed(e.to_string()))
-}
-
-fn apply_filters(tracks: &mut Vec<Track>, query: &TrackQuery) {
-    tracks.retain(|t| {
-        if let Some(label) = &query.label
-            && t.label.as_deref() != Some(label.as_str())
-        {
-            return false;
-        }
-        if let Some(ee) = query.editable_events
-            && t.editable_events != ee
-        {
-            return false;
-        }
-        if !query.entity_ids.is_empty()
-            && !query.entity_ids.contains(&t.timeline_reference.entity_id)
-        {
-            return false;
-        }
-        if let Some(tr) = &query.timerange
-            && let Some(track_tr) = &t.timerange
-            && !tr.overlaps(track_tr)
-        {
-            return false;
-        }
-        if !query.tag_matches.iter().all(|(k, v)| t.tags.matches(k, v)) {
-            return false;
-        }
-        if !query.tag_exists.iter().all(|k| t.tags.contains_key(k)) {
-            return false;
-        }
-        true
-    });
+fn parse_uuid(s: &str) -> Result<Uuid, StoreError> {
+    s.parse()
+        .map_err(|_| StoreError::Malformed(format!("invalid uuid `{s}`")))
 }

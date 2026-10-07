@@ -13,8 +13,8 @@ members = [
     "lambdas/delete-requests",
     "lambdas/delete-worker",
     "lambdas/webhook-dispatcher",
-    "lambdas/search-indexer",
     "lambdas/authorizer",
+    # search-indexer retired: Postgres JSONB/SQL now serves search natively (no OpenSearch).
 ]
 
 [workspace.package]
@@ -42,6 +42,20 @@ http = "1.2.0"
 aws-config = "1.5.15"
 aws-sdk-dynamodb = "1.65.0"
 aws-sdk-sqs = "1.58.0"
+aws-sdk-secretsmanager = "1.60.0"
+
+# Postgres (Aurora via RDS Proxy). Runtime query API (no compile-time `query!` macros) so the
+# container/CI build needs no live DB or `.sqlx` cache. rustls TLS -> no libpq C dependency.
+sqlx = { version = "0.8.3", default-features = false, features = [
+    "runtime-tokio",
+    "tls-rustls-aws-lc-rs",
+    "postgres",
+    "uuid",
+    "chrono",
+    "json",
+    "macros",
+    "migrate",
+] }
 
 # Serialization
 serde = { version = "1.0.217", features = ["derive"] }

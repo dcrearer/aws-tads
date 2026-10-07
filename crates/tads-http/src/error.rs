@@ -96,6 +96,7 @@ impl From<StoreError> for AppError {
     fn from(e: StoreError) -> Self {
         match e {
             StoreError::Cursor(_) => AppError::BadRequest(e.to_string()),
+            StoreError::Conflict(_) => AppError::Conflict(e.to_string()),
             StoreError::PayloadTooLarge { .. } => AppError::PayloadTooLarge(e.to_string()),
             other => AppError::Internal(other.to_string()),
         }

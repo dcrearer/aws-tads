@@ -25,6 +25,6 @@ tracing.workspace = true
 [dev-dependencies]
 tower = { workspace = true, features = ["util"] }
 http.workspace = true
-aws-smithy-mocks.workspace = true
-aws-sdk-dynamodb = { workspace = true, features = ["test-util"] }
-aws-sdk-sqs = { workspace = true, features = ["test-util"] }
+aws-config.workspace = true
+aws-sdk-sqs.workspace = true
+sqlx.workspace = true

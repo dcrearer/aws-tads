@@ -2,10 +2,10 @@
 //!
 //! Base file: `config/default.yaml` (or `$TADS_CONFIG`). Every value is overridable by an env
 //! var `TADS__<SECTION>__<KEY>` (double-underscore nesting), which is how the Lambdas receive
-//! their table/queue/bucket names at runtime.
+//! their database/queue settings at runtime.
 
 use serde::Deserialize;
-use tads_store::StoreConfig;
+use tads_store::{DatabaseConfig, StoreConfig};
 
 use crate::error::AppError;
 
@@ -13,13 +13,33 @@ fn default_max_payload_bytes() -> usize {
     StoreConfig::DEFAULT_MAX_PAYLOAD_BYTES
 }
 
+fn default_pg_port() -> u16 {
+    5432
+}
+
+fn default_pg_user() -> String {
+    "tads".to_string()
+}
+
+fn default_max_connections() -> u32 {
+    5
+}
+
+/// Aurora/RDS-Proxy connection settings. The password is not configured here — it is fetched from
+/// Secrets Manager (`secret_arn`) at cold start.
 #[derive(Debug, Clone, Deserialize)]
-pub struct Tables {
-    pub schemas: String,
-    pub tracks: String,
-    pub events: String,
-    pub webhooks: String,
-    pub delete_requests: String,
+pub struct DatabaseSettings {
+    /// RDS Proxy endpoint host.
+    pub proxy_endpoint: String,
+    #[serde(default = "default_pg_port")]
+    pub port: u16,
+    pub db_name: String,
+    #[serde(default = "default_pg_user")]
+    pub username: String,
+    /// Secrets Manager ARN of the RDS-generated credentials secret.
+    pub secret_arn: String,
+    #[serde(default = "default_max_connections")]
+    pub max_connections: u32,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -33,7 +53,7 @@ pub struct ServiceInfo {
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct AppConfig {
-    pub tables: Tables,
+    pub database: DatabaseSettings,
     pub delete_queue_url: String,
     #[serde(default = "default_max_payload_bytes")]
     pub max_payload_bytes: usize,
@@ -57,15 +77,17 @@ impl AppConfig {
             .map_err(|e| AppError::Internal(format!("config invalid: {e}")))
     }
 
-    pub fn store_config(&self) -> StoreConfig {
-        StoreConfig {
-            schemas_table: self.tables.schemas.clone(),
-            tracks_table: self.tables.tracks.clone(),
-            events_table: self.tables.events.clone(),
-            webhooks_table: self.tables.webhooks.clone(),
-            delete_requests_table: self.tables.delete_requests.clone(),
-            delete_queue_url: self.delete_queue_url.clone(),
-            max_payload_bytes: self.max_payload_bytes,
+    /// The store's database settings (password left empty — filled from Secrets Manager by
+    /// [`crate::state::AppState::from_env`]).
+    pub fn database_config(&self) -> DatabaseConfig {
+        DatabaseConfig {
+            proxy_endpoint: self.database.proxy_endpoint.clone(),
+            port: self.database.port,
+            db_name: self.database.db_name.clone(),
+            username: self.database.username.clone(),
+            region: String::new(),
+            password: String::new(),
+            max_connections: self.database.max_connections,
         }
     }
 }
