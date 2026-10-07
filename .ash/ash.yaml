@@ -59,6 +59,23 @@ global_settings:
         security gain for this serverless metadata API.
       expiration: "2027-01-04"
 
+    # CKV_AWS_116/115 are satisfied by all application Lambdas (DLQ, reserved concurrency —
+    # asserted in cdk/tests/test_stack.py). These findings come only from the CDK-managed helper
+    # Lambda that reads the Cognito app-client secret for the ClientSecret output; it is invoked
+    # by CloudFormation during stack ops and is never on the request path.
+    - rule_id: CKV_AWS_116
+      path: '**/cdk.out/TadsStack.template.json'
+      reason: >-
+        CDK helper Lambda (reads the Cognito client secret for the ClientSecret output).
+        Deploy-time only. App Lambdas have DLQs (asserted in tests).
+      expiration: "2027-01-04"
+    - rule_id: CKV_AWS_115
+      path: '**/cdk.out/TadsStack.template.json'
+      reason: >-
+        CDK helper Lambda (reads the Cognito client secret). Deploy-time only. App Lambdas set
+        reserved concurrency (asserted in tests).
+      expiration: "2027-01-04"
+
     - rule_id: CKV_DOCKER_2
       path: Dockerfile.lambda
       reason: >-

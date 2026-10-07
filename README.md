@@ -44,6 +44,7 @@ surface is undecided. See [Deferred: search](#deferred-search).
 
 Request handlers: `service`, `schemas`, `tracks`, `events`, `webhooks`, `delete-requests`.
 Async workers (event-driven): `delete-worker` (SQS), `webhook-dispatcher` (DynamoDB Streams).
+`authorizer` is the HTTP API's custom Lambda authorizer (verifies the Cognito access token).
 The `search-indexer` crate (also Streams-driven) is built but not deployed — see
 [Deferred: search](#deferred-search). Each binary is named `bootstrap` for the Lambda custom runtime.
 
@@ -124,11 +125,12 @@ AWS service mocking in tests uses `aws-smithy-mocks` at the SDK-client level (se
 ## Deployment
 
 Infrastructure is defined as **AWS CDK (Python, uv-managed)** in [`cdk/`](cdk/). It provisions
-the 5 DynamoDB tables (Streams on), the SQS queue + DLQ + shared Lambda async-DLQ, the 8 deployed
-Lambdas (arm64 `provided.al2023`, X-Ray active tracing), an HTTP API Gateway behind a **Cognito
-JWT authorizer**, a Cognito **resource server + hosted domain + machine-to-machine OAuth2 client**
-(`client_credentials`), a customer-managed KMS CMK encrypting all data at rest, least-privilege
-IAM, and the Streams/SQS event-source mappings. OpenSearch Serverless is **not** provisioned yet —
+the 5 DynamoDB tables (Streams on), the SQS queue + DLQ + shared Lambda async-DLQ, the 9 deployed
+Lambdas (arm64 `provided.al2023`, X-Ray active tracing — 6 HTTP handlers, 2 workers, 1 authorizer),
+an HTTP API Gateway behind a **custom Lambda authorizer** (verifies the Cognito access token), a
+Cognito **resource server + hosted domain + machine-to-machine OAuth2 client** (`client_credentials`),
+a customer-managed KMS CMK encrypting all data at rest, least-privilege IAM, and the Streams/SQS
+event-source mappings. OpenSearch Serverless is **not** provisioned yet —
 see [Deferred: search](#deferred-search).
 
 ```sh
@@ -145,43 +147,35 @@ uv run cdk deploy                   # creates real AWS resources
 
 ### Calling the deployed API
 
-Every route is behind the Cognito JWT authorizer. Auth is **OAuth2 `client_credentials`**
-(machine-to-machine): a client exchanges its id/secret at the Cognito token endpoint for a bearer
-**access token**, which the authorizer validates (issuer + `client_id` + scopes
-`tads-api/read|write|delete`). No interactive users are involved. The stack emits a copy-paste
-`GetTokenCommand` that fetches the client secret and mints a token:
+Auth is **OAuth2 `client_credentials`** (machine-to-machine): a client exchanges its id/secret at
+the Cognito token endpoint for a bearer **access token**, which the custom Lambda authorizer
+verifies (JWKS signature + issuer + `client_id` + a `tads-api/*` scope). No interactive users are
+involved. `cdk deploy` prints the client id/secret and token endpoint directly as outputs
+(`UserPoolClientId`, `ClientSecret`, `TokenUrl`) — paste them into Insomnia, or use the ready-made
+`GetTokenCommand` one-liner:
 
 ```sh
-# `cdk deploy` prints this as the GetTokenCommand output — run it to get an access token:
-SECRET=$(aws cognito-idp describe-user-pool-client \
-  --user-pool-id "$(aws cloudformation describe-stacks --stack-name TadsStack \
-      --query "Stacks[0].Outputs[?OutputKey=='UserPoolId'].OutputValue" --output text)" \
-  --client-id "$(aws cloudformation describe-stacks --stack-name TadsStack \
-      --query "Stacks[0].Outputs[?OutputKey=='UserPoolClientId'].OutputValue" --output text)" \
-  --query UserPoolClient.ClientSecret --output text)
-TOKEN=$(curl -s -X POST "$(aws cloudformation describe-stacks --stack-name TadsStack \
-      --query "Stacks[0].Outputs[?OutputKey=='TokenUrl'].OutputValue" --output text)" \
+# All values below are printed by `cdk deploy` (ClientSecret / TokenUrl / UserPoolClientId / ApiEndpoint).
+TOKEN=$(curl -s -X POST "<TokenUrl>" \
   -H 'Content-Type: application/x-www-form-urlencoded' \
-  -u "$(aws cloudformation describe-stacks --stack-name TadsStack \
-      --query "Stacks[0].Outputs[?OutputKey=='UserPoolClientId'].OutputValue" --output text):$SECRET" \
+  -u "<UserPoolClientId>:<ClientSecret>" \
   --data-urlencode grant_type=client_credentials \
   --data-urlencode 'scope=tads-api/read tads-api/write tads-api/delete' \
   | python3 -c 'import json,sys;print(json.load(sys.stdin)["access_token"])')
 
-API=$(aws cloudformation describe-stacks --stack-name TadsStack \
-  --query "Stacks[0].Outputs[?OutputKey=='ApiEndpoint'].OutputValue" --output text)
-curl -H "Authorization: Bearer $TOKEN" "$API/service"   # -> 200 service.json
+curl -H "Authorization: Bearer $TOKEN" "<ApiEndpoint>/service"   # -> 200 service.json
 ```
 
-Relevant stack outputs: `ApiEndpoint`, `TokenUrl`, `UserPoolClientId`, `OAuthScopes`, `JwtIssuer`,
-`UserPoolId`, and the ready-to-run `GetClientSecretCommand` / `GetTokenCommand`. Override the
-Cognito domain prefix with `-c cognito_domain_prefix=<prefix>`.
+Relevant stack outputs: `ApiEndpoint`, `TokenUrl`, `UserPoolClientId`, `ClientSecret`,
+`OAuthScopes`, `JwtIssuer`, `UserPoolId`, and the ready-to-run `GetTokenCommand`. Override the
+Cognito domain prefix with `-c cognito_domain_prefix=<prefix>`. (The `ClientSecret` output is a dev
+convenience — remove it for anything beyond a sandbox.)
 
 An **Insomnia collection** covering every endpoint lives at
 [`insomnia/TADS.insomnia.yaml`](insomnia/TADS.insomnia.yaml). Import it and set the environment's
 `base_url`, `token_url`, `client_id`, and `client_secret` (from the `ApiEndpoint` / `TokenUrl` /
-`UserPoolClientId` / `GetClientSecretCommand` outputs). Every request uses OAuth2
-`client_credentials`, so Insomnia fetches and refreshes the bearer token automatically.
+`UserPoolClientId` / `ClientSecret` outputs). Every request uses OAuth2 `client_credentials`, so
+Insomnia fetches and refreshes the bearer token automatically.
 
 ### Building the Lambdas on macOS
 

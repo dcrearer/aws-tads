@@ -19,11 +19,11 @@ def _template() -> Template:
 def test_core_resource_counts():
     t = _template()
     t.resource_count_is("AWS::DynamoDB::Table", 5)
-    # 8 of the 9 workspace Lambdas are deployed (search-indexer is parked while OpenSearch is
-    # deferred). Count the Rust app functions by runtime so CDK-managed custom-resource/provider
-    # helper Lambdas (Python) don't skew the assertion.
+    # 9 Rust Lambdas deployed: 6 HTTP handlers + 2 workers + the custom authorizer (search-indexer
+    # is parked while OpenSearch is deferred). Count by runtime so CDK-managed helper Lambdas
+    # (Python/Node) don't skew the assertion.
     t.resource_properties_count_is(
-        "AWS::Lambda::Function", {"Runtime": "provided.al2023"}, 8
+        "AWS::Lambda::Function", {"Runtime": "provided.al2023"}, 9
     )
     t.resource_count_is("AWS::SQS::Queue", 3)  # delete queue + delete DLQ + shared Lambda DLQ
     t.resource_count_is("AWS::OpenSearchServerless::Collection", 0)
@@ -120,4 +120,13 @@ def test_machine_to_machine_oauth_client():
     # No interactive-user credentials / secrets are provisioned.
     t.resource_count_is("AWS::SecretsManager::Secret", 0)
     t.has_output("TokenUrl", {})
+    t.has_output("ClientSecret", {})
     t.has_output("GetTokenCommand", {})
+
+
+def test_api_uses_lambda_authorizer():
+    t = _template()
+    t.has_resource_properties(
+        "AWS::ApiGatewayV2::Authorizer",
+        {"AuthorizerType": "REQUEST", "EnableSimpleResponses": True},
+    )
