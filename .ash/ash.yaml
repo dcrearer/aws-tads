@@ -1,0 +1,72 @@
+project_name: aws-tads
+
+global_settings:
+  severity_threshold: MEDIUM
+
+  # Each suppression documents an accepted risk or verified false positive. Expirations force
+  # periodic re-review (and will re-surface the finding in ~90 days). Keep this list minimal:
+  # genuine findings are fixed at the source (CDK stack, Dockerfile, CI workflow), not suppressed.
+  suppressions:
+    # -- False positives -----------------------------------------------------------------------
+    - rule_id: SECRET-SECRET-KEYWORD
+      path: lambdas/webhooks/tests/smoke.rs
+      line_start: 52
+      line_end: 53
+      reason: >-
+        Test fixture, not a real secret. The literal "super-secret" is the input to a test that
+        asserts the webhook api_key_value is NOT echoed back in responses.
+      expiration: "2027-01-04"
+
+    # -- Transitive dependency advisories (AWS SDK), not exploitable in our usage --------------
+    # All four come from the AWS SDK's bundled rustls 0.21 / aws-smithy-json and are NOT flagged
+    # by `cargo audit` (RustSec), the project's gating dependency auditor. The real fix is an
+    # AWS SDK + Rust-toolchain bump (tracked separately). None are reachable in our client-side,
+    # trusted-endpoint usage.
+    - rule_id: GHSA-8ffr-xgwf-xj56-aws-smithy-json
+      path: Cargo.lock
+      reason: >-
+        Server-side DoS in smithy-rs GENERATED SERVERS (uncontrolled recursion parsing untrusted
+        JSON). We use aws-smithy-json only as an AWS client, parsing trusted service responses;
+        inbound request bodies are parsed by serde_json/jsonschema, not this crate. Fixed in
+        0.62.7, outside aws-config 1.8.11's pinned ^0.61 range.
+      expiration: "2027-01-04"
+    - rule_id: GHSA-82j2-j2ch-gfr8-rustls-webpki
+      path: Cargo.lock
+      reason: >-
+        rustls-webpki panic on malformed CRL BIT STRING. The Lambdas' TLS client talks only to
+        AWS endpoints with known-good certs and performs no CRL processing of attacker-controlled
+        data. Via AWS SDK's rustls 0.21; fix requires a rustls 0.23 / SDK bump.
+      expiration: "2027-01-04"
+    - rule_id: GHSA-965h-392x-2mh5-rustls-webpki
+      path: Cargo.lock
+      reason: >-
+        LOW: name-constraint handling for URI names. Not reachable — client validates only AWS
+        service certificates. Via AWS SDK's rustls 0.21; fix requires a rustls 0.23 / SDK bump.
+      expiration: "2027-01-04"
+    - rule_id: GHSA-xgp8-3hg3-c2mh-rustls-webpki
+      path: Cargo.lock
+      reason: >-
+        LOW: wildcard name-constraint handling. Not reachable — client validates only AWS service
+        certificates. Via AWS SDK's rustls 0.21; fix requires a rustls 0.23 / SDK bump.
+      expiration: "2027-01-04"
+
+    # -- Accepted architectural decisions ------------------------------------------------------
+    - rule_id: CKV_AWS_117
+      path: cdk/cdk.out/TadsStack.template.json
+      reason: >-
+        Lambdas are intentionally not placed in a VPC. They reach DynamoDB, SQS and OpenSearch
+        Serverless over the AWS network; a VPC would add NAT/interface-endpoint cost and
+        cold-start latency with no security gain for this serverless metadata API.
+      expiration: "2027-01-04"
+    - rule_id: CKV_DOCKER_2
+      path: Dockerfile.lambda
+      reason: >-
+        Build-only image. The builder stage compiles the binaries and the final stage is FROM
+        scratch; nothing is deployed from this image, so a HEALTHCHECK is meaningless.
+      expiration: "2027-01-04"
+    - rule_id: CKV_DOCKER_3
+      path: Dockerfile.lambda
+      reason: >-
+        Build-only image discarded after artifact extraction; running the cargo-lambda build as
+        root in the ephemeral builder is standard and the output is a bare binary, not a runtime.
+      expiration: "2027-01-04"

@@ -3,6 +3,7 @@
 import os
 
 import aws_cdk as cdk
+from aws_cdk import assertions
 from aws_cdk.assertions import Template
 
 from tads_infra.stack import TadsStack
@@ -19,9 +20,36 @@ def test_core_resource_counts():
     t = _template()
     t.resource_count_is("AWS::DynamoDB::Table", 5)
     t.resource_count_is("AWS::Lambda::Function", 9)
-    t.resource_count_is("AWS::SQS::Queue", 2)  # main + DLQ
+    t.resource_count_is("AWS::SQS::Queue", 3)  # delete queue + delete DLQ + shared Lambda DLQ
     t.resource_count_is("AWS::OpenSearchServerless::Collection", 1)
     t.resource_count_is("AWS::Cognito::UserPool", 1)
+    t.resource_count_is("AWS::KMS::Key", 1)  # shared data-at-rest CMK
+
+
+def test_data_stores_encrypted_with_cmk():
+    t = _template()
+    # DynamoDB tables reference a KMS key for SSE.
+    t.has_resource_properties(
+        "AWS::DynamoDB::Table",
+        {"SSESpecification": {"SSEEnabled": True, "SSEType": "KMS"}},
+    )
+    # SQS queues are KMS-encrypted (KmsMasterKeyId present).
+    t.has_resource_properties(
+        "AWS::SQS::Queue",
+        {"KmsMasterKeyId": assertions.Match.any_value()},
+    )
+
+
+def test_lambdas_have_dlq_env_encryption_and_concurrency():
+    t = _template()
+    t.has_resource_properties(
+        "AWS::Lambda::Function",
+        {
+            "DeadLetterConfig": {"TargetArn": assertions.Match.any_value()},
+            "KmsKeyArn": assertions.Match.any_value(),
+            "ReservedConcurrentExecutions": 20,
+        },
+    )
 
 
 def test_tables_have_streams_enabled():
@@ -56,3 +84,11 @@ def test_http_api_present():
     t = _template()
     t.resource_count_is("AWS::ApiGatewayV2::Api", 1)
     t.resource_count_is("AWS::ApiGatewayV2::Authorizer", 1)
+
+
+def test_http_api_stage_has_access_logging():
+    t = _template()
+    t.has_resource_properties(
+        "AWS::ApiGatewayV2::Stage",
+        {"AccessLogSettings": {"DestinationArn": assertions.Match.any_value()}},
+    )

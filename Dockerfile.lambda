@@ -1,7 +1,8 @@
 ## Linux-native build of all workspace Lambda binaries.
 ## Routes around the macOS zig cross-compile failure (aws-lc-sys/ring) by building
 ## natively on Linux inside the official cargo-lambda image. See README "Deployment".
-FROM ghcr.io/cargo-lambda/cargo-lambda:latest AS builder
+# Pinned by digest for reproducible builds (resolves cargo-lambda:latest at time of writing).
+FROM ghcr.io/cargo-lambda/cargo-lambda@sha256:060e014c9178f87d5e411eb75f1940ee8fc758b0bc7cf503832f2724f8367cdb AS builder
 WORKDIR /src
 
 # Copy the workspace (target/, cdk/.venv, .git excluded via .containerignore).

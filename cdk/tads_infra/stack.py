@@ -28,8 +28,10 @@ from aws_cdk import aws_apigatewayv2_integrations as apigw_integ
 from aws_cdk import aws_cognito as cognito
 from aws_cdk import aws_dynamodb as dynamodb
 from aws_cdk import aws_iam as iam
+from aws_cdk import aws_kms as kms
 from aws_cdk import aws_lambda as lambda_
 from aws_cdk import aws_lambda_event_sources as sources
+from aws_cdk import aws_logs as logs
 from aws_cdk import aws_opensearchserverless as aoss
 from aws_cdk import aws_sqs as sqs
 from constructs import Construct
@@ -57,6 +59,7 @@ class TadsStack(Stack):
         super().__init__(scope, construct_id, **kwargs)
         self.prefix = prefix
 
+        self._build_key()
         self._build_tables()
         self._build_queues()
         self._build_auth()
@@ -67,11 +70,29 @@ class TadsStack(Stack):
         self._build_http_api()
         self._outputs()
 
+    # -- KMS ----------------------------------------------------------------------------------
+    def _build_key(self) -> None:
+        """One customer-managed CMK encrypts all data at rest (DynamoDB, SQS, Lambda env vars).
+
+        A single shared key keeps IAM/grant wiring simple; CDK ``grant_*`` helpers add the
+        matching ``kms:Decrypt``/``GenerateDataKey`` permissions to each consumer automatically.
+        """
+        self.key = kms.Key(
+            self,
+            "DataKey",
+            alias=f"alias/{self.prefix}",
+            description=f"{self.prefix} data-at-rest CMK (DynamoDB, SQS, Lambda env)",
+            enable_key_rotation=True,
+            removal_policy=RemovalPolicy.DESTROY,  # dev; use RETAIN in production
+        )
+
     # -- DynamoDB -----------------------------------------------------------------------------
     def _build_tables(self) -> None:
         common = dict(
             billing_mode=dynamodb.BillingMode.PAY_PER_REQUEST,
             stream=dynamodb.StreamViewType.NEW_AND_OLD_IMAGES,
+            encryption=dynamodb.TableEncryption.CUSTOMER_MANAGED,
+            encryption_key=self.key,
             removal_policy=RemovalPolicy.DESTROY,  # dev; use RETAIN in production
             point_in_time_recovery_specification=dynamodb.PointInTimeRecoverySpecification(
                 point_in_time_recovery_enabled=True
@@ -143,6 +164,8 @@ class TadsStack(Stack):
             queue_name=f"{self.prefix}-delete-dlq",
             retention_period=Duration.days(14),
             enforce_ssl=True,
+            encryption=sqs.QueueEncryption.KMS,
+            encryption_master_key=self.key,
         )
         self.delete_queue = sqs.Queue(
             self,
@@ -150,7 +173,20 @@ class TadsStack(Stack):
             queue_name=f"{self.prefix}-delete",
             visibility_timeout=Duration.seconds(180),
             enforce_ssl=True,
+            encryption=sqs.QueueEncryption.KMS,
+            encryption_master_key=self.key,
             dead_letter_queue=sqs.DeadLetterQueue(max_receive_count=5, queue=self.delete_dlq),
+        )
+
+        # Shared async-invocation DLQ for every Lambda (failed async events land here).
+        self.lambda_dlq = sqs.Queue(
+            self,
+            "LambdaDLQ",
+            queue_name=f"{self.prefix}-lambda-dlq",
+            retention_period=Duration.days(14),
+            enforce_ssl=True,
+            encryption=sqs.QueueEncryption.KMS,
+            encryption_master_key=self.key,
         )
 
     # -- Cognito ------------------------------------------------------------------------------
@@ -193,6 +229,7 @@ class TadsStack(Stack):
         *,
         memory: int = 256,
         timeout: int = 30,
+        reserved_concurrency: int = 20,
         extra_env: dict | None = None,
     ) -> lambda_.Function:
         env = self._common_env()
@@ -218,6 +255,13 @@ class TadsStack(Stack):
             memory_size=memory,
             timeout=Duration.seconds(timeout),
             environment=env,
+            # Env vars are encrypted at rest with the stack CMK (CDK grants the role decrypt).
+            environment_encryption=self.key,
+            # Async-invocation failures go to a shared DLQ instead of being dropped.
+            dead_letter_queue=self.lambda_dlq,
+            # Cap per-function concurrency (cost / blast-radius control). Total across the 9
+            # functions must stay below the account's unreserved pool (default 1000, keeps >=100).
+            reserved_concurrent_executions=reserved_concurrency,
             tracing=lambda_.Tracing.ACTIVE,
             layers=layers or None,
         )
@@ -380,6 +424,56 @@ class TadsStack(Stack):
             api_name=f"{self.prefix}-api",
             create_default_stage=True,
         )
+
+        # Access logging on the default stage -> CloudWatch Logs (KMS-encrypted with the CMK).
+        # CloudWatch Logs needs explicit key-policy access to encrypt the log group.
+        self.key.add_to_resource_policy(
+            iam.PolicyStatement(
+                principals=[iam.ServicePrincipal(f"logs.{self.region}.amazonaws.com")],
+                actions=[
+                    "kms:Encrypt*",
+                    "kms:Decrypt*",
+                    "kms:ReEncrypt*",
+                    "kms:GenerateDataKey*",
+                    "kms:Describe*",
+                ],
+                resources=["*"],
+                conditions={
+                    "ArnLike": {
+                        "kms:EncryptionContext:aws:logs:arn": (
+                            f"arn:aws:logs:{self.region}:{self.account}:log-group:*"
+                        )
+                    }
+                },
+            )
+        )
+        access_logs = logs.LogGroup(
+            self,
+            "ApiAccessLogs",
+            log_group_name=f"/aws/apigateway/{self.prefix}-api/access",
+            retention=logs.RetentionDays.ONE_MONTH,
+            encryption_key=self.key,
+            removal_policy=RemovalPolicy.DESTROY,  # dev
+        )
+        default_stage = self.http_api.default_stage.node.default_child
+        default_stage.access_log_settings = apigw.CfnStage.AccessLogSettingsProperty(
+            destination_arn=access_logs.log_group_arn,
+            format=json.dumps(
+                {
+                    "requestId": "$context.requestId",
+                    "ip": "$context.identity.sourceIp",
+                    "requestTime": "$context.requestTime",
+                    "httpMethod": "$context.httpMethod",
+                    "routeKey": "$context.routeKey",
+                    "path": "$context.path",
+                    "status": "$context.status",
+                    "protocol": "$context.protocol",
+                    "responseLength": "$context.responseLength",
+                    "integrationError": "$context.integrationErrorMessage",
+                }
+            ),
+        )
+
         authorizer = apigw_authz.HttpUserPoolAuthorizer(
             "JwtAuthorizer",
             self.user_pool,
