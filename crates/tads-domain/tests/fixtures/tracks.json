@@ -5,7 +5,7 @@
     "description": "A heartbeat proving compliance-store was actively watching the stream, whether or not anything happened (design brief: 'receiving nothing' and 'not started' must be distinguishable, and today they are not). started/monitoring/stopped lifecycle -- see the schema's own `description` for the full contract.",
     "created_by": "service-account-compliance",
     "timeline_reference": {
-      "entity_id": "https://mxl-tams.phrame.live/flows/34e6ddd5-696a-45bb-9193-ebf8a1d18838"
+      "entity_id": "https://aws-tads.live/flows/34e6ddd5-696a-45bb-9193-ebf8a1d18838"
     },
     "tags": {},
     "metadata_version": "1",
@@ -22,7 +22,7 @@
     "description": "Programmes as the broadcaster declared them in the DVB Event Information Table -- the track that answers 'what was on air at 14:00' without demuxing the recording. Carries BOTH the declared start (editorial truth) and the observed instant (evidential truth); the event's timerange is the observed one. See the schema's own description for why.",
     "created_by": "service-account-compliance",
     "timeline_reference": {
-      "entity_id": "https://mxl-tams.phrame.live/flows/34e6ddd5-696a-45bb-9193-ebf8a1d18838"
+      "entity_id": "https://aws-tads.live/flows/34e6ddd5-696a-45bb-9193-ebf8a1d18838"
     },
     "tags": {},
     "metadata_version": "1",
@@ -38,7 +38,7 @@
     "description": "A searchable text index of distinct captions, first-appearance-wins against a bounded dedup window. No producer yet -- plugins/tsduck has no teletext demux (see the brief's 'Not in this MR').",
     "created_by": "service-account-compliance",
     "timeline_reference": {
-      "entity_id": "https://mxl-tams.phrame.live/flows/34e6ddd5-696a-45bb-9193-ebf8a1d18838"
+      "entity_id": "https://aws-tads.live/flows/34e6ddd5-696a-45bb-9193-ebf8a1d18838"
     },
     "tags": {},
     "metadata_version": "1",
@@ -54,7 +54,7 @@
     "description": "Discontinuities in the recorded TAMS flow, detected from consecutive segment timeranges (design sec 9: a correctness requirement, not telemetry).",
     "created_by": "service-account-compliance",
     "timeline_reference": {
-      "entity_id": "https://mxl-tams.phrame.live/flows/34e6ddd5-696a-45bb-9193-ebf8a1d18838"
+      "entity_id": "https://aws-tads.live/flows/34e6ddd5-696a-45bb-9193-ebf8a1d18838"
     },
     "tags": {},
     "metadata_version": "1",
@@ -71,7 +71,7 @@
     "description": "TR 101 290 transport-stream fault counter increments, from plugins/tsduck's Tr101290Collector via the estate's MQTT stats convention.",
     "created_by": "service-account-compliance",
     "timeline_reference": {
-      "entity_id": "https://mxl-tams.phrame.live/flows/34e6ddd5-696a-45bb-9193-ebf8a1d18838"
+      "entity_id": "https://aws-tads.live/flows/34e6ddd5-696a-45bb-9193-ebf8a1d18838"
     },
     "tags": {},
     "metadata_version": "1",
@@ -88,7 +88,7 @@
     "description": "How far the PCR->TAI mapping could be trusted, one event per interval, written whether anything changed or not. Stamped from the system clock and never from the timeline it reports on -- see the schema description for why that distinction is the whole point.",
     "created_by": "service-account-compliance",
     "timeline_reference": {
-      "entity_id": "https://mxl-tams.phrame.live/flows/34e6ddd5-696a-45bb-9193-ebf8a1d18838"
+      "entity_id": "https://aws-tads.live/flows/34e6ddd5-696a-45bb-9193-ebf8a1d18838"
     },
     "tags": {},
     "metadata_version": "1",
@@ -104,7 +104,7 @@
     "description": "A searchable text index of distinct captions, first-appearance-wins against a bounded dedup window. No producer yet -- plugins/tsduck has no teletext demux (see the brief's 'Not in this MR').",
     "created_by": "service-account-compliance",
     "timeline_reference": {
-      "entity_id": "https://mxl-tams.phrame.live/flows/b6e140c7-d4e7-4000-bee1-8e70ceb74533"
+      "entity_id": "https://aws-tads.live/flows/b6e140c7-d4e7-4000-bee1-8e70ceb74533"
     },
     "tags": {},
     "metadata_version": "1",
@@ -120,7 +120,7 @@
     "description": "A searchable text index of distinct captions, first-appearance-wins against a bounded dedup window. No producer yet -- plugins/tsduck has no teletext demux (see the brief's 'Not in this MR').",
     "created_by": "service-account-compliance",
     "timeline_reference": {
-      "entity_id": "https://mxl-tams.phrame.live/flows/4f9c5776-2ed5-4899-808f-d58fcc6b5896"
+      "entity_id": "https://aws-tads.live/flows/4f9c5776-2ed5-4899-808f-d58fcc6b5896"
     },
     "tags": {},
     "metadata_version": "1",
@@ -136,7 +136,7 @@
     "description": "A searchable text index of distinct captions, first-appearance-wins against a bounded dedup window. No producer yet -- plugins/tsduck has no teletext demux (see the brief's 'Not in this MR').",
     "created_by": "service-account-compliance",
     "timeline_reference": {
-      "entity_id": "https://mxl-tams.phrame.live/flows/0be86180-b117-419e-b936-e613c578c663"
+      "entity_id": "https://aws-tads.live/flows/0be86180-b117-419e-b936-e613c578c663"
     },
     "tags": {},
     "metadata_version": "1",
@@ -152,7 +152,7 @@
     "description": "A searchable text index of distinct captions, first-appearance-wins against a bounded dedup window. No producer yet -- plugins/tsduck has no teletext demux (see the brief's 'Not in this MR').",
     "created_by": "service-account-compliance",
     "timeline_reference": {
-      "entity_id": "https://mxl-tams.phrame.live/flows/912d1c97-11a8-4839-aa37-4f38e8c11059"
+      "entity_id": "https://aws-tads.live/flows/912d1c97-11a8-4839-aa37-4f38e8c11059"
     },
     "tags": {},
     "metadata_version": "1",
@@ -169,7 +169,7 @@
     "created_by": "service-account-compliance",
     "updated_by": "service-account-compliance",
     "timeline_reference": {
-      "entity_id": "https://mxl-tams.phrame.live/flows/34f13ae3-9355-4f23-a92c-67c716e23360"
+      "entity_id": "https://aws-tads.live/flows/34f13ae3-9355-4f23-a92c-67c716e23360"
     },
     "tags": {},
     "metadata_version": "1",
@@ -187,7 +187,7 @@
     "description": "A searchable text index of distinct captions, first-appearance-wins against a bounded dedup window. No producer yet -- plugins/tsduck has no teletext demux (see the brief's 'Not in this MR').",
     "created_by": "service-account-compliance",
     "timeline_reference": {
-      "entity_id": "https://mxl-tams.phrame.live/flows/9578252d-8479-4315-b3e4-41721da52071"
+      "entity_id": "https://aws-tads.live/flows/9578252d-8479-4315-b3e4-41721da52071"
     },
     "tags": {},
     "metadata_version": "1",
@@ -204,7 +204,7 @@
     "description": "A searchable text index of distinct captions, first-appearance-wins against a bounded dedup window. No producer yet -- plugins/tsduck has no teletext demux (see the brief's 'Not in this MR').",
     "created_by": "service-account-compliance",
     "timeline_reference": {
-      "entity_id": "https://mxl-tams.phrame.live/flows/b1432aff-a353-4f03-b44f-f16e6e53c91b"
+      "entity_id": "https://aws-tads.live/flows/b1432aff-a353-4f03-b44f-f16e6e53c91b"
     },
     "tags": {},
     "metadata_version": "1",
@@ -221,7 +221,7 @@
     "description": "A searchable text index of distinct captions, first-appearance-wins against a bounded dedup window. No producer yet -- plugins/tsduck has no teletext demux (see the brief's 'Not in this MR').",
     "created_by": "service-account-compliance",
     "timeline_reference": {
-      "entity_id": "https://mxl-tams.phrame.live/flows/2a46ace7-0ff8-49c0-94ec-6de51cbf462a"
+      "entity_id": "https://aws-tads.live/flows/2a46ace7-0ff8-49c0-94ec-6de51cbf462a"
     },
     "tags": {},
     "metadata_version": "1",
@@ -239,7 +239,7 @@
     "created_by": "service-account-compliance",
     "updated_by": "service-account-compliance",
     "timeline_reference": {
-      "entity_id": "https://mxl-tams.phrame.live/flows/2a46ace7-0ff8-49c0-94ec-6de51cbf462a"
+      "entity_id": "https://aws-tads.live/flows/2a46ace7-0ff8-49c0-94ec-6de51cbf462a"
     },
     "tags": {},
     "metadata_version": "1",
@@ -257,7 +257,7 @@
     "created_by": "service-account-compliance",
     "updated_by": "service-account-compliance",
     "timeline_reference": {
-      "entity_id": "https://mxl-tams.phrame.live/flows/34f13ae3-9355-4f23-a92c-67c716e23360"
+      "entity_id": "https://aws-tads.live/flows/34f13ae3-9355-4f23-a92c-67c716e23360"
     },
     "tags": {},
     "metadata_version": "1",
@@ -275,7 +275,7 @@
     "created_by": "service-account-compliance",
     "updated_by": "service-account-compliance",
     "timeline_reference": {
-      "entity_id": "https://mxl-tams.phrame.live/flows/9578252d-8479-4315-b3e4-41721da52071"
+      "entity_id": "https://aws-tads.live/flows/9578252d-8479-4315-b3e4-41721da52071"
     },
     "tags": {},
     "metadata_version": "1",
@@ -293,7 +293,7 @@
     "created_by": "service-account-compliance",
     "updated_by": "service-account-compliance",
     "timeline_reference": {
-      "entity_id": "https://mxl-tams.phrame.live/flows/b1432aff-a353-4f03-b44f-f16e6e53c91b"
+      "entity_id": "https://aws-tads.live/flows/b1432aff-a353-4f03-b44f-f16e6e53c91b"
     },
     "tags": {},
     "metadata_version": "1",
@@ -311,7 +311,7 @@
     "created_by": "service-account-compliance",
     "updated_by": "service-account-compliance",
     "timeline_reference": {
-      "entity_id": "https://mxl-tams.phrame.live/flows/b6e140c7-d4e7-4000-bee1-8e70ceb74533"
+      "entity_id": "https://aws-tads.live/flows/b6e140c7-d4e7-4000-bee1-8e70ceb74533"
     },
     "tags": {},
     "metadata_version": "1",
@@ -329,7 +329,7 @@
     "created_by": "service-account-compliance",
     "updated_by": "service-account-compliance",
     "timeline_reference": {
-      "entity_id": "https://mxl-tams.phrame.live/flows/4f9c5776-2ed5-4899-808f-d58fcc6b5896"
+      "entity_id": "https://aws-tads.live/flows/4f9c5776-2ed5-4899-808f-d58fcc6b5896"
     },
     "tags": {},
     "metadata_version": "1",
@@ -347,7 +347,7 @@
     "created_by": "service-account-compliance",
     "updated_by": "service-account-compliance",
     "timeline_reference": {
-      "entity_id": "https://mxl-tams.phrame.live/flows/0be86180-b117-419e-b936-e613c578c663"
+      "entity_id": "https://aws-tads.live/flows/0be86180-b117-419e-b936-e613c578c663"
     },
     "tags": {},
     "metadata_version": "1",
@@ -365,7 +365,7 @@
     "created_by": "service-account-compliance",
     "updated_by": "service-account-compliance",
     "timeline_reference": {
-      "entity_id": "https://mxl-tams.phrame.live/flows/912d1c97-11a8-4839-aa37-4f38e8c11059"
+      "entity_id": "https://aws-tads.live/flows/912d1c97-11a8-4839-aa37-4f38e8c11059"
     },
     "tags": {},
     "metadata_version": "1",
@@ -383,7 +383,7 @@
     "created_by": "service-account-compliance",
     "updated_by": "service-account-compliance",
     "timeline_reference": {
-      "entity_id": "https://mxl-tams.phrame.live/flows/2a46ace7-0ff8-49c0-94ec-6de51cbf462a"
+      "entity_id": "https://aws-tads.live/flows/2a46ace7-0ff8-49c0-94ec-6de51cbf462a"
     },
     "tags": {},
     "metadata_version": "1",
@@ -402,7 +402,7 @@
     "created_by": "service-account-compliance",
     "updated_by": "service-account-compliance",
     "timeline_reference": {
-      "entity_id": "https://mxl-tams.phrame.live/flows/2a46ace7-0ff8-49c0-94ec-6de51cbf462a"
+      "entity_id": "https://aws-tads.live/flows/2a46ace7-0ff8-49c0-94ec-6de51cbf462a"
     },
     "tags": {},
     "metadata_version": "1",
@@ -421,7 +421,7 @@
     "created_by": "service-account-compliance",
     "updated_by": "service-account-compliance",
     "timeline_reference": {
-      "entity_id": "https://mxl-tams.phrame.live/flows/2a46ace7-0ff8-49c0-94ec-6de51cbf462a"
+      "entity_id": "https://aws-tads.live/flows/2a46ace7-0ff8-49c0-94ec-6de51cbf462a"
     },
     "tags": {},
     "metadata_version": "1",
@@ -440,7 +440,7 @@
     "created_by": "service-account-compliance",
     "updated_by": "service-account-compliance",
     "timeline_reference": {
-      "entity_id": "https://mxl-tams.phrame.live/flows/2a46ace7-0ff8-49c0-94ec-6de51cbf462a"
+      "entity_id": "https://aws-tads.live/flows/2a46ace7-0ff8-49c0-94ec-6de51cbf462a"
     },
     "tags": {},
     "metadata_version": "1",
@@ -459,7 +459,7 @@
     "created_by": "service-account-compliance",
     "updated_by": "service-account-compliance",
     "timeline_reference": {
-      "entity_id": "https://mxl-tams.phrame.live/flows/9578252d-8479-4315-b3e4-41721da52071"
+      "entity_id": "https://aws-tads.live/flows/9578252d-8479-4315-b3e4-41721da52071"
     },
     "tags": {},
     "metadata_version": "1",
@@ -478,7 +478,7 @@
     "created_by": "service-account-compliance",
     "updated_by": "service-account-compliance",
     "timeline_reference": {
-      "entity_id": "https://mxl-tams.phrame.live/flows/9578252d-8479-4315-b3e4-41721da52071"
+      "entity_id": "https://aws-tads.live/flows/9578252d-8479-4315-b3e4-41721da52071"
     },
     "tags": {},
     "metadata_version": "1",
@@ -497,7 +497,7 @@
     "created_by": "service-account-compliance",
     "updated_by": "service-account-compliance",
     "timeline_reference": {
-      "entity_id": "https://mxl-tams.phrame.live/flows/9578252d-8479-4315-b3e4-41721da52071"
+      "entity_id": "https://aws-tads.live/flows/9578252d-8479-4315-b3e4-41721da52071"
     },
     "tags": {},
     "metadata_version": "1",
@@ -516,7 +516,7 @@
     "created_by": "service-account-compliance",
     "updated_by": "service-account-compliance",
     "timeline_reference": {
-      "entity_id": "https://mxl-tams.phrame.live/flows/9578252d-8479-4315-b3e4-41721da52071"
+      "entity_id": "https://aws-tads.live/flows/9578252d-8479-4315-b3e4-41721da52071"
     },
     "tags": {},
     "metadata_version": "1",
@@ -535,7 +535,7 @@
     "created_by": "service-account-compliance",
     "updated_by": "service-account-compliance",
     "timeline_reference": {
-      "entity_id": "https://mxl-tams.phrame.live/flows/b1432aff-a353-4f03-b44f-f16e6e53c91b"
+      "entity_id": "https://aws-tads.live/flows/b1432aff-a353-4f03-b44f-f16e6e53c91b"
     },
     "tags": {},
     "metadata_version": "1",
@@ -554,7 +554,7 @@
     "created_by": "service-account-compliance",
     "updated_by": "service-account-compliance",
     "timeline_reference": {
-      "entity_id": "https://mxl-tams.phrame.live/flows/b1432aff-a353-4f03-b44f-f16e6e53c91b"
+      "entity_id": "https://aws-tads.live/flows/b1432aff-a353-4f03-b44f-f16e6e53c91b"
     },
     "tags": {},
     "metadata_version": "1",
@@ -573,7 +573,7 @@
     "created_by": "service-account-compliance",
     "updated_by": "service-account-compliance",
     "timeline_reference": {
-      "entity_id": "https://mxl-tams.phrame.live/flows/b1432aff-a353-4f03-b44f-f16e6e53c91b"
+      "entity_id": "https://aws-tads.live/flows/b1432aff-a353-4f03-b44f-f16e6e53c91b"
     },
     "tags": {},
     "metadata_version": "1",
@@ -592,7 +592,7 @@
     "created_by": "service-account-compliance",
     "updated_by": "service-account-compliance",
     "timeline_reference": {
-      "entity_id": "https://mxl-tams.phrame.live/flows/b1432aff-a353-4f03-b44f-f16e6e53c91b"
+      "entity_id": "https://aws-tads.live/flows/b1432aff-a353-4f03-b44f-f16e6e53c91b"
     },
     "tags": {},
     "metadata_version": "1",
@@ -611,7 +611,7 @@
     "created_by": "service-account-compliance",
     "updated_by": "service-account-compliance",
     "timeline_reference": {
-      "entity_id": "https://mxl-tams.phrame.live/flows/34f13ae3-9355-4f23-a92c-67c716e23360"
+      "entity_id": "https://aws-tads.live/flows/34f13ae3-9355-4f23-a92c-67c716e23360"
     },
     "tags": {},
     "metadata_version": "1",
@@ -630,7 +630,7 @@
     "created_by": "service-account-compliance",
     "updated_by": "service-account-compliance",
     "timeline_reference": {
-      "entity_id": "https://mxl-tams.phrame.live/flows/34f13ae3-9355-4f23-a92c-67c716e23360"
+      "entity_id": "https://aws-tads.live/flows/34f13ae3-9355-4f23-a92c-67c716e23360"
     },
     "tags": {},
     "metadata_version": "1",
@@ -649,7 +649,7 @@
     "created_by": "service-account-compliance",
     "updated_by": "service-account-compliance",
     "timeline_reference": {
-      "entity_id": "https://mxl-tams.phrame.live/flows/34f13ae3-9355-4f23-a92c-67c716e23360"
+      "entity_id": "https://aws-tads.live/flows/34f13ae3-9355-4f23-a92c-67c716e23360"
     },
     "tags": {},
     "metadata_version": "1",
@@ -668,7 +668,7 @@
     "created_by": "service-account-compliance",
     "updated_by": "service-account-compliance",
     "timeline_reference": {
-      "entity_id": "https://mxl-tams.phrame.live/flows/34f13ae3-9355-4f23-a92c-67c716e23360"
+      "entity_id": "https://aws-tads.live/flows/34f13ae3-9355-4f23-a92c-67c716e23360"
     },
     "tags": {},
     "metadata_version": "1",
@@ -687,7 +687,7 @@
     "created_by": "service-account-compliance",
     "updated_by": "service-account-compliance",
     "timeline_reference": {
-      "entity_id": "https://mxl-tams.phrame.live/flows/b6e140c7-d4e7-4000-bee1-8e70ceb74533"
+      "entity_id": "https://aws-tads.live/flows/b6e140c7-d4e7-4000-bee1-8e70ceb74533"
     },
     "tags": {},
     "metadata_version": "1",
@@ -706,7 +706,7 @@
     "created_by": "service-account-compliance",
     "updated_by": "service-account-compliance",
     "timeline_reference": {
-      "entity_id": "https://mxl-tams.phrame.live/flows/b6e140c7-d4e7-4000-bee1-8e70ceb74533"
+      "entity_id": "https://aws-tads.live/flows/b6e140c7-d4e7-4000-bee1-8e70ceb74533"
     },
     "tags": {},
     "metadata_version": "1",
@@ -725,7 +725,7 @@
     "created_by": "service-account-compliance",
     "updated_by": "service-account-compliance",
     "timeline_reference": {
-      "entity_id": "https://mxl-tams.phrame.live/flows/b6e140c7-d4e7-4000-bee1-8e70ceb74533"
+      "entity_id": "https://aws-tads.live/flows/b6e140c7-d4e7-4000-bee1-8e70ceb74533"
     },
     "tags": {},
     "metadata_version": "1",
@@ -744,7 +744,7 @@
     "created_by": "service-account-compliance",
     "updated_by": "service-account-compliance",
     "timeline_reference": {
-      "entity_id": "https://mxl-tams.phrame.live/flows/b6e140c7-d4e7-4000-bee1-8e70ceb74533"
+      "entity_id": "https://aws-tads.live/flows/b6e140c7-d4e7-4000-bee1-8e70ceb74533"
     },
     "tags": {},
     "metadata_version": "1",
@@ -763,7 +763,7 @@
     "created_by": "service-account-compliance",
     "updated_by": "service-account-compliance",
     "timeline_reference": {
-      "entity_id": "https://mxl-tams.phrame.live/flows/4f9c5776-2ed5-4899-808f-d58fcc6b5896"
+      "entity_id": "https://aws-tads.live/flows/4f9c5776-2ed5-4899-808f-d58fcc6b5896"
     },
     "tags": {},
     "metadata_version": "1",
@@ -782,7 +782,7 @@
     "created_by": "service-account-compliance",
     "updated_by": "service-account-compliance",
     "timeline_reference": {
-      "entity_id": "https://mxl-tams.phrame.live/flows/4f9c5776-2ed5-4899-808f-d58fcc6b5896"
+      "entity_id": "https://aws-tads.live/flows/4f9c5776-2ed5-4899-808f-d58fcc6b5896"
     },
     "tags": {},
     "metadata_version": "1",
@@ -801,7 +801,7 @@
     "created_by": "service-account-compliance",
     "updated_by": "service-account-compliance",
     "timeline_reference": {
-      "entity_id": "https://mxl-tams.phrame.live/flows/4f9c5776-2ed5-4899-808f-d58fcc6b5896"
+      "entity_id": "https://aws-tads.live/flows/4f9c5776-2ed5-4899-808f-d58fcc6b5896"
     },
     "tags": {},
     "metadata_version": "1",
@@ -820,7 +820,7 @@
     "created_by": "service-account-compliance",
     "updated_by": "service-account-compliance",
     "timeline_reference": {
-      "entity_id": "https://mxl-tams.phrame.live/flows/4f9c5776-2ed5-4899-808f-d58fcc6b5896"
+      "entity_id": "https://aws-tads.live/flows/4f9c5776-2ed5-4899-808f-d58fcc6b5896"
     },
     "tags": {},
     "metadata_version": "1",
@@ -839,7 +839,7 @@
     "created_by": "service-account-compliance",
     "updated_by": "service-account-compliance",
     "timeline_reference": {
-      "entity_id": "https://mxl-tams.phrame.live/flows/0be86180-b117-419e-b936-e613c578c663"
+      "entity_id": "https://aws-tads.live/flows/0be86180-b117-419e-b936-e613c578c663"
     },
     "tags": {},
     "metadata_version": "1",
@@ -858,7 +858,7 @@
     "created_by": "service-account-compliance",
     "updated_by": "service-account-compliance",
     "timeline_reference": {
-      "entity_id": "https://mxl-tams.phrame.live/flows/0be86180-b117-419e-b936-e613c578c663"
+      "entity_id": "https://aws-tads.live/flows/0be86180-b117-419e-b936-e613c578c663"
     },
     "tags": {},
     "metadata_version": "1",
@@ -877,7 +877,7 @@
     "created_by": "service-account-compliance",
     "updated_by": "service-account-compliance",
     "timeline_reference": {
-      "entity_id": "https://mxl-tams.phrame.live/flows/0be86180-b117-419e-b936-e613c578c663"
+      "entity_id": "https://aws-tads.live/flows/0be86180-b117-419e-b936-e613c578c663"
     },
     "tags": {},
     "metadata_version": "1",
@@ -896,7 +896,7 @@
     "created_by": "service-account-compliance",
     "updated_by": "service-account-compliance",
     "timeline_reference": {
-      "entity_id": "https://mxl-tams.phrame.live/flows/0be86180-b117-419e-b936-e613c578c663"
+      "entity_id": "https://aws-tads.live/flows/0be86180-b117-419e-b936-e613c578c663"
     },
     "tags": {},
     "metadata_version": "1",
@@ -915,7 +915,7 @@
     "created_by": "service-account-compliance",
     "updated_by": "service-account-compliance",
     "timeline_reference": {
-      "entity_id": "https://mxl-tams.phrame.live/flows/912d1c97-11a8-4839-aa37-4f38e8c11059"
+      "entity_id": "https://aws-tads.live/flows/912d1c97-11a8-4839-aa37-4f38e8c11059"
     },
     "tags": {},
     "metadata_version": "1",
@@ -934,7 +934,7 @@
     "created_by": "service-account-compliance",
     "updated_by": "service-account-compliance",
     "timeline_reference": {
-      "entity_id": "https://mxl-tams.phrame.live/flows/912d1c97-11a8-4839-aa37-4f38e8c11059"
+      "entity_id": "https://aws-tads.live/flows/912d1c97-11a8-4839-aa37-4f38e8c11059"
     },
     "tags": {},
     "metadata_version": "1",
@@ -953,7 +953,7 @@
     "created_by": "service-account-compliance",
     "updated_by": "service-account-compliance",
     "timeline_reference": {
-      "entity_id": "https://mxl-tams.phrame.live/flows/912d1c97-11a8-4839-aa37-4f38e8c11059"
+      "entity_id": "https://aws-tads.live/flows/912d1c97-11a8-4839-aa37-4f38e8c11059"
     },
     "tags": {},
     "metadata_version": "1",
@@ -972,7 +972,7 @@
     "created_by": "service-account-compliance",
     "updated_by": "service-account-compliance",
     "timeline_reference": {
-      "entity_id": "https://mxl-tams.phrame.live/flows/912d1c97-11a8-4839-aa37-4f38e8c11059"
+      "entity_id": "https://aws-tads.live/flows/912d1c97-11a8-4839-aa37-4f38e8c11059"
     },
     "tags": {},
     "metadata_version": "1",
@@ -990,7 +990,7 @@
     "description": "A heartbeat proving compliance-store was actively watching the stream, whether or not anything happened (design brief: 'receiving nothing' and 'not started' must be distinguishable, and today they are not). started/monitoring/stopped lifecycle -- see the schema's own `description` for the full contract.",
     "created_by": "service-account-compliance",
     "timeline_reference": {
-      "entity_id": "https://mxl-tams.phrame.live/flows/f1b801b1-8b04-4077-a3d7-f72b01cf68ed"
+      "entity_id": "https://aws-tads.live/flows/f1b801b1-8b04-4077-a3d7-f72b01cf68ed"
     },
     "tags": {},
     "metadata_version": "1",
@@ -1007,7 +1007,7 @@
     "description": "Programmes as the broadcaster declared them in the DVB Event Information Table -- the track that answers 'what was on air at 14:00' without demuxing the recording. Carries BOTH the declared start (editorial truth) and the observed instant (evidential truth); the event's timerange is the observed one. See the schema's own description for why.",
     "created_by": "service-account-compliance",
     "timeline_reference": {
-      "entity_id": "https://mxl-tams.phrame.live/flows/f1b801b1-8b04-4077-a3d7-f72b01cf68ed"
+      "entity_id": "https://aws-tads.live/flows/f1b801b1-8b04-4077-a3d7-f72b01cf68ed"
     },
     "tags": {},
     "metadata_version": "1",
@@ -1024,7 +1024,7 @@
     "description": "Discontinuities in the recorded TAMS flow, detected from consecutive segment timeranges (design sec 9: a correctness requirement, not telemetry).",
     "created_by": "service-account-compliance",
     "timeline_reference": {
-      "entity_id": "https://mxl-tams.phrame.live/flows/f1b801b1-8b04-4077-a3d7-f72b01cf68ed"
+      "entity_id": "https://aws-tads.live/flows/f1b801b1-8b04-4077-a3d7-f72b01cf68ed"
     },
     "tags": {},
     "metadata_version": "1",
@@ -1040,7 +1040,7 @@
     "description": "TR 101 290 transport-stream fault counter increments, from plugins/tsduck's Tr101290Collector via the estate's MQTT stats convention.",
     "created_by": "service-account-compliance",
     "timeline_reference": {
-      "entity_id": "https://mxl-tams.phrame.live/flows/f1b801b1-8b04-4077-a3d7-f72b01cf68ed"
+      "entity_id": "https://aws-tads.live/flows/f1b801b1-8b04-4077-a3d7-f72b01cf68ed"
     },
     "tags": {},
     "metadata_version": "1",
@@ -1058,7 +1058,7 @@
     "created_by": "service-account-compliance",
     "updated_by": "service-account-compliance",
     "timeline_reference": {
-      "entity_id": "https://mxl-tams.phrame.live/flows/7a84d1e2-261a-4a93-8bb6-5d7e73fd37c2"
+      "entity_id": "https://aws-tads.live/flows/7a84d1e2-261a-4a93-8bb6-5d7e73fd37c2"
     },
     "tags": {},
     "metadata_version": "1",
@@ -1077,7 +1077,7 @@
     "created_by": "service-account-compliance",
     "updated_by": "service-account-compliance",
     "timeline_reference": {
-      "entity_id": "https://mxl-tams.phrame.live/flows/7a84d1e2-261a-4a93-8bb6-5d7e73fd37c2"
+      "entity_id": "https://aws-tads.live/flows/7a84d1e2-261a-4a93-8bb6-5d7e73fd37c2"
     },
     "tags": {},
     "metadata_version": "1",
@@ -1096,7 +1096,7 @@
     "created_by": "service-account-compliance",
     "updated_by": "service-account-compliance",
     "timeline_reference": {
-      "entity_id": "https://mxl-tams.phrame.live/flows/7a84d1e2-261a-4a93-8bb6-5d7e73fd37c2"
+      "entity_id": "https://aws-tads.live/flows/7a84d1e2-261a-4a93-8bb6-5d7e73fd37c2"
     },
     "tags": {},
     "metadata_version": "1",
@@ -1114,7 +1114,7 @@
     "created_by": "service-account-compliance",
     "updated_by": "service-account-compliance",
     "timeline_reference": {
-      "entity_id": "https://mxl-tams.phrame.live/flows/7a84d1e2-261a-4a93-8bb6-5d7e73fd37c2"
+      "entity_id": "https://aws-tads.live/flows/7a84d1e2-261a-4a93-8bb6-5d7e73fd37c2"
     },
     "tags": {},
     "metadata_version": "1",
@@ -1133,7 +1133,7 @@
     "created_by": "service-account-compliance",
     "updated_by": "service-account-compliance",
     "timeline_reference": {
-      "entity_id": "https://mxl-tams.phrame.live/flows/f6d500b7-800b-4c3e-be80-f2f315e3ff4b"
+      "entity_id": "https://aws-tads.live/flows/f6d500b7-800b-4c3e-be80-f2f315e3ff4b"
     },
     "tags": {},
     "metadata_version": "1",
@@ -1152,7 +1152,7 @@
     "created_by": "service-account-compliance",
     "updated_by": "service-account-compliance",
     "timeline_reference": {
-      "entity_id": "https://mxl-tams.phrame.live/flows/f6d500b7-800b-4c3e-be80-f2f315e3ff4b"
+      "entity_id": "https://aws-tads.live/flows/f6d500b7-800b-4c3e-be80-f2f315e3ff4b"
     },
     "tags": {},
     "metadata_version": "1",
@@ -1171,7 +1171,7 @@
     "created_by": "service-account-compliance",
     "updated_by": "service-account-compliance",
     "timeline_reference": {
-      "entity_id": "https://mxl-tams.phrame.live/flows/f6d500b7-800b-4c3e-be80-f2f315e3ff4b"
+      "entity_id": "https://aws-tads.live/flows/f6d500b7-800b-4c3e-be80-f2f315e3ff4b"
     },
     "tags": {},
     "metadata_version": "1",
@@ -1189,7 +1189,7 @@
     "created_by": "service-account-compliance",
     "updated_by": "service-account-compliance",
     "timeline_reference": {
-      "entity_id": "https://mxl-tams.phrame.live/flows/f6d500b7-800b-4c3e-be80-f2f315e3ff4b"
+      "entity_id": "https://aws-tads.live/flows/f6d500b7-800b-4c3e-be80-f2f315e3ff4b"
     },
     "tags": {},
     "metadata_version": "1",
@@ -1208,7 +1208,7 @@
     "created_by": "service-account-compliance",
     "updated_by": "service-account-compliance",
     "timeline_reference": {
-      "entity_id": "https://mxl-tams.phrame.live/flows/6f576b37-7dca-40cf-8ee3-f29b055bd6fd"
+      "entity_id": "https://aws-tads.live/flows/6f576b37-7dca-40cf-8ee3-f29b055bd6fd"
     },
     "tags": {},
     "metadata_version": "1",
@@ -1227,7 +1227,7 @@
     "created_by": "service-account-compliance",
     "updated_by": "service-account-compliance",
     "timeline_reference": {
-      "entity_id": "https://mxl-tams.phrame.live/flows/6f576b37-7dca-40cf-8ee3-f29b055bd6fd"
+      "entity_id": "https://aws-tads.live/flows/6f576b37-7dca-40cf-8ee3-f29b055bd6fd"
     },
     "tags": {},
     "metadata_version": "1",
@@ -1246,7 +1246,7 @@
     "created_by": "service-account-compliance",
     "updated_by": "service-account-compliance",
     "timeline_reference": {
-      "entity_id": "https://mxl-tams.phrame.live/flows/6f576b37-7dca-40cf-8ee3-f29b055bd6fd"
+      "entity_id": "https://aws-tads.live/flows/6f576b37-7dca-40cf-8ee3-f29b055bd6fd"
     },
     "tags": {},
     "metadata_version": "1",
@@ -1264,7 +1264,7 @@
     "created_by": "service-account-compliance",
     "updated_by": "service-account-compliance",
     "timeline_reference": {
-      "entity_id": "https://mxl-tams.phrame.live/flows/6f576b37-7dca-40cf-8ee3-f29b055bd6fd"
+      "entity_id": "https://aws-tads.live/flows/6f576b37-7dca-40cf-8ee3-f29b055bd6fd"
     },
     "tags": {},
     "metadata_version": "1",
@@ -1283,7 +1283,7 @@
     "created_by": "service-account-compliance",
     "updated_by": "service-account-compliance",
     "timeline_reference": {
-      "entity_id": "https://mxl-tams.phrame.live/flows/291d56b4-3e87-41f0-9766-474bb00b5def"
+      "entity_id": "https://aws-tads.live/flows/291d56b4-3e87-41f0-9766-474bb00b5def"
     },
     "tags": {},
     "metadata_version": "1",
@@ -1302,7 +1302,7 @@
     "created_by": "service-account-compliance",
     "updated_by": "service-account-compliance",
     "timeline_reference": {
-      "entity_id": "https://mxl-tams.phrame.live/flows/291d56b4-3e87-41f0-9766-474bb00b5def"
+      "entity_id": "https://aws-tads.live/flows/291d56b4-3e87-41f0-9766-474bb00b5def"
     },
     "tags": {},
     "metadata_version": "1",
@@ -1321,7 +1321,7 @@
     "created_by": "service-account-compliance",
     "updated_by": "service-account-compliance",
     "timeline_reference": {
-      "entity_id": "https://mxl-tams.phrame.live/flows/291d56b4-3e87-41f0-9766-474bb00b5def"
+      "entity_id": "https://aws-tads.live/flows/291d56b4-3e87-41f0-9766-474bb00b5def"
     },
     "tags": {},
     "metadata_version": "1",
@@ -1339,7 +1339,7 @@
     "created_by": "service-account-compliance",
     "updated_by": "service-account-compliance",
     "timeline_reference": {
-      "entity_id": "https://mxl-tams.phrame.live/flows/291d56b4-3e87-41f0-9766-474bb00b5def"
+      "entity_id": "https://aws-tads.live/flows/291d56b4-3e87-41f0-9766-474bb00b5def"
     },
     "tags": {},
     "metadata_version": "1",
@@ -1358,7 +1358,7 @@
     "created_by": "service-account-compliance",
     "updated_by": "service-account-compliance",
     "timeline_reference": {
-      "entity_id": "https://mxl-tams.phrame.live/flows/2465ddb6-354c-4c0b-8ae3-e81b465d3a53"
+      "entity_id": "https://aws-tads.live/flows/2465ddb6-354c-4c0b-8ae3-e81b465d3a53"
     },
     "tags": {},
     "metadata_version": "1",
@@ -1377,7 +1377,7 @@
     "created_by": "service-account-compliance",
     "updated_by": "service-account-compliance",
     "timeline_reference": {
-      "entity_id": "https://mxl-tams.phrame.live/flows/2465ddb6-354c-4c0b-8ae3-e81b465d3a53"
+      "entity_id": "https://aws-tads.live/flows/2465ddb6-354c-4c0b-8ae3-e81b465d3a53"
     },
     "tags": {},
     "metadata_version": "1",
@@ -1396,7 +1396,7 @@
     "created_by": "service-account-compliance",
     "updated_by": "service-account-compliance",
     "timeline_reference": {
-      "entity_id": "https://mxl-tams.phrame.live/flows/2465ddb6-354c-4c0b-8ae3-e81b465d3a53"
+      "entity_id": "https://aws-tads.live/flows/2465ddb6-354c-4c0b-8ae3-e81b465d3a53"
     },
     "tags": {},
     "metadata_version": "1",
@@ -1414,7 +1414,7 @@
     "created_by": "service-account-compliance",
     "updated_by": "service-account-compliance",
     "timeline_reference": {
-      "entity_id": "https://mxl-tams.phrame.live/flows/2465ddb6-354c-4c0b-8ae3-e81b465d3a53"
+      "entity_id": "https://aws-tads.live/flows/2465ddb6-354c-4c0b-8ae3-e81b465d3a53"
     },
     "tags": {},
     "metadata_version": "1",
@@ -1433,7 +1433,7 @@
     "created_by": "service-account-compliance",
     "updated_by": "service-account-compliance",
     "timeline_reference": {
-      "entity_id": "https://mxl-tams.phrame.live/flows/c4d414c2-afef-420f-9f73-41dc86ca2819"
+      "entity_id": "https://aws-tads.live/flows/c4d414c2-afef-420f-9f73-41dc86ca2819"
     },
     "tags": {},
     "metadata_version": "1",
@@ -1452,7 +1452,7 @@
     "created_by": "service-account-compliance",
     "updated_by": "service-account-compliance",
     "timeline_reference": {
-      "entity_id": "https://mxl-tams.phrame.live/flows/c4d414c2-afef-420f-9f73-41dc86ca2819"
+      "entity_id": "https://aws-tads.live/flows/c4d414c2-afef-420f-9f73-41dc86ca2819"
     },
     "tags": {},
     "metadata_version": "1",
@@ -1471,7 +1471,7 @@
     "created_by": "service-account-compliance",
     "updated_by": "service-account-compliance",
     "timeline_reference": {
-      "entity_id": "https://mxl-tams.phrame.live/flows/c4d414c2-afef-420f-9f73-41dc86ca2819"
+      "entity_id": "https://aws-tads.live/flows/c4d414c2-afef-420f-9f73-41dc86ca2819"
     },
     "tags": {},
     "metadata_version": "1",
@@ -1489,7 +1489,7 @@
     "created_by": "service-account-compliance",
     "updated_by": "service-account-compliance",
     "timeline_reference": {
-      "entity_id": "https://mxl-tams.phrame.live/flows/c4d414c2-afef-420f-9f73-41dc86ca2819"
+      "entity_id": "https://aws-tads.live/flows/c4d414c2-afef-420f-9f73-41dc86ca2819"
     },
     "tags": {},
     "metadata_version": "1",
@@ -1508,7 +1508,7 @@
     "created_by": "service-account-compliance",
     "updated_by": "service-account-compliance",
     "timeline_reference": {
-      "entity_id": "https://mxl-tams.phrame.live/flows/fbda95b1-b86a-4039-894f-81106abe7880"
+      "entity_id": "https://aws-tads.live/flows/fbda95b1-b86a-4039-894f-81106abe7880"
     },
     "tags": {},
     "metadata_version": "1",
@@ -1527,7 +1527,7 @@
     "created_by": "service-account-compliance",
     "updated_by": "service-account-compliance",
     "timeline_reference": {
-      "entity_id": "https://mxl-tams.phrame.live/flows/fbda95b1-b86a-4039-894f-81106abe7880"
+      "entity_id": "https://aws-tads.live/flows/fbda95b1-b86a-4039-894f-81106abe7880"
     },
     "tags": {},
     "metadata_version": "1",
@@ -1546,7 +1546,7 @@
     "created_by": "service-account-compliance",
     "updated_by": "service-account-compliance",
     "timeline_reference": {
-      "entity_id": "https://mxl-tams.phrame.live/flows/fbda95b1-b86a-4039-894f-81106abe7880"
+      "entity_id": "https://aws-tads.live/flows/fbda95b1-b86a-4039-894f-81106abe7880"
     },
     "tags": {},
     "metadata_version": "1",
@@ -1564,7 +1564,7 @@
     "created_by": "service-account-compliance",
     "updated_by": "service-account-compliance",
     "timeline_reference": {
-      "entity_id": "https://mxl-tams.phrame.live/flows/fbda95b1-b86a-4039-894f-81106abe7880"
+      "entity_id": "https://aws-tads.live/flows/fbda95b1-b86a-4039-894f-81106abe7880"
     },
     "tags": {},
     "metadata_version": "1",
@@ -1582,7 +1582,7 @@
     "description": "Activity detected by metadata-extractor on the garden feeder camera. Annotates the TAMS flow of the same name.",
     "created_by": "service-account-compliance",
     "timeline_reference": {
-      "entity_id": "https://mxl-tams.phrame.live/flows/26c4d746-5b29-52aa-a5c7-1a8cf6efebfa"
+      "entity_id": "https://aws-tads.live/flows/26c4d746-5b29-52aa-a5c7-1a8cf6efebfa"
     },
     "tags": {},
     "metadata_version": "1",
@@ -1600,7 +1600,7 @@
     "created_by": "service-account-compliance",
     "updated_by": "service-account-compliance",
     "timeline_reference": {
-      "entity_id": "https://mxl-tams.phrame.live/flows/cf5c5407-5724-43a1-a77e-bd0c6d2446db"
+      "entity_id": "https://aws-tads.live/flows/cf5c5407-5724-43a1-a77e-bd0c6d2446db"
     },
     "tags": {},
     "metadata_version": "1",
@@ -1619,7 +1619,7 @@
     "created_by": "service-account-compliance",
     "updated_by": "service-account-compliance",
     "timeline_reference": {
-      "entity_id": "https://mxl-tams.phrame.live/flows/cf5c5407-5724-43a1-a77e-bd0c6d2446db"
+      "entity_id": "https://aws-tads.live/flows/cf5c5407-5724-43a1-a77e-bd0c6d2446db"
     },
     "tags": {},
     "metadata_version": "1",
@@ -1638,7 +1638,7 @@
     "created_by": "service-account-compliance",
     "updated_by": "service-account-compliance",
     "timeline_reference": {
-      "entity_id": "https://mxl-tams.phrame.live/flows/cf5c5407-5724-43a1-a77e-bd0c6d2446db"
+      "entity_id": "https://aws-tads.live/flows/cf5c5407-5724-43a1-a77e-bd0c6d2446db"
     },
     "tags": {},
     "metadata_version": "1",
@@ -1657,7 +1657,7 @@
     "created_by": "service-account-compliance",
     "updated_by": "service-account-compliance",
     "timeline_reference": {
-      "entity_id": "https://mxl-tams.phrame.live/flows/cf5c5407-5724-43a1-a77e-bd0c6d2446db"
+      "entity_id": "https://aws-tads.live/flows/cf5c5407-5724-43a1-a77e-bd0c6d2446db"
     },
     "tags": {},
     "metadata_version": "1",
@@ -1675,7 +1675,7 @@
     "description": "A heartbeat proving compliance-store was actively watching the stream, whether or not anything happened (design brief: 'receiving nothing' and 'not started' must be distinguishable, and today they are not). started/monitoring/stopped lifecycle -- see the schema's own `description` for the full contract.",
     "created_by": "service-account-compliance",
     "timeline_reference": {
-      "entity_id": "https://mxl-tams.phrame.live/flows/5143afef-2691-43b4-a877-fe27fbdf7905"
+      "entity_id": "https://aws-tads.live/flows/5143afef-2691-43b4-a877-fe27fbdf7905"
     },
     "tags": {},
     "metadata_version": "1",
@@ -1693,7 +1693,7 @@
     "created_by": "service-account-compliance",
     "updated_by": "service-account-compliance",
     "timeline_reference": {
-      "entity_id": "https://mxl-tams.phrame.live/flows/5143afef-2691-43b4-a877-fe27fbdf7905"
+      "entity_id": "https://aws-tads.live/flows/5143afef-2691-43b4-a877-fe27fbdf7905"
     },
     "tags": {},
     "metadata_version": "1",
@@ -1711,7 +1711,7 @@
     "created_by": "service-account-compliance",
     "updated_by": "service-account-compliance",
     "timeline_reference": {
-      "entity_id": "https://mxl-tams.phrame.live/flows/5143afef-2691-43b4-a877-fe27fbdf7905"
+      "entity_id": "https://aws-tads.live/flows/5143afef-2691-43b4-a877-fe27fbdf7905"
     },
     "tags": {},
     "metadata_version": "1",
