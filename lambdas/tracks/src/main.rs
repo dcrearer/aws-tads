@@ -73,7 +73,7 @@ async fn list_tracks(
         schema_id: q.get("schema_id").cloned(),
         entity_ids: q
             .get("timeline_reference.entity_id")
-            .map(|v| tads_http::query::parse_csv(v))
+            .map(|v| tads_http::query::parse_entity_ids(v))
             .unwrap_or_default(),
         editable_events: q
             .get("editable_events")
