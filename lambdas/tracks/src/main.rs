@@ -73,7 +73,7 @@ async fn list_tracks(
         schema_id: q.get("schema_id").cloned(),
         entity_ids: q
             .get("timeline_reference.entity_id")
-            .map(|v| tads_http::query::parse_csv(v))
+            .map(|v| tads_http::query::parse_entity_ids(v))
             .unwrap_or_default(),
         editable_events: q
             .get("editable_events")
@@ -107,6 +107,9 @@ async fn put_track(
         .parse()
         .map_err(|_| AppError::BadRequest(format!("invalid track id `{id}`")))?;
     body.id = tid;
+
+    // TADS AppNote 0001: a tams:// timeline_reference MUST NOT point at a specific TimeRange.
+    tads_domain::validate_timeline_reference(&body.timeline_reference)?;
 
     let now = Utc::now();
     // Server manages these; ignore any client-supplied values.

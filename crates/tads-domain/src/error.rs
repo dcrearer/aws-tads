@@ -17,4 +17,7 @@ pub enum DomainError {
 
     #[error("invalid payload schema: {0}")]
     InvalidSchema(String),
+
+    #[error("invalid timeline_reference: {0}")]
+    InvalidTimelineReference(String),
 }
