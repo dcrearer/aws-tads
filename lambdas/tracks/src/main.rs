@@ -108,6 +108,9 @@ async fn put_track(
         .map_err(|_| AppError::BadRequest(format!("invalid track id `{id}`")))?;
     body.id = tid;
 
+    // TADS AppNote 0001: a tams:// timeline_reference MUST NOT point at a specific TimeRange.
+    tads_domain::validate_timeline_reference(&body.timeline_reference)?;
+
     let now = Utc::now();
     // Server manages these; ignore any client-supplied values.
     body.events_updated = None;
