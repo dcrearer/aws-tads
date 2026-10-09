@@ -12,7 +12,7 @@ members = [
     "lambdas/webhooks",
     "lambdas/delete-requests",
     "lambdas/delete-worker",
-    "lambdas/webhook-dispatcher",
+    "lambdas/webhook",
     "lambdas/authorizer",
     "lambdas/migrate",
     # search-indexer retired: Postgres JSONB/SQL now serves search natively (no OpenSearch).

@@ -9,7 +9,7 @@ use lambda_runtime::{Error, LambdaEvent, service_fn};
 use serde_json::Value;
 use tads_domain::ErrorBody;
 use tads_http::connect_pool;
-use tads_lambda_webhook_dispatcher::DeliveryJob;
+use tads_lambda_webhook::DeliveryJob;
 use tads_store::WebhookRepo;
 
 #[tokio::main]
