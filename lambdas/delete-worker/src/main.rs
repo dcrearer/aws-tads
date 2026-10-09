@@ -28,11 +28,15 @@ async fn handle(state: AppState, event: LambdaEvent<Value>) -> Result<(), Error>
             tracing::warn!("SQS record missing string body; skipping");
             continue;
         };
-        if let Err(e) = process_request(&state, request_id).await {
+        match process_request(&state, request_id).await {
+            // The delete wrote outbox rows (events/track removed) — poke the relay to deliver.
+            Ok(()) => state.poke().await,
             // Record the failure on the request (best-effort) and log it. We don't propagate the
             // error, so one poisoned request doesn't fail the whole batch / redeliver endlessly.
-            tracing::error!(request_id, error = %e, "delete request failed");
-            mark_error(&state, request_id, &e.to_string()).await;
+            Err(e) => {
+                tracing::error!(request_id, error = %e, "delete request failed");
+                mark_error(&state, request_id, &e.to_string()).await;
+            }
         }
     }
     Ok(())

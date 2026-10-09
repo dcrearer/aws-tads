@@ -55,6 +55,14 @@ pub struct ServiceInfo {
 pub struct AppConfig {
     pub database: DatabaseSettings,
     pub delete_queue_url: String,
+    /// Webhook "poke" queue — mutation handlers nudge it after commit so the relay drains the
+    /// outbox promptly (replaces the EventBridge schedule). Absent ⇒ poke is skipped.
+    #[serde(default)]
+    pub poke_queue_url: Option<String>,
+    /// Webhook delivery queue — the relay fans out one message per (change × subscriber). Required
+    /// by the relay; unused elsewhere.
+    #[serde(default)]
+    pub delivery_queue_url: Option<String>,
     #[serde(default = "default_max_payload_bytes")]
     pub max_payload_bytes: usize,
     pub service: ServiceInfo,

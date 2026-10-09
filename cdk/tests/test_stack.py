@@ -20,10 +20,13 @@ def test_core_resource_counts():
     t = _template()
     # No DynamoDB — Aurora PostgreSQL is the system of record now.
     t.resource_count_is("AWS::DynamoDB::Table", 0)
-    # 10 Rust Lambdas: 6 HTTP handlers + delete-worker + webhook-dispatcher + authorizer + migrate.
-    # Count by runtime so CDK-managed helper Lambdas (Python/Node) don't skew the assertion.
-    t.resource_properties_count_is("AWS::Lambda::Function", {"Runtime": "provided.al2023"}, 10)
-    t.resource_count_is("AWS::SQS::Queue", 3)  # delete queue + delete DLQ + shared Lambda DLQ
+    # 12 Rust Lambdas: 6 HTTP handlers + delete-worker + webhook relay/delivery/dlq + authorizer
+    # + migrate. Count by runtime so CDK-managed helper Lambdas (Python/Node) don't skew it.
+    t.resource_properties_count_is("AWS::Lambda::Function", {"Runtime": "provided.al2023"}, 12)
+    # 7 queues: delete (+DLQ), shared Lambda DLQ, webhook poke (+DLQ), webhook delivery (+DLQ).
+    t.resource_count_is("AWS::SQS::Queue", 7)
+    # Webhook delivery is event-driven (poke -> relay -> delivery queue); no EventBridge schedule.
+    t.resource_count_is("AWS::Events::Rule", 0)
     t.resource_count_is("AWS::Cognito::UserPool", 1)
     t.resource_count_is("AWS::KMS::Key", 1)  # shared data-at-rest CMK
 

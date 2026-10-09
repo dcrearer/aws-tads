@@ -75,6 +75,28 @@ impl WebhookRepo {
         Ok(())
     }
 
+    /// Mark a webhook `error` with the given failure body, leaving `api_key_value` untouched (the
+    /// secret is preserved). Used by the DLQ handler once delivery retries are exhausted. Updates
+    /// both the `status` column and the `status`/`error` fields inside `doc`. Returns whether a row
+    /// matched.
+    pub async fn mark_error(
+        &self,
+        id: &str,
+        error: &tads_domain::ErrorBody,
+    ) -> Result<bool, StoreError> {
+        let err_json = serde_json::to_value(error).map_err(StoreError::serialization)?;
+        let res = sqlx::query(
+            "UPDATE webhook SET status = 'error', \
+             doc = jsonb_set(jsonb_set(doc, '{status}', '\"error\"'::jsonb), '{error}', $2) \
+             WHERE webhook_id = $1",
+        )
+        .bind(parse_uuid(id)?)
+        .bind(err_json)
+        .execute(&self.pool)
+        .await?;
+        Ok(res.rows_affected() > 0)
+    }
+
     pub async fn get(&self, id: &str) -> Result<Option<WebhookGet>, StoreError> {
         let row = sqlx::query("SELECT doc FROM webhook WHERE webhook_id = $1")
             .bind(parse_uuid(id)?)

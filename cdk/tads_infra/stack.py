@@ -5,13 +5,15 @@ Provisions, per the project design:
 - Aurora PostgreSQL Serverless v2 + RDS Proxy (TLS), credentials in Secrets Manager, CMK-encrypted
 - A one-off `migrate` Lambda (sqlx migrations) run via a CloudFormation custom resource
 - An SQS delete queue (+ DLQ) and a shared Lambda async-invocation DLQ
-- Rust Lambdas (`provided.al2023`, arm64): 6 HTTP handlers + delete-worker + outbox-driven
-  webhook-dispatcher (EventBridge-scheduled) + a custom Lambda authorizer (out of the VPC)
+- Rust Lambdas (`provided.al2023`, arm64): 6 HTTP handlers + delete-worker + the webhook delivery
+  pipeline (relay in-VPC, delivery out-of-VPC, dlq handler) + a custom Lambda authorizer (out of VPC)
 - An HTTP API Gateway fronted by the Lambda authorizer, with access logging
 - A customer-managed KMS CMK encrypting all data at rest
 
-The webhook/search change feed is a transactional **outbox** drained by the dispatcher (no
-DynamoDB Streams). Search is served natively by Postgres (no OpenSearch).
+The change feed is a transactional **outbox**: mutation handlers nudge a poke queue after commit;
+the relay drains the outbox and fans each change out to a delivery queue (one message per
+subscriber) with a DLQ — event-driven, no EventBridge schedule, no DynamoDB Streams. Search is
+served natively by Postgres (no OpenSearch).
 
 Lambda code is read from `target/lambda/<bin>/bootstrap` (build with `scripts/build-lambdas.sh`).
 Set `CDK_PLACEHOLDER=1` to synth without the binaries.
@@ -32,8 +34,6 @@ from aws_cdk import aws_apigatewayv2_authorizers as apigw_authz
 from aws_cdk import aws_apigatewayv2_integrations as apigw_integ
 from aws_cdk import aws_cognito as cognito
 from aws_cdk import aws_ec2 as ec2
-from aws_cdk import aws_events as events
-from aws_cdk import aws_events_targets as targets
 from aws_cdk import aws_iam as iam
 from aws_cdk import aws_kms as kms
 from aws_cdk import aws_lambda as lambda_
@@ -205,6 +205,53 @@ class TadsStack(Stack):
             encryption_master_key=self.key,
         )
 
+        # -- Webhook delivery pipeline (replaces the EventBridge-scheduled dispatcher) --
+        # Poke queue: a signal-only nudge sent by mutation handlers after commit; triggers the relay
+        # (no EventBridge timer). Its DLQ captures pokes the relay repeatedly fails to process.
+        self.webhook_poke_dlq = sqs.Queue(
+            self,
+            "WebhookPokeDLQ",
+            queue_name=f"{self.prefix}-webhook-poke-dlq",
+            retention_period=Duration.days(14),
+            enforce_ssl=True,
+            encryption=sqs.QueueEncryption.KMS,
+            encryption_master_key=self.key,
+        )
+        self.webhook_poke_queue = sqs.Queue(
+            self,
+            "WebhookPokeQueue",
+            queue_name=f"{self.prefix}-webhook-poke",
+            visibility_timeout=Duration.seconds(120),  # >= relay timeout
+            enforce_ssl=True,
+            encryption=sqs.QueueEncryption.KMS,
+            encryption_master_key=self.key,
+            dead_letter_queue=sqs.DeadLetterQueue(max_receive_count=5, queue=self.webhook_poke_dlq),
+        )
+        # Delivery queue: one message per (change x subscriber), built by the relay; consumed by the
+        # (out-of-VPC) delivery worker. Its DLQ triggers the dlq handler, which marks the webhook error.
+        self.webhook_delivery_dlq = sqs.Queue(
+            self,
+            "WebhookDeliveryDLQ",
+            queue_name=f"{self.prefix}-webhook-delivery-dlq",
+            visibility_timeout=Duration.seconds(60),  # >= dlq-handler timeout
+            retention_period=Duration.days(14),
+            enforce_ssl=True,
+            encryption=sqs.QueueEncryption.KMS,
+            encryption_master_key=self.key,
+        )
+        self.webhook_delivery_queue = sqs.Queue(
+            self,
+            "WebhookDeliveryQueue",
+            queue_name=f"{self.prefix}-webhook-delivery",
+            visibility_timeout=Duration.seconds(60),  # >= delivery timeout
+            enforce_ssl=True,
+            encryption=sqs.QueueEncryption.KMS,
+            encryption_master_key=self.key,
+            dead_letter_queue=sqs.DeadLetterQueue(
+                max_receive_count=5, queue=self.webhook_delivery_dlq
+            ),
+        )
+
     # -- Cognito (OAuth2 client_credentials, M2M) ---------------------------------------------
     def _build_auth(self) -> None:
         self.user_pool = cognito.UserPool(
@@ -252,6 +299,7 @@ class TadsStack(Stack):
             "TADS__DATABASE__USERNAME": DB_USER,
             "TADS__DATABASE__SECRET_ARN": self.db_secret.secret_arn,
             "TADS__DELETE_QUEUE_URL": self.delete_queue.queue_url,
+            "TADS__POKE_QUEUE_URL": self.webhook_poke_queue.queue_url,
             "TADS__SERVICE__TYPE": "urn:x-tads:service:reference.rust",
             "TADS__SERVICE__API_VERSION": "0.1",
             "TADS__SERVICE__NAME": "TADS Reference (Rust)",
@@ -317,8 +365,22 @@ class TadsStack(Stack):
         self.fn_delete_requests = self._make_fn("DeleteRequestsFn", "delete-requests")
 
         self.fn_delete_worker = self._make_fn("DeleteWorkerFn", "delete-worker", memory=512, timeout=120)
-        # Outbox-driven webhook dispatcher (EventBridge-scheduled; reads outbox + webhooks).
-        self.fn_dispatcher = self._make_fn("WebhookDispatcherFn", "webhook-dispatcher", memory=256, timeout=60)
+
+        # Webhook delivery pipeline (poke-driven; no EventBridge schedule):
+        #  relay (in-VPC): poke-triggered, drains the outbox and fans out onto the delivery queue.
+        self.fn_relay = self._make_fn(
+            "WebhookRelayFn",
+            "relay",
+            memory=256,
+            timeout=60,
+            extra_env={"TADS__DELIVERY_QUEUE_URL": self.webhook_delivery_queue.queue_url},
+        )
+        #  delivery (OUT of VPC): POSTs the callback to public HTTPS subscribers (no DB, no NAT).
+        self.fn_delivery = self._make_fn(
+            "WebhookDeliveryFn", "delivery", memory=256, timeout=30, in_vpc=False
+        )
+        #  dlq (in-VPC): marks a webhook `error` after its deliveries exhaust retries.
+        self.fn_webhook_dlq = self._make_fn("WebhookDlqFn", "dlq", memory=256, timeout=30)
 
         # Custom Lambda authorizer — OUT of the VPC (needs public egress to Cognito JWKS).
         self.fn_authorizer = self._make_fn(
@@ -340,15 +402,30 @@ class TadsStack(Stack):
         self.delete_queue.grant_send_messages(self.fn_tracks)
         self.delete_queue.grant_send_messages(self.fn_events)
 
+        # Webhook poke: every handler that commits a mutation nudges the relay.
+        for fn in (self.fn_schemas, self.fn_tracks, self.fn_events, self.fn_delete_worker):
+            self.webhook_poke_queue.grant_send_messages(fn)
+        # Relay fans out onto the delivery queue.
+        self.webhook_delivery_queue.grant_send_messages(self.fn_relay)
+
     # -- Event sources / schedules ------------------------------------------------------------
     def _wire_event_sources(self) -> None:
         self.fn_delete_worker.add_event_source(sources.SqsEventSource(self.delete_queue, batch_size=10))
-        # Drain the transactional outbox on a schedule (replaces DynamoDB Streams).
-        events.Rule(
-            self,
-            "DispatchSchedule",
-            schedule=events.Schedule.rate(Duration.minutes(1)),
-            targets=[targets.LambdaFunction(self.fn_dispatcher)],
+
+        # Webhook pipeline — all event-driven (no schedule):
+        #  poke -> relay (if the relay errors, the poke redelivers; its DLQ is the backstop).
+        self.fn_relay.add_event_source(
+            sources.SqsEventSource(self.webhook_poke_queue, batch_size=10)
+        )
+        #  delivery queue -> delivery worker (partial-batch failures so only failures retry -> DLQ).
+        self.fn_delivery.add_event_source(
+            sources.SqsEventSource(
+                self.webhook_delivery_queue, batch_size=10, report_batch_item_failures=True
+            )
+        )
+        #  delivery DLQ -> dlq handler (mark the webhook `error`).
+        self.fn_webhook_dlq.add_event_source(
+            sources.SqsEventSource(self.webhook_delivery_dlq, batch_size=10)
         )
 
     # -- Migrations (custom resource) ---------------------------------------------------------

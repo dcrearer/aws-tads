@@ -54,6 +54,10 @@ fn router(state: AppState) -> Router {
             "/tracks/{track_id}/editable_events",
             get(get_editable_events).put(put_editable_events),
         )
+        .layer(axum::middleware::from_fn_with_state(
+            state.clone(),
+            tads_http::poke_on_mutation,
+        ))
         .with_state(state)
 }
 

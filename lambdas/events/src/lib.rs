@@ -43,6 +43,10 @@ pub fn router(state: AppState) -> Router {
             "/tracks/{track_id}/events",
             get(list_events).post(post_events).delete(delete_events),
         )
+        .layer(axum::middleware::from_fn_with_state(
+            state.clone(),
+            tads_http::poke_on_mutation,
+        ))
         .with_state(state)
 }
 

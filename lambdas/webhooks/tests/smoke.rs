@@ -21,6 +21,8 @@ fn test_config() -> AppConfig {
             max_connections: 5,
         },
         delete_queue_url: "https://sqs.local/queue".into(),
+        poke_queue_url: None,
+        delivery_queue_url: None,
         max_payload_bytes: 360 * 1024,
         service: ServiceInfo {
             name: Some("test".into()),

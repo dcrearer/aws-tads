@@ -62,8 +62,10 @@ global_settings:
     - rule_id: CKV_AWS_117
       path: '**/cdk.out/TadsStack.template.json'
       reason: >-
-        Authorizer is intentionally not in the VPC (needs public egress to Cognito JWKS, no DB);
-        the remaining hits are CDK-managed deploy-time helper Lambdas.
+        Two app Lambdas are intentionally not in the VPC (both need public egress and touch no DB):
+        the authorizer (Cognito JWKS) and the webhook delivery worker (POSTs to public HTTPS
+        subscribers; the isolated VPC has no NAT). The remaining hits are CDK-managed deploy-time
+        helper Lambdas.
       expiration: "2027-01-04"
 
     # CKV_AWS_116/115/173 are satisfied by all application Lambdas (DLQ, reserved concurrency,

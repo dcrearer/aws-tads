@@ -1,10 +1,12 @@
 //! Transactional outbox — change-data-capture for Postgres (replaces DynamoDB Streams).
 //!
 //! Every resource mutation writes an outbox row in the **same transaction** as the data change
-//! (so capture is atomic — stronger than Streams). The `outbox-worker` Lambda drains rows and
-//! feeds them to the webhook dispatcher. A row carries exactly what the dispatcher needs to build
-//! a change: the op, the resource kind, the aggregate id, the new document (for insert/modify),
-//! and key fields (for removes).
+//! (so capture is atomic — stronger than Streams). The webhook **relay** Lambda claims undispatched
+//! rows, fans them out onto the delivery queue, and marks them dispatched **only after** the sends
+//! succeed — all within one transaction holding the row locks, so a crash before/ during the send
+//! rolls back and the rows are re-processed (at-least-once). A row carries exactly what the relay
+//! needs to build a change: the op, the resource kind, the aggregate id, the new document (for
+//! insert/modify), and key fields (for removes).
 
 use serde_json::{Value, json};
 use sqlx::{PgPool, Row};
@@ -64,23 +66,25 @@ impl OutboxRepo {
         Self { pool }
     }
 
-    /// Atomically claim up to `limit` undispatched rows (marking them dispatched) and return them.
-    /// `FOR UPDATE SKIP LOCKED` lets multiple workers run without contending. Mark-on-claim is
-    /// at-most-once on a worker crash mid-delivery; webhook delivery has its own retries.
-    pub async fn claim_batch(&self, limit: i64) -> Result<Vec<OutboxRow>, StoreError> {
+    /// Begin a transaction and claim up to `limit` undispatched rows with `FOR UPDATE SKIP LOCKED`
+    /// **without** marking them. The returned transaction holds the row locks (so concurrent relays
+    /// skip them); the caller sends the deliveries, then calls [`OutboxRepo::mark_dispatched`] and
+    /// commits. If the caller drops the transaction instead (crash / send failure), the rows stay
+    /// undispatched and are re-claimed on the next run — mark-after-send, at-least-once.
+    pub async fn claim_tx(
+        &self,
+        limit: i64,
+    ) -> Result<(sqlx::Transaction<'_, sqlx::Postgres>, Vec<OutboxRow>), StoreError> {
+        let mut tx = self.pool.begin().await?;
         let rows = sqlx::query(
-            "UPDATE outbox SET dispatched_at = now() \
-             WHERE id IN ( \
-                SELECT id FROM outbox WHERE dispatched_at IS NULL \
-                ORDER BY id LIMIT $1 FOR UPDATE SKIP LOCKED \
-             ) \
-             RETURNING id, op, resource, aggregate_id, doc, key_fields",
+            "SELECT id, op, resource, aggregate_id, doc, key_fields FROM outbox \
+             WHERE dispatched_at IS NULL ORDER BY id LIMIT $1 FOR UPDATE SKIP LOCKED",
         )
         .bind(limit)
-        .fetch_all(&self.pool)
+        .fetch_all(&mut *tx)
         .await?;
 
-        Ok(rows
+        let out = rows
             .into_iter()
             .map(|r| OutboxRow {
                 id: r.get("id"),
@@ -90,6 +94,23 @@ impl OutboxRepo {
                 doc: r.get("doc"),
                 key_fields: r.try_get("key_fields").unwrap_or_else(|_| json!({})),
             })
-            .collect())
+            .collect();
+        Ok((tx, out))
+    }
+
+    /// Mark the given rows dispatched on the claim transaction. Call after the deliveries have been
+    /// enqueued, then commit the transaction to release the locks and persist the marks.
+    pub async fn mark_dispatched(
+        tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
+        ids: &[i64],
+    ) -> Result<(), StoreError> {
+        if ids.is_empty() {
+            return Ok(());
+        }
+        sqlx::query("UPDATE outbox SET dispatched_at = now() WHERE id = ANY($1)")
+            .bind(ids)
+            .execute(&mut **tx)
+            .await?;
+        Ok(())
     }
 }
