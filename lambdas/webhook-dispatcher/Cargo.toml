@@ -8,9 +8,9 @@ rust-version.workspace = true
 [lib]
 path = "src/lib.rs"
 
-[[bin]]
-name = "webhook-dispatcher"
-path = "src/main.rs"
+# Three bins (src/bin/): relay (in-VPC, poke-triggered, drains the outbox and fans out onto the
+# delivery queue), delivery (out-of-VPC, POSTs the callback — no DB), dlq (in-VPC, marks a webhook
+# `error` after delivery retries are exhausted).
 
 [dependencies]
 tads-telemetry.workspace = true
@@ -20,10 +20,13 @@ tads-store.workspace = true
 lambda_runtime.workspace = true
 tokio.workspace = true
 tracing.workspace = true
+serde.workspace = true
 serde_json.workspace = true
 anyhow.workspace = true
 chrono.workspace = true
 reqwest.workspace = true
+aws-config.workspace = true
+aws-sdk-sqs.workspace = true
 
 [dev-dependencies]
 serde_json.workspace = true

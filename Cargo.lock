@@ -3743,9 +3743,12 @@ name = "tads-lambda-webhook-dispatcher"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "aws-config",
+ "aws-sdk-sqs",
  "chrono",
  "lambda_runtime 0.14.4",
  "reqwest",
+ "serde",
  "serde_json",
  "tads-domain",
  "tads-http",

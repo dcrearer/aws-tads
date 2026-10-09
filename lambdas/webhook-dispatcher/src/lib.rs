@@ -6,11 +6,11 @@
 //! functions (unit-tested); delivery + status updates are on [`Dispatcher`].
 
 use chrono::Utc;
-use reqwest::Client as HttpClient;
+use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 use tads_domain::tags::TagValue;
 use tads_domain::{Tags, WebhookEvent, WebhookGet, WebhookStatus};
-use tads_store::{OutboxRow, StoredWebhook, WebhookRepo};
+use tads_store::{OutboxRow, StoredWebhook};
 
 /// A derived webhook event plus the fields needed to apply subscription filters.
 #[derive(Clone, Debug)]
@@ -216,80 +216,40 @@ pub fn callback_body(change: &Change) -> Value {
     })
 }
 
-/// Delivers matched events to subscribers.
-#[derive(Clone)]
-pub struct Dispatcher {
-    repo: WebhookRepo,
-    http: HttpClient,
-    max_attempts: u32,
+/// A single webhook delivery unit — one per `(change × matching subscriber)`. Serialized onto the
+/// delivery SQS queue by the relay and consumed by the (out-of-VPC) delivery worker, so it is
+/// self-contained: it carries the subscriber `url`, the optional api-key header, and the fully
+/// built callback `body`. The delivery worker needs no database access. `event_id` is a stable
+/// idempotency key (the source outbox row id) a subscriber can dedupe on across retries/redeliveries.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct DeliveryJob {
+    pub webhook_id: String,
+    pub event_id: String,
+    pub url: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub api_key_name: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub api_key_value: Option<String>,
+    pub body: Value,
 }
 
-impl Dispatcher {
-    pub fn new(repo: WebhookRepo, http: HttpClient) -> Self {
-        Self {
-            repo,
-            http,
-            max_attempts: 3,
-        }
-    }
-
-    /// Process a batch of outbox rows: load subscriptions once, then fan out matches.
-    pub async fn dispatch(&self, rows: &[OutboxRow]) -> anyhow::Result<()> {
-        let webhooks = self.repo.list_all().await?;
-        if webhooks.is_empty() {
-            return Ok(());
-        }
-        for row in rows {
-            let Some(change) = from_outbox(row) else {
-                continue;
-            };
-            let body = callback_body(&change);
-            for stored in &webhooks {
-                if webhook_matches(&stored.webhook, &change) {
-                    self.deliver(stored, &body).await;
-                }
-            }
-        }
-        Ok(())
-    }
-
-    /// POST to one subscriber, retrying transient failures; drive the webhook to `error` if all
-    /// attempts fail.
-    async fn deliver(&self, stored: &StoredWebhook, body: &Value) {
-        let url = &stored.webhook.webhook.url;
-        let mut last_err = String::new();
-
-        for attempt in 1..=self.max_attempts {
-            let mut req = self.http.post(url).json(body);
-            if let (Some(name), Some(value)) =
-                (&stored.webhook.webhook.api_key_name, &stored.api_key_value)
-            {
-                req = req.header(name, value);
-            }
-            match req.send().await {
-                Ok(resp) if resp.status().is_success() => {
-                    tracing::info!(webhook_id = %stored.webhook.id, url, "delivered");
-                    return;
-                }
-                Ok(resp) => last_err = format!("subscriber returned {}", resp.status()),
-                Err(e) => last_err = e.to_string(),
-            }
-            tracing::warn!(webhook_id = %stored.webhook.id, attempt, error = %last_err, "delivery attempt failed");
-        }
-
-        tracing::error!(webhook_id = %stored.webhook.id, url, error = %last_err, "delivery failed; marking webhook error");
-        let mut errored = stored.clone();
-        errored.webhook.status = WebhookStatus::Error;
-        errored.webhook.error = Some(tads_domain::ErrorBody {
-            kind: "delivery_failed".to_string(),
-            summary: last_err,
-            traceback: None,
-            time: Utc::now(),
-        });
-        if let Err(e) = self.repo.put_stored(&errored).await {
-            tracing::error!(webhook_id = %stored.webhook.id, error = %e, "failed to persist error status");
-        }
-    }
+/// Fan a change out to one [`DeliveryJob`] per matching subscription (per-subscriber isolation, so a
+/// dead endpoint fails/DLQs on its own without affecting healthy ones). `event_id` is the source
+/// outbox row id, used as the delivery idempotency key.
+pub fn build_jobs(change: &Change, event_id: &str, webhooks: &[StoredWebhook]) -> Vec<DeliveryJob> {
+    let body = callback_body(change);
+    webhooks
+        .iter()
+        .filter(|w| webhook_matches(&w.webhook, change))
+        .map(|w| DeliveryJob {
+            webhook_id: w.webhook.id.to_string(),
+            event_id: event_id.to_string(),
+            url: w.webhook.webhook.url.clone(),
+            api_key_name: w.webhook.webhook.api_key_name.clone(),
+            api_key_value: w.api_key_value.clone(),
+            body: body.clone(),
+        })
+        .collect()
 }
 
 #[cfg(test)]
@@ -388,5 +348,111 @@ mod tests {
         let mut filtered = active.clone();
         filtered.webhook.editable_events = Some(false);
         assert!(!webhook_matches(&filtered, &change));
+    }
+
+    fn stored(
+        url: &str,
+        events: Vec<WebhookEvent>,
+        status: WebhookStatus,
+        key: Option<&str>,
+    ) -> StoredWebhook {
+        use tads_domain::{TadsId, Webhook};
+        StoredWebhook {
+            webhook: WebhookGet {
+                id: TadsId::new_v4(),
+                webhook: Webhook {
+                    url: url.into(),
+                    api_key_name: key.map(|_| "x-api-key".into()),
+                    events,
+                    schema_ids: None,
+                    track_ids: None,
+                    timeline_reference_entity_id: None,
+                    editable_events: None,
+                    tags: Tags::default(),
+                },
+                status,
+                error: None,
+            },
+            api_key_value: key.map(str::to_string),
+        }
+    }
+
+    #[test]
+    fn build_jobs_fans_out_one_per_matching_subscriber() {
+        let change = from_outbox(&track_insert_row()).unwrap();
+        let subs = vec![
+            stored(
+                "https://a",
+                vec![WebhookEvent::TracksCreated],
+                WebhookStatus::Created,
+                Some("secret-a"),
+            ),
+            stored(
+                "https://b",
+                vec![WebhookEvent::TracksCreated],
+                WebhookStatus::Started,
+                None,
+            ),
+        ];
+        let jobs = build_jobs(&change, "42", &subs);
+        assert_eq!(jobs.len(), 2);
+        assert_eq!(jobs[0].url, "https://a");
+        assert_eq!(jobs[0].event_id, "42");
+        assert_eq!(jobs[0].api_key_name.as_deref(), Some("x-api-key"));
+        assert_eq!(jobs[0].api_key_value.as_deref(), Some("secret-a"));
+        assert_eq!(jobs[0].body["event_type"], "tracks/created");
+        assert!(jobs[0].body.get("event").is_some());
+        // second subscriber has no api key
+        assert_eq!(jobs[1].url, "https://b");
+        assert!(jobs[1].api_key_value.is_none());
+    }
+
+    #[test]
+    fn build_jobs_excludes_nonmatching_and_inactive() {
+        let change = from_outbox(&track_insert_row()).unwrap();
+        let subs = vec![
+            stored(
+                "https://wrong-event",
+                vec![WebhookEvent::SchemasCreated],
+                WebhookStatus::Created,
+                None,
+            ),
+            stored(
+                "https://disabled",
+                vec![WebhookEvent::TracksCreated],
+                WebhookStatus::Disabled,
+                None,
+            ),
+            stored(
+                "https://errored",
+                vec![WebhookEvent::TracksCreated],
+                WebhookStatus::Error,
+                None,
+            ),
+            stored(
+                "https://good",
+                vec![WebhookEvent::TracksCreated],
+                WebhookStatus::Created,
+                None,
+            ),
+        ];
+        let jobs = build_jobs(&change, "7", &subs);
+        assert_eq!(jobs.len(), 1);
+        assert_eq!(jobs[0].url, "https://good");
+    }
+
+    #[test]
+    fn delivery_job_roundtrips_json() {
+        let change = from_outbox(&track_insert_row()).unwrap();
+        let subs = vec![stored(
+            "https://a",
+            vec![WebhookEvent::TracksCreated],
+            WebhookStatus::Created,
+            Some("k"),
+        )];
+        let job = &build_jobs(&change, "99", &subs)[0];
+        let wire = serde_json::to_string(job).unwrap();
+        let back: DeliveryJob = serde_json::from_str(&wire).unwrap();
+        assert_eq!(&back, job);
     }
 }

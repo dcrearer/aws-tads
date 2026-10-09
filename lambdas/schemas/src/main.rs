@@ -45,6 +45,10 @@ fn router(state: AppState) -> Router {
                 .put(put_external_id)
                 .delete(delete_external_id),
         )
+        .layer(axum::middleware::from_fn_with_state(
+            state.clone(),
+            tads_http::poke_on_mutation,
+        ))
         .with_state(state)
 }
 
