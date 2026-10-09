@@ -20,8 +20,10 @@ rather than offloaded — large data belongs in TAMS, not TADS.
 "Search by the data itself" is served **natively** by Postgres — timerange overlap via an
 `int8range` GiST index (`tr && window`) and payload/tag/entity filtering via SQL/JSONB — so no
 separate search system is needed. Change notifications (webhooks) ride a **transactional outbox**:
-each mutation writes an outbox row in the same transaction, and a scheduled `webhook-dispatcher`
-drains it (replacing the DynamoDB-Streams design).
+each mutation writes an outbox row in the same transaction and nudges a **poke** queue; a `relay`
+drains the outbox and fans each change out to a **delivery** queue (one message per subscriber),
+POSTed out-of-VPC with SQS retries + a DLQ — event-driven, no schedule (replacing the
+DynamoDB-Streams design).
 
 ```
                         API Gateway HTTP API  ── Lambda authorizer (Cognito access token)
@@ -30,7 +32,8 @@ drains it (replacing the DynamoDB-Streams design).
                          │                         │              │
               Aurora PG (via RDS Proxy)            SQS ─▶ delete-worker
                          │  (writes also append an `outbox` row, in-tx)
-                   outbox table ──(EventBridge schedule)──▶ webhook-dispatcher ─▶ subscriber URLs
+   outbox ─(poke)─▶ relay ─▶ delivery queue ─▶ delivery (out-of-VPC) ─▶ subscriber URLs
+                                                     └─(retries exhausted)─▶ DLQ ─▶ dlq handler
 ```
 
 Everything DB-touching runs inside an isolated VPC (no NAT) with interface endpoints; the
@@ -48,9 +51,10 @@ authorizer stays outside the VPC (it only needs Cognito JWKS over the internet).
 ### Lambdas (`lambdas/*`)
 
 Request handlers: `service`, `schemas`, `tracks`, `events`, `webhooks`, `delete-requests`.
-Async workers: `delete-worker` (SQS-triggered) and `webhook-dispatcher` (EventBridge-scheduled;
-drains the outbox). `authorizer` is the HTTP API's custom Lambda authorizer (verifies the Cognito
-access token). `migrate` runs the sqlx migrations via a CloudFormation custom resource on deploy.
+Async workers: `delete-worker` (SQS-triggered); and the webhook pipeline — `relay` (poke-triggered,
+drains the outbox), `delivery` (delivery-queue-triggered, out-of-VPC POST), `dlq` (marks a webhook
+`error` after retries exhaust). `authorizer` is the HTTP API's custom Lambda authorizer (verifies the
+Cognito access token). `migrate` runs the sqlx migrations via a CloudFormation custom resource on deploy.
 Each binary is named `bootstrap` for the Lambda custom runtime.
 
 ## Status
@@ -65,19 +69,21 @@ cursor pagination with `X-Paging-*`/`Link` headers, central error handling, obse
   Events on the track), deletes the Track if `delete_track`. Idempotent on SQS redelivery.
 - **`webhooks` CRUD.** `POST/GET/PUT/DELETE /service/webhooks[/{id}]` with tag filters +
   pagination. `api_key_value` is write-only (accepted, stored out-of-band, never returned).
-- **`webhook-dispatcher`.** Outbox-driven, EventBridge-scheduled: claims undispatched outbox rows
-  (`FOR UPDATE SKIP LOCKED`), maps each to a webhook event, matches subscription filters (`events`,
-  `track_ids`, `schema_ids`, `editable_events`, `timeline_reference.entity_id`, `tags`), POSTs the
-  callback with the `api_key_name` header (reqwest), retries, and drives the webhook to `error` on
-  persistent failure.
+- **Webhook delivery pipeline (poke-driven).** After a mutation commits, handlers nudge a poke
+  queue; the `relay` claims undispatched outbox rows (`FOR UPDATE SKIP LOCKED`, marked dispatched
+  only *after* enqueue), maps each to a webhook event, matches subscription filters (`events`,
+  `track_ids`, `schema_ids`, `editable_events`, `timeline_reference.entity_id`, `tags`), and fans
+  out one **delivery-queue** message per matching subscriber. The out-of-VPC `delivery` worker POSTs
+  the callback with the `api_key_name` header (reqwest); SQS retries with backoff and routes
+  exhausted messages to a DLQ, where the `dlq` handler drives that webhook to `error`. No schedule.
 - **Granular property sub-resources.** `/tags`, `/tags/{name}`, `/description`, `/label` (and
   `/external_id` for schemas; `/read_only`, `/allow_overlaps`, `/editable_events` for tracks)
   GET/PUT/DELETE. Track mutations respect `read_only` (except the `read_only` toggle).
 
-**Deployed and validated end-to-end on AWS.** One refinement remains: the `allow_overlaps=true`
-overlap-conflict check. (The old "event-id GSI for moved timeranges" refinement is resolved — the
-`track_event` primary key is `(track_id, event_id)`, so re-posting at a new timerange updates in
-place.)
+**Deployed and validated end-to-end on AWS.** The `allow_overlaps=false` conflict check (409 when a
+track with overlapping Events disables overlaps) and the moved-timerange handling are both resolved —
+the `track_event` primary key is `(track_id, event_id)`, so re-posting at a new timerange updates in
+place.
 
 ## Persistent store (PostgreSQL)
 
@@ -92,7 +98,7 @@ overlap index. Migrations live in [`crates/tads-store/migrations`](crates/tads-s
 | `track_event` | `(track_id, event_id)` | `tr int8range` with a **GiST** `(track_id, tr)` overlap index; `start_ns`/`end_ns`; Events over `max_payload_bytes` → 413 |
 | `webhook` | `webhook_id` | write-only `api_key_value` column |
 | `track_delete_request` | `request_id` | `expiry` swept by the delete-worker |
-| `outbox` | `id` | change-capture rows drained by the dispatcher |
+| `outbox` | `id` | change-capture rows drained by the webhook relay |
 
 Timerange query returns every Event overlapping `[a, b)` with a single GiST index scan:
 `WHERE track_id = $1 AND tr && int8range($lo, $hi, '[)')`. Listings keyset-paginate on
@@ -140,13 +146,15 @@ TADS_TEST_DB="postgres://postgres:postgres@localhost:55432/tads" cargo test
 
 Infrastructure is defined as **AWS CDK (Python, uv-managed)** in [`cdk/`](cdk/). It provisions an
 **isolated VPC** (no NAT) with interface endpoints (Secrets Manager, SQS, KMS, STS); **Aurora
-PostgreSQL Serverless v2** (CMK-encrypted) behind **RDS Proxy** (TLS); the SQS queue + DLQ + shared
-Lambda async-DLQ; 10 Rust Lambdas (arm64 `provided.al2023`, X-Ray active tracing — 6 HTTP handlers,
-`delete-worker`, `webhook-dispatcher`, `authorizer`, `migrate`); an HTTP API Gateway behind the
-**custom Lambda authorizer**; a Cognito **resource server + hosted domain + machine-to-machine
-OAuth2 client** (`client_credentials`); a customer-managed KMS CMK; least-privilege IAM; an
-EventBridge schedule driving the dispatcher; and a custom resource that runs the DB migrations. The
-DB-touching Lambdas run in the VPC; the authorizer stays outside it. (Aurora **16.4 is not offered
+PostgreSQL Serverless v2** (CMK-encrypted) behind **RDS Proxy** (TLS); the SQS delete queue + DLQ,
+the webhook poke/delivery queues + DLQs, and the shared Lambda async-DLQ; 12 Rust Lambdas (arm64
+`provided.al2023`, X-Ray active tracing — 6 HTTP handlers, `delete-worker`, the webhook
+`relay`/`delivery`/`dlq`, `authorizer`, `migrate`); an HTTP API Gateway behind the **custom Lambda
+authorizer**; a Cognito **resource server + hosted domain + machine-to-machine OAuth2 client**
+(`client_credentials`); a customer-managed KMS CMK; least-privilege IAM; SQS event-source mappings
+wiring the webhook pipeline (no EventBridge schedule); and a custom resource that runs the DB
+migrations. The DB-touching Lambdas run in the VPC; the authorizer and the webhook `delivery` worker
+stay outside it (both need public egress and touch no DB). (Aurora **16.4 is not offered
 in us-east-1** — the stack pins **16.15**.)
 
 ```sh

@@ -1,9 +1,10 @@
-//! Webhook-dispatcher library (transactional-outbox-driven).
+//! Shared library for the webhook delivery pipeline (transactional-outbox-driven).
 //!
 //! Maps an outbox row (written in the same transaction as a resource mutation) to a TADS webhook
-//! event, matches it against each registered subscription's filters, and POSTs the callback body
-//! to the subscriber `url` with the `api_key_name` header. Pure mapping/matching lives in free
-//! functions (unit-tested); delivery + status updates are on [`Dispatcher`].
+//! [`Change`], matches it against each registered subscription's filters, and fans a change out to
+//! one [`DeliveryJob`] per matching subscriber. These pure functions are unit-tested and shared by
+//! the three bins: `relay` (drains the outbox, builds jobs), `delivery` (POSTs each job), and `dlq`
+//! (marks a webhook `error` after delivery retries are exhausted).
 
 use chrono::Utc;
 use serde::{Deserialize, Serialize};

@@ -1,7 +1,8 @@
 //! Webhooks Lambda library — subscription CRUD (`/service/webhooks/**`).
 //!
-//! Delivery is handled separately by the webhook-dispatcher (DynamoDB Streams). This Lambda owns
-//! registration: create/list/get/replace/delete. `api_key_value` is write-only — accepted on
+//! Delivery is handled separately by the webhook relay/delivery pipeline (poke-driven outbox).
+//! This Lambda owns registration: create/list/get/replace/delete. `api_key_value` is write-only —
+//! accepted on
 //! POST/PUT, stored out-of-band, and never returned in a `WebhookGet`. The router is exposed as a
 //! library so it can be driven directly in integration tests.
 
@@ -105,7 +106,9 @@ async fn delete_webhook(
 }
 
 /// Build the stored/GET form from a POST/PUT body. A `disabled` request stays disabled; anything
-/// else starts in `created`. (The dispatcher later drives `started`/`error`.)
+/// else starts in `created`. (A webhook whose deliveries exhaust retries is later driven to
+/// `error` by the delivery DLQ handler; `started` is accepted as an active status but not
+/// currently assigned by the pipeline.)
 fn to_webhook_get(id: TadsId, post: WebhookPost) -> WebhookGet {
     let status = match post.status {
         Some(WebhookStatus::Disabled) => WebhookStatus::Disabled,

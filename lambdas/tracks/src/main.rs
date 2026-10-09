@@ -17,7 +17,7 @@ use tads_http::error::ApiResult;
 use tads_http::{AppError, AppState, PagingHeaders, Principal};
 use tads_store::TrackQuery;
 
-/// How long a completed delete-request record is retained (DynamoDB TTL).
+/// How long a completed delete-request record is retained before it expires.
 const DELETE_REQUEST_TTL_DAYS: i64 = 7;
 
 fn router(state: AppState) -> Router {
