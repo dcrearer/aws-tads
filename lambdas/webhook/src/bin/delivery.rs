@@ -8,7 +8,7 @@
 
 use lambda_runtime::{Error, LambdaEvent, service_fn};
 use serde_json::{Value, json};
-use tads_lambda_webhook_dispatcher::DeliveryJob;
+use tads_lambda_webhook::DeliveryJob;
 
 #[tokio::main]
 async fn main() -> Result<(), Error> {

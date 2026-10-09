@@ -9,7 +9,7 @@
 use lambda_runtime::{Error, LambdaEvent, service_fn};
 use serde_json::Value;
 use tads_http::connect_pool;
-use tads_lambda_webhook_dispatcher::{DeliveryJob, build_jobs, from_outbox};
+use tads_lambda_webhook::{DeliveryJob, build_jobs, from_outbox};
 use tads_store::{OutboxRepo, WebhookRepo};
 
 /// Outbox rows claimed per transaction.

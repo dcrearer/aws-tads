@@ -1,5 +1,5 @@
 [package]
-name = "tads-lambda-webhook-dispatcher"
+name = "tads-lambda-webhook"
 edition.workspace = true
 version.workspace = true
 license.workspace = true

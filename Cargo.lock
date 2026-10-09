@@ -3730,7 +3730,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "tads-lambda-webhook-dispatcher"
+name = "tads-lambda-webhook"
 version = "0.1.0"
 dependencies = [
  "aws-sdk-sqs",
