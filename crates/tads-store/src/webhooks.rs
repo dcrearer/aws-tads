@@ -1,9 +1,9 @@
 //! Webhook subscription persistence (`webhook` table).
 //!
 //! Row layout: `webhook_id` (PK), `doc` jsonb (the `WebhookGet`, which by schema never contains
-//! `api_key_value`), a `status` column, and a separate `api_key_value` column the dispatcher
-//! reads to set the subscriber's auth header. Keeping the secret in its own column keeps it out
-//! of GET responses; moving it to Secrets Manager is a hardening follow-up.
+//! `api_key_value`), a `status` column, and a separate `api_key_value` column the relay reads to
+//! build each delivery job's auth header. Keeping the secret in its own column keeps it out of GET
+//! responses; moving it to Secrets Manager is a hardening follow-up.
 
 use serde_json::{Value, json};
 use sqlx::{PgPool, QueryBuilder, Row};
@@ -20,8 +20,8 @@ pub struct WebhookQuery {
     pub tag_exists: Vec<String>,
 }
 
-/// A stored webhook plus its write-only API key value — returned only to the dispatcher. Never
-/// serialized to API clients.
+/// A stored webhook plus its write-only API key value — returned only to the relay (which builds
+/// the delivery jobs). Never serialized to API clients.
 #[derive(Debug, Clone)]
 pub struct StoredWebhook {
     pub webhook: WebhookGet,
@@ -51,8 +51,8 @@ impl WebhookRepo {
         .await
     }
 
-    /// Upsert a webhook together with its API key (the dispatcher updates status without losing
-    /// the stored secret).
+    /// Upsert a webhook together with its API key (used by create/replace). Status-to-`error` is
+    /// handled separately by [`WebhookRepo::mark_error`], which preserves the stored secret.
     pub async fn put_stored(&self, stored: &StoredWebhook) -> Result<(), StoreError> {
         let doc = serde_json::to_value(&stored.webhook).map_err(StoreError::serialization)?;
         let status = serde_json::to_value(stored.webhook.status)
@@ -105,7 +105,7 @@ impl WebhookRepo {
         row.map(|r| from_doc(r.get("doc"))).transpose()
     }
 
-    /// All webhooks with their API keys — used by the dispatcher to match change events.
+    /// All webhooks with their API keys — used by the relay to match change events.
     pub async fn list_all(&self) -> Result<Vec<StoredWebhook>, StoreError> {
         let rows = sqlx::query("SELECT doc, api_key_value FROM webhook")
             .fetch_all(&self.pool)

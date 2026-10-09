@@ -3602,7 +3602,6 @@ dependencies = [
  "config",
  "http 1.5.0",
  "lambda_http",
- "lambda_runtime 0.14.4",
  "percent-encoding",
  "serde",
  "serde_json",
@@ -3611,8 +3610,6 @@ dependencies = [
  "tads-store",
  "tads-telemetry",
  "thiserror",
- "tokio",
- "tower 0.5.3",
  "tracing",
 ]
 
@@ -3637,8 +3634,6 @@ version = "0.1.0"
 dependencies = [
  "axum",
  "lambda_http",
- "serde_json",
- "tads-domain",
  "tads-http",
  "tads-store",
  "tokio",
@@ -3655,7 +3650,6 @@ dependencies = [
  "serde_json",
  "tads-domain",
  "tads-http",
- "tads-store",
  "tads-telemetry",
  "tokio",
  "tracing",
@@ -3702,7 +3696,6 @@ dependencies = [
  "axum",
  "chrono",
  "lambda_http",
- "serde_json",
  "tads-domain",
  "tads-http",
  "tads-store",
@@ -3720,7 +3713,6 @@ dependencies = [
  "tads-domain",
  "tads-http",
  "tokio",
- "tracing",
 ]
 
 [[package]]
@@ -3730,7 +3722,6 @@ dependencies = [
  "axum",
  "chrono",
  "lambda_http",
- "serde_json",
  "tads-domain",
  "tads-http",
  "tads-store",
@@ -3742,8 +3733,6 @@ dependencies = [
 name = "tads-lambda-webhook-dispatcher"
 version = "0.1.0"
 dependencies = [
- "anyhow",
- "aws-config",
  "aws-sdk-sqs",
  "chrono",
  "lambda_runtime 0.14.4",
@@ -3785,13 +3774,11 @@ dependencies = [
  "base64 0.22.1",
  "chrono",
  "criterion",
- "serde",
  "serde_json",
  "sqlx",
  "tads-domain",
  "thiserror",
  "tokio",
- "tracing",
  "uuid",
 ]
 
@@ -3800,7 +3787,6 @@ name = "tads-telemetry"
 version = "0.1.0"
 dependencies = [
  "serde_json",
- "tracing",
  "tracing-subscriber",
 ]
 

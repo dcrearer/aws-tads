@@ -44,7 +44,7 @@ pub async fn write(
     Ok(())
 }
 
-/// A claimed outbox row, shaped for the dispatcher adapter.
+/// A claimed outbox row, shaped for the relay's change-mapping (`from_outbox`).
 #[derive(Debug, Clone)]
 pub struct OutboxRow {
     pub id: i64,

@@ -64,7 +64,7 @@ CREATE TABLE track_delete_request (
 CREATE INDEX track_delete_request_expiry_idx ON track_delete_request (expiry);
 
 -- Transactional outbox: each resource mutation writes a row here in the SAME transaction as the
--- data change. The outbox-worker drains undispatched rows into the webhook dispatcher.
+-- data change. The webhook relay claims undispatched rows and fans them out to the delivery queue.
 CREATE TABLE outbox (
     id            bigserial PRIMARY KEY,
     op            text NOT NULL,      -- insert | modify | remove

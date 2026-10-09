@@ -13,9 +13,6 @@ tads-telemetry.workspace = true
 axum.workspace = true
 http.workspace = true
 lambda_http.workspace = true
-lambda_runtime.workspace = true
-tower.workspace = true
-tokio.workspace = true
 
 serde.workspace = true
 serde_json.workspace = true

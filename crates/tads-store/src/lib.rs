@@ -3,7 +3,7 @@
 //! Each aggregate is a table whose authoritative column is `doc jsonb` (the serialized domain
 //! object), with scalar/`int8range` columns projected for keys, filters, and the timerange GiST
 //! overlap index. Repositories hold a `sqlx::PgPool` (and the delete-request repo an SQS client).
-//! Change-data-capture uses a transactional [`outbox`] drained by the `outbox-worker` Lambda
+//! Change-data-capture uses a transactional [`outbox`] drained by the webhook `relay` Lambda
 //! (replacing DynamoDB Streams); the outbox row is written in the same transaction as the data
 //! change, so capture is atomic. Rich list filtering (tags/entity/timerange) is pushed into SQL
 //! and JSONB predicates, which also delivers the spec's "search by the data" pillar natively.

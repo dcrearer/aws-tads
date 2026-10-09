@@ -1,9 +1,9 @@
 //! CPU hot-path benchmarks for the domain layer.
 //!
 //! These measure the *local* per-event work the events handler does. They cannot measure
-//! DynamoDB latency or partition throughput (that needs a load test against a real table) — in
-//! fact the overlap bench exists to show the in-memory part is negligible, so the real cost of
-//! the overlap check is the DynamoDB query, not the CPU.
+//! Postgres latency or throughput (that needs a load test against a real database) — in fact the
+//! overlap bench exists to show the in-memory part is negligible, so the real cost of the overlap
+//! check is the Postgres GiST query, not the CPU.
 //!
 //! The headline is `validate/compile_each_event` vs `validate/reuse_validator`: our
 //! `validate_payload` compiles the JSON Schema on every call, so a batched POST recompiles the
