@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "VU Transcript Segment",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["text"],
+  "properties": {
+    "text": { "type": "string", "minLength": 1 },
+    "language": { "type": "string", "description": "BCP-47, e.g. en-US" },
+    "speaker": { "type": "string" },
+    "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
+    "words": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["text", "start", "end"],
+        "properties": {
+          "text": { "type": "string" },
+          "start": { "type": "number", "description": "seconds on the media timeline" },
+          "end": { "type": "number", "description": "seconds on the media timeline" },
+          "confidence": { "type": "number", "minimum": 0, "maximum": 1 }
+        }
+      }
+    },
+    "provenance": { "$ref": "#/$defs/provenance" }
+  },
+  "$defs": {
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "model": { "type": "string" },
+        "model_version": { "type": "string" },
+        "generated_at": { "type": "string", "format": "date-time" },
+        "source": { "type": "string", "description": "e.g. tams:// proxy flow analysed" }
+      }
+    }
+  }
+}
