@@ -24,7 +24,9 @@ members = [
     "crates/vu-tams",
     "crates/vu-media",
     "crates/vu-infer",
+    "crates/vu-config",
     "lambdas/analyzer",
+    "lambdas/webhook-receiver",
 ]
 
 [workspace.package]
@@ -46,6 +48,7 @@ vu-tads = { path = "crates/vu-tads" }
 vu-tams = { path = "crates/vu-tams" }
 vu-media = { path = "crates/vu-media" }
 vu-infer = { path = "crates/vu-infer" }
+vu-config = { path = "crates/vu-config" }
 
 # Web framework + Lambda runtime
 axum = "0.8.1"

@@ -39,5 +39,11 @@ inference:
   tams_token_url: ""
   tams_secret_arn: ""
   tams_scope: ""
+  # analyzer
   bedrock_model_id: ""
   frames_per_second: 1.0
+  # webhook-receiver
+  work_queue_url: ""
+  tams_entity_base: ""        # e.g. tams://tams.example.com  -> timeline_reference.entity_id
+  webhook_secret_arn: ""      # inbound TAMS shared secret (empty = verification disabled, dev only)
+  webhook_header: "x-api-key"

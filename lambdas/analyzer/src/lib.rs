@@ -7,7 +7,6 @@
 
 use std::path::PathBuf;
 
-use serde::Deserialize;
 use tads_domain::{TadsId, Timestamp, TrackEventPost};
 use vu_domain::{AnalysisType, Provenance, derive_track_id, to_event_post};
 use vu_infer::{AnalysisContext, DetectedUnit, KeyMomentAnalyzer};
@@ -39,45 +38,7 @@ pub enum AnalyzerError {
     Io(#[from] std::io::Error),
 }
 
-/// Inference-side configuration (`inference:` section of the YAML; `TADS__INFERENCE__*` overrides).
-#[derive(Debug, Clone, Deserialize)]
-pub struct InferenceConfig {
-    pub tads_base_url: String,
-    pub tads_token_url: String,
-    pub tads_secret_arn: String,
-    #[serde(default = "default_tads_scope")]
-    pub tads_scope: String,
-    pub tams_token_url: String,
-    pub tams_secret_arn: String,
-    #[serde(default)]
-    pub tams_scope: String,
-    pub bedrock_model_id: String,
-    #[serde(default = "default_fps")]
-    pub frames_per_second: f32,
-}
-
-fn default_tads_scope() -> String {
-    "tads-api/write".to_string()
-}
-fn default_fps() -> f32 {
-    1.0
-}
-
-impl InferenceConfig {
-    /// Load the `inference` section (YAML file layered under `TADS__` env overrides).
-    pub fn load() -> Result<Self, config::ConfigError> {
-        let path = std::env::var("TADS_CONFIG").unwrap_or_else(|_| "config/default.yaml".into());
-        config::Config::builder()
-            .add_source(config::File::with_name(&path).required(false))
-            .add_source(
-                config::Environment::with_prefix("TADS")
-                    .separator("__")
-                    .try_parsing(true),
-            )
-            .build()?
-            .get::<InferenceConfig>("inference")
-    }
-}
+pub use vu_config::InferenceConfig;
 
 /// Parse an SQS record body into the TAMS `flows/segments_added` event the analyzer processes.
 pub fn parse_job(body: &str) -> Result<SegmentsAddedEvent, serde_json::Error> {
