@@ -125,7 +125,10 @@ pub struct TrackEvent {
 
 /// POST form of a Track Event (`track-event-post.json`). `id` optional (assigned if omitted;
 /// supplying it targets an existing Event for edit/replace — POST is an upsert).
-#[derive(Debug, Clone, PartialEq, Deserialize)]
+///
+/// `Serialize` is derived so clients (e.g. the `vu-*` inference write path) can build and send this
+/// as a POST body; the store itself only deserializes it.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct TrackEventPost {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub id: Option<TadsId>,
@@ -134,13 +137,16 @@ pub struct TrackEventPost {
 }
 
 /// `track-event-post-responses.json` — per-event outcome of a (possibly batched) POST.
-#[derive(Debug, Clone, PartialEq, Serialize)]
+///
+/// `Deserialize` is derived so clients (the `vu-*` write path) can parse the POST response and act
+/// on per-event `400`s; the store only serializes it.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct EventPostResponses {
     pub all_successful: bool,
     pub responses: Vec<EventPostResponse>,
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct EventPostResponse {
     pub http_status_code: u16,
     #[serde(skip_serializing_if = "Option::is_none")]
