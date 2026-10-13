@@ -24,6 +24,7 @@ members = [
     "crates/vu-tams",
     "crates/vu-media",
     "crates/vu-infer",
+    "lambdas/analyzer",
 ]
 
 [workspace.package]

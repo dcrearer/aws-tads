@@ -27,3 +27,17 @@ service:
   type: "urn:x-tads:service:reference.rust"
   api_version: "0.1"
   service_version: "0.1.0"
+
+# Video-understanding inference (analyzer / webhook-receiver Lambdas). Endpoints, OAuth client-cred
+# secret ARNs, and the Bedrock model are set per-environment by the CDK stack via
+# TADS__INFERENCE__<KEY>. Client secrets live in Secrets Manager, never here.
+inference:
+  tads_base_url: ""
+  tads_token_url: ""
+  tads_secret_arn: ""
+  tads_scope: "tads-api/write"
+  tams_token_url: ""
+  tams_secret_arn: ""
+  tams_scope: ""
+  bedrock_model_id: ""
+  frames_per_second: 1.0
