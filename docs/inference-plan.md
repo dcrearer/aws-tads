@@ -355,8 +355,25 @@ query UX is needed.
   model-access request may be needed.
 - **Latency** — per-segment inference + media fetch vs near-live expectations; tune batch size and
   analyzer concurrency; consider provisioned concurrency if cold starts dominate.
-- **Cross-segment buffering** — where the sentence/topic buffer lives and how it flushes
-  (in-memory per invocation vs a small state store).
+- **Cross-segment buffering** — where the sentence/topic buffer lives and how it flushes. The buffer
+  is a tiny per-flow record (open units from the tail of segment S), keyed by `flow_id`, read-modified-
+  written once per segment, short-lived (TTL), and rebuildable (losing it just splits a boundary-
+  spanning unit — degraded, not broken). It is **exact-key KV, not a search or memory problem.**
+  - **Decision for v1: don't build a store.** Process each segment independently (as the analyzer does
+    now) and rely on the idempotent ids. Key-moments are short and usually sit inside a 2–6 s segment,
+    so boundary-spanning is the exception — measure how often it actually matters before adding infra.
+  - **If buffering is needed:** SQS **FIFO** (`MessageGroupId = flow_id`) + a **DynamoDB** per-flow item
+    with TTL. FIFO serializes a flow's segments so the buffer is trivial last-writer-wins (no locking);
+    DynamoDB gives serverless, VPC-free, TTL'd scratch state. S3-with-conditional-writes is the fallback
+    if we won't reintroduce DynamoDB (coarser TTL, higher latency). **The FIFO choice is a CDK/queue-
+    layer decision — make it before standing up the queue, not after.** Aurora/Redis are rejected: both
+    are VPC-bound, and the analyzer is deliberately VPC-free with TADS as its only boundary.
+  - **Rejected tools (don't re-litigate):** an *embedded* vector DB fails twice — embedded ⇒ not
+    persistent across invocations, and vector ⇒ approximate similarity search, the wrong model for an
+    exact-key RMW. **AgentCore Memory** is also wrong here: the pipeline is a locked non-agent (§4.1),
+    and its async LLM-mediated memory consolidation is the wrong consistency/granularity for a tight
+    per-segment handoff. Vector stores and AgentCore Memory belong in **Phase C** (the read/query side,
+    §12) where semantic retrieval and conversation context actually live — not in this write path.
 - **Backpressure / cost** — a busy flow can fan out many segments; SQS + reserved concurrency bound it.
 - **Routing** — if a single VU handles multiple analysis types, how a flow maps to type(s)
   (flow `format`/`tags`) → which `external_id`(s).
