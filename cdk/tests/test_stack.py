@@ -20,11 +20,13 @@ def test_core_resource_counts():
     t = _template()
     # No DynamoDB — Aurora PostgreSQL is the system of record now.
     t.resource_count_is("AWS::DynamoDB::Table", 0)
-    # 12 Rust Lambdas: 6 HTTP handlers + delete-worker + webhook relay/delivery/dlq + authorizer
-    # + migrate. Count by runtime so CDK-managed helper Lambdas (Python/Node) don't skew it.
-    t.resource_properties_count_is("AWS::Lambda::Function", {"Runtime": "provided.al2023"}, 12)
-    # 7 queues: delete (+DLQ), shared Lambda DLQ, webhook poke (+DLQ), webhook delivery (+DLQ).
-    t.resource_count_is("AWS::SQS::Queue", 7)
+    # 14 Rust Lambdas: 6 HTTP handlers + delete-worker + webhook relay/delivery/dlq + authorizer
+    # + migrate + vu-webhook + vu-analysis-worker. Count by runtime so CDK-managed helper Lambdas
+    # (Python/Node) don't skew it.
+    t.resource_properties_count_is("AWS::Lambda::Function", {"Runtime": "provided.al2023"}, 14)
+    # 9 queues: delete (+DLQ), shared Lambda DLQ, webhook poke (+DLQ), webhook delivery (+DLQ),
+    # analysis (+DLQ).
+    t.resource_count_is("AWS::SQS::Queue", 9)
     # Webhook delivery is event-driven (poke -> relay -> delivery queue); no EventBridge schedule.
     t.resource_count_is("AWS::Events::Rule", 0)
     t.resource_count_is("AWS::Cognito::UserPool", 1)
@@ -43,8 +45,9 @@ def test_aurora_cluster_with_proxy_in_vpc():
             "ServerlessV2ScalingConfiguration": assertions.Match.any_value(),
         },
     )
-    # The RDS-generated credentials live in a Secrets Manager secret.
-    t.resource_count_is("AWS::SecretsManager::Secret", 1)
+    # 2 secrets: the RDS-generated DB credentials + the TAMS webhook HMAC key. (TAMS/TADS OAuth
+    # credentials are supplied inline via config/env, not Secrets Manager.)
+    t.resource_count_is("AWS::SecretsManager::Secret", 2)
 
 
 def test_sqs_encrypted_with_cmk():
@@ -133,4 +136,40 @@ def test_api_uses_lambda_authorizer():
     t.has_resource_properties(
         "AWS::ApiGatewayV2::Authorizer",
         {"AuthorizerType": "REQUEST", "EnableSimpleResponses": True},
+    )
+
+
+def test_vu_pipeline_functions_present():
+    t = _template()
+    for name in ("tads-test-vu-webhook", "tads-test-vu-analysis-worker"):
+        t.has_resource_properties("AWS::Lambda::Function", {"FunctionName": name})
+
+
+def test_vu_worker_can_invoke_bedrock():
+    t = _template()
+    t.has_resource_properties(
+        "AWS::IAM::Policy",
+        {
+            "PolicyDocument": {
+                "Statement": assertions.Match.array_with(
+                    [
+                        assertions.Match.object_like(
+                            {"Action": "bedrock:InvokeModel", "Effect": "Allow"}
+                        )
+                    ]
+                )
+            }
+        },
+    )
+
+
+def test_tams_webhook_route_is_unauthenticated():
+    t = _template()
+    # The segments-added route carries no AuthorizerId (HMAC-verified in the handler instead).
+    t.has_resource_properties(
+        "AWS::ApiGatewayV2::Route",
+        {
+            "RouteKey": "POST /webhooks/tams/segments-added",
+            "AuthorizationType": "NONE",
+        },
     )
