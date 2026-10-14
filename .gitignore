@@ -19,3 +19,11 @@ cdk/.pytest_cache/
 
 # Insomnia collection (local workspace export; env-specific edits not tracked)
 /insomnia/TADS.insomnia.yaml
+
+# VU pipeline runtime config — may hold inline OAuth client secrets; keep out of version control.
+# Track config/vu.example.yaml as the placeholder template instead.
+/config/vu.yaml
+
+# Local VU dry-run payload — contains ephemeral pre-signed media URLs (temporary creds). Track the
+# segments_added.example.json template instead.
+/lambdas/vu-analysis-worker/examples/segments_added.json

@@ -63,3 +63,16 @@ class Messaging(Construct):
                 max_receive_count=5, queue=self.webhook_delivery_dlq
             ),
         )
+
+        # -- Video-understanding analysis pipeline --
+        # Analysis queue: one message per TAMS segments_added webhook, enqueued by the receiver and
+        # consumed by the (out-of-VPC) analysis worker. Visibility >= the worker timeout (300s).
+        self.analysis_dlq = queue(
+            "AnalysisDLQ", f"{prefix}-analysis-dlq", retention_period=Duration.days(14)
+        )
+        self.analysis_queue = queue(
+            "AnalysisQueue",
+            f"{prefix}-analysis",
+            visibility_timeout=Duration.seconds(360),  # >= worker timeout
+            dead_letter_queue=sqs.DeadLetterQueue(max_receive_count=5, queue=self.analysis_dlq),
+        )

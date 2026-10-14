@@ -1,0 +1,15 @@
+{
+  "event_type": "flows/segments_added",
+  "flow_id": "REPLACE-WITH-A-REAL-TAMS-FLOW-ID",
+  "source_id": "REPLACE-WITH-THE-SOURCE-ID (or omit to resolve via GET /flows/{id})",
+  "segments": [
+    {
+      "object_id": "REPLACE-WITH-SEGMENT-OBJECT-ID",
+      "timerange": "[0:0_3:3000000)",
+      "get_urls": [
+        { "url": "https://bucket/raw-object", "label": "aws.us-east-1:s3:tams" },
+        { "url": "https://bucket/presigned-url?...", "presigned": true, "label": "aws.us-east-1:s3.presigned:tams" }
+      ]
+    }
+  ]
+}
