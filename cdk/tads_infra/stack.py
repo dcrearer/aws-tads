@@ -29,6 +29,7 @@ from .compute import Compute
 from .database import Database
 from .keys import Keys
 from .messaging import Messaging
+from .monitoring import Monitoring
 from .network import Network
 
 
@@ -53,6 +54,16 @@ class TadsStack(Stack):
             auth=self.auth,
         )
         self.api = Api(self, "Api", prefix=prefix, key=self.keys.key, compute=self.compute)
+        self.monitoring = Monitoring(
+            self,
+            "Monitoring",
+            prefix=prefix,
+            key=self.keys.key,
+            messaging=self.messaging,
+            database=self.database,
+            compute=self.compute,
+            api=self.api,
+        )
 
         self._outputs()
 

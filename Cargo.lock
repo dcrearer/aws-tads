@@ -3587,6 +3587,7 @@ dependencies = [
  "serde",
  "serde_json",
  "thiserror",
+ "url",
  "uuid",
 ]
 
@@ -3745,6 +3746,7 @@ dependencies = [
  "tads-telemetry",
  "tokio",
  "tracing",
+ "url",
 ]
 
 [[package]]

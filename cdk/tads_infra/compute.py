@@ -64,7 +64,7 @@ class Compute(Construct):
         *,
         memory: int = 256,
         timeout: int = 30,
-        reserved_concurrency: int = 20,
+        reserved_concurrency: int | None = 20,  # None => unreserved (uses the shared account pool)
         in_vpc: bool = True,
         extra_env: dict | None = None,
     ) -> lambda_.Function:
@@ -105,14 +105,24 @@ class Compute(Construct):
         return fn
 
     def _build_functions(self) -> None:
-        self.fn_service = self._make_fn("ServiceFn", "service")
-        self.fn_schemas = self._make_fn("SchemasFn", "schemas")
-        self.fn_tracks = self._make_fn("TracksFn", "tracks")
-        self.fn_events = self._make_fn("EventsFn", "events")
-        self.fn_webhooks = self._make_fn("WebhooksFn", "webhooks")
-        self.fn_delete_requests = self._make_fn("DeleteRequestsFn", "delete-requests")
+        # Reserved concurrency on every DB-touching Lambda caps how many can run — and therefore
+        # how many RDS Proxy connections can be demanded — at once. Total DB-connection pressure is
+        # bounded by (count of DB Lambdas) x db_conc; keep that under the Aurora `max_connections`
+        # at the serverless_v2 floor. Tunable with `-c db_lambda_concurrency=<n>`.
+        db_conc = int(self.node.try_get_context("db_lambda_concurrency") or 10)
 
-        self.fn_delete_worker = self._make_fn("DeleteWorkerFn", "delete-worker", memory=512, timeout=120)
+        self.fn_service = self._make_fn("ServiceFn", "service", reserved_concurrency=db_conc)
+        self.fn_schemas = self._make_fn("SchemasFn", "schemas", reserved_concurrency=db_conc)
+        self.fn_tracks = self._make_fn("TracksFn", "tracks", reserved_concurrency=db_conc)
+        self.fn_events = self._make_fn("EventsFn", "events", reserved_concurrency=db_conc)
+        self.fn_webhooks = self._make_fn("WebhooksFn", "webhooks", reserved_concurrency=db_conc)
+        self.fn_delete_requests = self._make_fn(
+            "DeleteRequestsFn", "delete-requests", reserved_concurrency=db_conc
+        )
+
+        self.fn_delete_worker = self._make_fn(
+            "DeleteWorkerFn", "delete-worker", memory=512, timeout=120, reserved_concurrency=db_conc
+        )
 
         # Webhook delivery pipeline (poke-driven; no EventBridge schedule):
         #  relay (in-VPC): poke-triggered, drains the outbox and fans out onto the delivery queue.
@@ -121,6 +131,7 @@ class Compute(Construct):
             "relay",
             memory=256,
             timeout=60,
+            reserved_concurrency=db_conc,
             extra_env={"TADS__DELIVERY_QUEUE_URL": self.messaging.webhook_delivery_queue.queue_url},
         )
         #  delivery (OUT of VPC): POSTs the callback to public HTTPS subscribers (no DB, no NAT).
@@ -128,15 +139,20 @@ class Compute(Construct):
             "WebhookDeliveryFn", "delivery", memory=256, timeout=30, in_vpc=False
         )
         #  dlq (in-VPC): marks a webhook `error` after its deliveries exhaust retries.
-        self.fn_webhook_dlq = self._make_fn("WebhookDlqFn", "dlq", memory=256, timeout=30)
+        self.fn_webhook_dlq = self._make_fn(
+            "WebhookDlqFn", "dlq", memory=256, timeout=30, reserved_concurrency=db_conc
+        )
 
-        # Custom Lambda authorizer — OUT of the VPC (needs public egress to Cognito JWKS).
+        # Custom Lambda authorizer — OUT of the VPC (needs public egress to Cognito JWKS). Left
+        # UNRESERVED: it holds no DB connection, and a low cap here would throttle authorization
+        # (and thus all API traffic) under a request burst.
         stack = Stack.of(self)
         self.fn_authorizer = self._make_fn(
             "AuthorizerFn",
             "authorizer",
             memory=256,
             timeout=10,
+            reserved_concurrency=None,
             in_vpc=False,
             extra_env={
                 "TADS_JWT_ISSUER": f"https://cognito-idp.{stack.region}.amazonaws.com/{self.auth.user_pool.user_pool_id}",

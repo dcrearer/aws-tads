@@ -82,9 +82,9 @@ impl From<DomainError> for AppError {
             DomainError::InvalidTimeRange { .. } | DomainError::InvalidUuid(_) => {
                 AppError::BadRequest(e.to_string())
             }
-            DomainError::InvalidSchema(_) | DomainError::InvalidTimelineReference(_) => {
-                AppError::BadRequest(e.to_string())
-            }
+            DomainError::InvalidSchema(_)
+            | DomainError::InvalidTimelineReference(_)
+            | DomainError::InvalidWebhookUrl(_) => AppError::BadRequest(e.to_string()),
             DomainError::PayloadValidation(_) => AppError::Validation(e.to_string()),
         }
     }
