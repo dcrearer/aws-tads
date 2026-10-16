@@ -141,8 +141,11 @@ async fn put_track(
 
     // Can't disable overlaps on a track that already contains overlapping Events (on create there
     // are none, so this is a no-op). The write path enforces the flag for new Events separately.
+    // TADS v0.1 mandates `400` here. (The spec text literally names the `->true` transition, which
+    // is self-inconsistent — it would leave `allow_overlaps=false` coexisting with overlaps — so we
+    // guard the `->false` transition, the self-consistent reading, and return the spec's `400`.)
     if !body.allow_overlaps && state.events.has_overlaps(&id).await? {
-        return Err(AppError::Conflict(
+        return Err(AppError::BadRequest(
             "cannot set allow_overlaps=false: track already has overlapping Events".into(),
         ));
     }
@@ -377,8 +380,9 @@ async fn put_allow_overlaps(
     let mut track = load(&state, &id).await?;
     let ro = track.read_only;
     // Disabling overlaps is only allowed when no two Events currently overlap on this track.
+    // TADS v0.1 mandates `400` for this rejection (see put_track for the direction note).
     if !value && state.events.has_overlaps(&id).await? {
-        return Err(AppError::Conflict(
+        return Err(AppError::BadRequest(
             "cannot set allow_overlaps=false: track already has overlapping Events".into(),
         ));
     }

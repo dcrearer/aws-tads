@@ -1,6 +1,10 @@
-//! JSON-Schema validation of Event payloads against a Track's Payload Schema.
+//! JSON-Schema validation of Event payloads against a Track's Payload Schema, plus
+//! timeline-reference and webhook-URL validation.
+
+use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
 
 use serde_json::Value;
+use url::{Host, Url};
 
 use crate::error::DomainError;
 use crate::models::TimelineReference;
@@ -74,6 +78,77 @@ pub fn validate_timeline_reference(tr: &TimelineReference) -> Result<(), DomainE
         }
     }
     Ok(())
+}
+
+/// True if `ip` must never be a webhook delivery destination: loopback, private (RFC1918),
+/// link-local (incl. the cloud metadata endpoint `169.254.169.254`), carrier-grade NAT, the
+/// unspecified/broadcast addresses, multicast, documentation/benchmark ranges, or the IPv6
+/// equivalents (ULA `fc00::/7`, link-local `fe80::/10`). This is the core SSRF control: it is
+/// applied to IP literals at registration and to every resolved address at delivery time.
+pub fn is_blocked_ip(ip: IpAddr) -> bool {
+    match ip {
+        IpAddr::V4(v4) => is_blocked_v4(v4),
+        // Treat an IPv4-mapped v6 address (`::ffff:a.b.c.d`) as its underlying v4 address.
+        IpAddr::V6(v6) => match v6.to_ipv4_mapped() {
+            Some(v4) => is_blocked_v4(v4),
+            None => is_blocked_v6(v6),
+        },
+    }
+}
+
+fn is_blocked_v4(ip: Ipv4Addr) -> bool {
+    let [a, b, ..] = ip.octets();
+    ip.is_private()
+        || ip.is_loopback()
+        || ip.is_link_local()
+        || ip.is_unspecified()
+        || ip.is_broadcast()
+        || ip.is_multicast()
+        || ip.is_documentation()
+        // Carrier-grade NAT 100.64.0.0/10 (no stable std predicate).
+        || (a == 100 && (64..=127).contains(&b))
+}
+
+fn is_blocked_v6(ip: Ipv6Addr) -> bool {
+    let first = ip.segments()[0];
+    ip.is_loopback()
+        || ip.is_unspecified()
+        || ip.is_multicast()
+        || (first & 0xfe00) == 0xfc00 // unique-local fc00::/7
+        || (first & 0xffc0) == 0xfe80 // link-local fe80::/10
+}
+
+/// Validate a webhook subscriber URL at registration (SSRF control, step 1 of 2).
+///
+/// Enforces **https** and rejects URLs whose host is an IP literal in a [blocked range](is_blocked_ip)
+/// or an obvious loopback name. Hostnames are not resolved here (DNS can change, and resolution is
+/// I/O) — the delivery worker re-resolves and re-checks every address before each POST, which also
+/// defends against DNS-rebinding. Returns [`DomainError::InvalidWebhookUrl`] (→ `400`).
+pub fn validate_webhook_url(raw: &str) -> Result<(), DomainError> {
+    let blocked = |msg: String| Err(DomainError::InvalidWebhookUrl(msg));
+    let url =
+        Url::parse(raw).map_err(|e| DomainError::InvalidWebhookUrl(format!("`{raw}`: {e}")))?;
+
+    if url.scheme() != "https" {
+        return blocked(format!("`{raw}`: webhook url must use https"));
+    }
+    match url.host() {
+        None => blocked(format!("`{raw}`: url has no host")),
+        Some(Host::Ipv4(ip)) if is_blocked_ip(IpAddr::V4(ip)) => blocked(format!(
+            "`{raw}`: host {ip} is in a disallowed (private/link-local) range"
+        )),
+        Some(Host::Ipv6(ip)) if is_blocked_ip(IpAddr::V6(ip)) => blocked(format!(
+            "`{raw}`: host {ip} is in a disallowed (private/link-local) range"
+        )),
+        Some(Host::Domain(d)) => {
+            let d = d.to_ascii_lowercase();
+            if d == "localhost" || d.ends_with(".localhost") || d == "metadata.google.internal" {
+                return blocked(format!("`{raw}`: host {d} is not a permitted destination"));
+            }
+            Ok(())
+        }
+        Some(_) => Ok(()),
+    }
 }
 
 #[cfg(test)]
@@ -196,5 +271,61 @@ mod tests {
     #[test]
     fn allows_opaque_non_uri_entity_id() {
         assert!(validate_timeline_reference(&tref("my-local-asset-42")).is_ok());
+    }
+
+    // --- webhook URL / SSRF validation ---
+
+    #[test]
+    fn accepts_public_https_webhook_url() {
+        assert!(validate_webhook_url("https://hooks.example.com/tads").is_ok());
+    }
+
+    #[test]
+    fn rejects_non_https_webhook_url() {
+        let err = validate_webhook_url("http://hooks.example.com/tads").unwrap_err();
+        assert!(matches!(err, DomainError::InvalidWebhookUrl(_)));
+    }
+
+    #[test]
+    fn rejects_metadata_and_private_ip_literals() {
+        for url in [
+            "https://169.254.169.254/latest/meta-data/", // cloud metadata (link-local)
+            "https://127.0.0.1/hook",                    // loopback
+            "https://10.0.0.5/hook",                     // RFC1918
+            "https://192.168.1.1/hook",                  // RFC1918
+            "https://172.16.0.1/hook",                   // RFC1918
+            "https://[::1]/hook",                        // IPv6 loopback
+            "https://[fd00::1]/hook",                    // IPv6 ULA
+            "https://100.64.0.1/hook",                   // CGNAT
+            "https://[::ffff:127.0.0.1]/hook",           // IPv4-mapped loopback
+        ] {
+            assert!(
+                matches!(
+                    validate_webhook_url(url),
+                    Err(DomainError::InvalidWebhookUrl(_))
+                ),
+                "expected {url} to be rejected"
+            );
+        }
+    }
+
+    #[test]
+    fn rejects_localhost_name() {
+        assert!(matches!(
+            validate_webhook_url("https://localhost/hook"),
+            Err(DomainError::InvalidWebhookUrl(_))
+        ));
+    }
+
+    #[test]
+    fn is_blocked_ip_classifies_ranges() {
+        use std::net::IpAddr;
+        assert!(is_blocked_ip("169.254.169.254".parse::<IpAddr>().unwrap()));
+        assert!(is_blocked_ip("10.1.2.3".parse::<IpAddr>().unwrap()));
+        assert!(is_blocked_ip("::1".parse::<IpAddr>().unwrap()));
+        assert!(!is_blocked_ip("8.8.8.8".parse::<IpAddr>().unwrap()));
+        assert!(!is_blocked_ip(
+            "2606:4700:4700::1111".parse::<IpAddr>().unwrap()
+        ));
     }
 }

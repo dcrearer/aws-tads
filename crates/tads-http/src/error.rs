@@ -22,8 +22,6 @@ pub enum AppError {
     #[error("{0}")]
     Forbidden(String),
     #[error("{0}")]
-    Conflict(String),
-    #[error("{0}")]
     Validation(String),
     #[error("{0}")]
     PayloadTooLarge(String),
@@ -37,7 +35,6 @@ impl AppError {
             AppError::NotFound(_) => StatusCode::NOT_FOUND,
             AppError::BadRequest(_) => StatusCode::BAD_REQUEST,
             AppError::Forbidden(_) => StatusCode::FORBIDDEN,
-            AppError::Conflict(_) => StatusCode::CONFLICT,
             AppError::Validation(_) => StatusCode::BAD_REQUEST,
             AppError::PayloadTooLarge(_) => StatusCode::PAYLOAD_TOO_LARGE,
             AppError::Internal(_) => StatusCode::INTERNAL_SERVER_ERROR,
@@ -50,7 +47,6 @@ impl AppError {
             AppError::NotFound(_) => "not_found",
             AppError::BadRequest(_) => "bad_request",
             AppError::Forbidden(_) => "forbidden",
-            AppError::Conflict(_) => "conflict",
             AppError::Validation(_) => "validation_error",
             AppError::PayloadTooLarge(_) => "payload_too_large",
             AppError::Internal(_) => "internal_error",
@@ -86,9 +82,9 @@ impl From<DomainError> for AppError {
             DomainError::InvalidTimeRange { .. } | DomainError::InvalidUuid(_) => {
                 AppError::BadRequest(e.to_string())
             }
-            DomainError::InvalidSchema(_) | DomainError::InvalidTimelineReference(_) => {
-                AppError::BadRequest(e.to_string())
-            }
+            DomainError::InvalidSchema(_)
+            | DomainError::InvalidTimelineReference(_)
+            | DomainError::InvalidWebhookUrl(_) => AppError::BadRequest(e.to_string()),
             DomainError::PayloadValidation(_) => AppError::Validation(e.to_string()),
         }
     }
@@ -98,7 +94,9 @@ impl From<StoreError> for AppError {
     fn from(e: StoreError) -> Self {
         match e {
             StoreError::Cursor(_) => AppError::BadRequest(e.to_string()),
-            StoreError::Conflict(_) => AppError::Conflict(e.to_string()),
+            // TADS v0.1 uses `400` for client conflicts (e.g. duplicate schema `external_id`);
+            // the spec defines no `409` on any operation.
+            StoreError::Conflict(_) => AppError::BadRequest(e.to_string()),
             StoreError::PayloadTooLarge { .. } => AppError::PayloadTooLarge(e.to_string()),
             other => AppError::Internal(other.to_string()),
         }

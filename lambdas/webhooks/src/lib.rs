@@ -51,6 +51,9 @@ async fn create_webhook(
     State(state): State<AppState>,
     Json(post): Json<WebhookPost>,
 ) -> ApiResult<Response> {
+    // SSRF guard: only https, public-routable subscriber URLs. The delivery worker re-checks the
+    // resolved address before each POST (defends against DNS-rebinding).
+    tads_domain::validate_webhook_url(&post.webhook.url)?;
     let id = TadsId::new_v4();
     let api_key_value = post.api_key_value.clone();
     let webhook = to_webhook_get(id, post);
@@ -78,6 +81,7 @@ async fn put_webhook(
     let tid: TadsId = id
         .parse()
         .map_err(|_| AppError::BadRequest(format!("invalid webhook id `{id}`")))?;
+    tads_domain::validate_webhook_url(&post.webhook.url)?;
     let existed = state.webhooks.exists(&id).await?;
     let api_key_value = post.api_key_value.clone();
     let webhook = to_webhook_get(tid, post);

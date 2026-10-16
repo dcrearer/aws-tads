@@ -56,6 +56,11 @@ async fn deliver_record(http: &reqwest::Client, record: &Value) -> Result<(), St
     let job: DeliveryJob =
         serde_json::from_str(body_str).map_err(|e| format!("invalid DeliveryJob: {e}"))?;
 
+    // SSRF guard (delivery-time): re-resolve the host and refuse if any address is private/
+    // link-local/loopback/metadata. Registration already validated the URL, but DNS can change
+    // between registration and delivery (rebinding), so we re-check every resolved address here.
+    ensure_safe_destination(&job.url).await?;
+
     let mut req = http
         .post(&job.url)
         .json(&job.body)
@@ -70,4 +75,38 @@ async fn deliver_record(http: &reqwest::Client, record: &Value) -> Result<(), St
     } else {
         Err(format!("subscriber returned {}", resp.status()))
     }
+}
+
+/// Reject the destination unless it is an https URL that resolves exclusively to public,
+/// non-blocked addresses. Residual TOCTOU: reqwest re-resolves on connect, so a determined
+/// rebinding attacker could still race us; pinning the socket to the validated address would close
+/// that, at the cost of managing TLS SNI/Host manually. For a webhook callback this check is a
+/// proportionate control and strictly better than trusting the stored URL.
+async fn ensure_safe_destination(raw: &str) -> Result<(), String> {
+    let url = url::Url::parse(raw).map_err(|e| format!("invalid url `{raw}`: {e}"))?;
+    if url.scheme() != "https" {
+        return Err(format!("refusing non-https destination `{raw}`"));
+    }
+    let host = url
+        .host_str()
+        .ok_or_else(|| format!("url `{raw}` has no host"))?;
+    let port = url.port_or_known_default().unwrap_or(443);
+
+    let addrs = tokio::net::lookup_host((host, port))
+        .await
+        .map_err(|e| format!("dns resolution of `{host}` failed: {e}"))?;
+    let mut resolved = false;
+    for addr in addrs {
+        resolved = true;
+        if tads_domain::is_blocked_ip(addr.ip()) {
+            return Err(format!(
+                "refusing delivery: `{host}` resolves to blocked address {}",
+                addr.ip()
+            ));
+        }
+    }
+    if !resolved {
+        return Err(format!("`{host}` did not resolve to any address"));
+    }
+    Ok(())
 }

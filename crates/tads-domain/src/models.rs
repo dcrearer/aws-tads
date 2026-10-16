@@ -134,16 +134,13 @@ pub struct TrackEventPost {
 }
 
 /// `track-event-post-responses.json` — per-event outcome of a (possibly batched) POST.
-///
-/// `Deserialize` is derived as well as `Serialize` so an API *client* (e.g. the video-understanding
-/// write path) can parse the response it receives, not just the server emit it.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct EventPostResponses {
     pub all_successful: bool,
     pub responses: Vec<EventPostResponse>,
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct EventPostResponse {
     pub http_status_code: u16,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -308,7 +305,7 @@ mod tests {
     #[test]
     fn error_body_uses_type_key() {
         let e = ErrorBody {
-            kind: "conflict".into(),
+            kind: "bad_request".into(),
             summary: "overlap".into(),
             traceback: None,
             time: Utc::now(),

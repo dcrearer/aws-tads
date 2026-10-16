@@ -17,8 +17,8 @@ pub use ids::TadsId;
 pub use tags::{TagValue, Tags};
 pub use timerange::{TimeRange, Timestamp};
 pub use validation::{
-    PayloadValidator, compile_schema, ensure_valid_schema, validate_payload,
-    validate_timeline_reference, validate_with,
+    PayloadValidator, compile_schema, ensure_valid_schema, is_blocked_ip, validate_payload,
+    validate_timeline_reference, validate_webhook_url, validate_with,
 };
 
 pub use models::{

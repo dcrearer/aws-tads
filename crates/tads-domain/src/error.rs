@@ -20,4 +20,7 @@ pub enum DomainError {
 
     #[error("invalid timeline_reference: {0}")]
     InvalidTimelineReference(String),
+
+    #[error("invalid webhook url: {0}")]
+    InvalidWebhookUrl(String),
 }

@@ -118,17 +118,6 @@ class Api(Construct):
                 authorizer=authorizer,
             )
 
-        def route_unauthenticated(
-            path: str, fn: lambda_.Function, integ_id: str, method: apigw.HttpMethod
-        ) -> None:
-            # No Cognito authorizer: inbound TAMS webhooks present an HMAC signature (verified in the
-            # handler), not a bearer token. The signature check is the gate.
-            self.http_api.add_routes(
-                path=path,
-                methods=[method],
-                integration=apigw_integ.HttpLambdaIntegration(integ_id, fn),
-            )
-
         route("/", compute.fn_service, "RootInteg")
         route("/service", compute.fn_service, "ServiceInteg")
         route("/service/webhooks", compute.fn_webhooks, "WebhooksInteg")
@@ -140,11 +129,3 @@ class Api(Construct):
         route("/tracks/{proxy+}", compute.fn_tracks, "TracksProxyInteg")
         route("/track-delete-requests", compute.fn_delete_requests, "DeleteReqInteg")
         route("/track-delete-requests/{proxy+}", compute.fn_delete_requests, "DeleteReqProxyInteg")
-
-        # Inbound TAMS webhook — unauthenticated at the gateway; HMAC-verified in the handler.
-        route_unauthenticated(
-            "/webhooks/tams/segments-added",
-            compute.fn_vu_webhook,
-            "VuTamsWebhookInteg",
-            apigw.HttpMethod.POST,
-        )

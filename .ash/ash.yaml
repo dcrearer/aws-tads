@@ -3,18 +3,6 @@ project_name: aws-tads
 global_settings:
   severity_threshold: MEDIUM
 
-  # Paths excluded from scanning entirely. config/vu.yaml is the gitignored local VU runtime config
-  # that may hold an inline OAuth client secret; it is never committed, so CI never scans it.
-  ignore_paths:
-    - path: config/vu.yaml
-      reason: >-
-        Local, gitignored VU pipeline runtime config that may contain an inline OAuth client
-        secret. Not tracked in version control; the committed template is config/vu.example.yaml.
-    - path: lambdas/vu-analysis-worker/examples/segments_added.json
-      reason: >-
-        Local, gitignored dry-run payload holding an ephemeral pre-signed S3 URL (temporary STS
-        credentials). Not tracked; the committed template is segments_added.example.json.
-
   # Each suppression documents an accepted risk or verified false positive. Expirations force
   # periodic re-review (and will re-surface the finding in ~90 days). Keep this list minimal:
   # genuine findings are fixed at the source (CDK stack, Dockerfile, CI workflow), not suppressed.
@@ -32,24 +20,6 @@ global_settings:
         Documentation example — a throwaway LOCAL Postgres URL
         (postgres://postgres:postgres@localhost) for running the TADS_TEST_DB-gated tests against a
         local container. Not a real credential.
-      expiration: "2027-01-04"
-    - rule_id: SECRET-SECRET-KEYWORD
-      path: crates/vu-auth/src/lib.rs
-      reason: >-
-        Test fixture, not a real secret. The flagged line is the unit-test `creds()` helper whose
-        dummy `client_secret: "secret"` feeds the token-cache/expiry tests for TokenProvider.
-      expiration: "2027-01-04"
-    - rule_id: SECRET-SECRET-KEYWORD
-      path: lambdas/vu-analysis-worker/src/config.rs
-      reason: >-
-        Test fixture, not a real secret. The flagged line is a unit test asserting inline TAMS OAuth
-        config parses; its `client_secret: "shh"` is dummy input.
-      expiration: "2027-01-04"
-    - rule_id: SECRET-HEX-HIGH-ENTROPY-STRING
-      path: '**/.ruff_cache/**'
-      reason: >-
-        Tooling cache artifact (ruff's CACHEDIR.TAG signature) — gitignored and never committed.
-        Not source, not a secret.
       expiration: "2027-01-04"
 
     # -- Transitive dependency advisories (AWS SDK), not exploitable in our usage --------------

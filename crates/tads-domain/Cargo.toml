@@ -12,6 +12,7 @@ thiserror.workspace = true
 uuid.workspace = true
 chrono.workspace = true
 jsonschema.workspace = true
+url.workspace = true
 
 [dev-dependencies]
 criterion.workspace = true
