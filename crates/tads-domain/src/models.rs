@@ -305,7 +305,7 @@ mod tests {
     #[test]
     fn error_body_uses_type_key() {
         let e = ErrorBody {
-            kind: "conflict".into(),
+            kind: "bad_request".into(),
             summary: "overlap".into(),
             traceback: None,
             time: Utc::now(),
